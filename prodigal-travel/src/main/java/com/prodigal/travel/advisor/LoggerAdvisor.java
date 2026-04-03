@@ -38,11 +38,11 @@ public class LoggerAdvisor implements CallAroundAdvisor, StreamAroundAdvisor {
     }
 
     private AdvisedRequest before(AdvisedRequest request) {
-        log.info("AI Request: {}", request);
+        log.info("AI Request: {}", request.userText());
         return request;
     }
 
     private void observeAfter(AdvisedResponse response) {
-        log.info("AI Response: {}", response);
+        log.info("AI Response: {}", response.response().getResult().getOutput().getText());
     }
 }

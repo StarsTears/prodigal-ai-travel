@@ -59,4 +59,14 @@ public class WebSearchTool {
             return "Error searching Bing: " + e.getMessage();
         }
     }
+
+    @Tool(description = "Recommend tourist attractions for a Chinese region, city or theme (uses web search).")
+    public String recommendAttractions(
+            @ToolParam(description = "Destination or theme, e.g. 甘肃、敦煌、三山五岳") String regionOrTheme) {
+        if (regionOrTheme == null || regionOrTheme.isBlank()) {
+            return "请提供目的地或主题（如省、市、景区类型），以便检索景点推荐。";
+        }
+        String q = regionOrTheme.trim() + " 旅游景点推荐 攻略";
+        return this.searchWeb(q);
+    }
 }

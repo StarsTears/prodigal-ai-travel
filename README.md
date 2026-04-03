@@ -3,6 +3,13 @@
 面向中国国内旅游场景的 **AI 旅游助手** 全栈示例：后端基于 **Spring Boot + Spring AI + 阿里云通义（DashScope）**，前端为 **Umi 4 + React + Ant Design** 的对话界面；可选 **PostgreSQL + pgvector** 做向量检索（RAG），并集成 **联网搜索、高德天气、邮件、文件读写** 等工具，以及 **MCP 客户端**（如高德地图 MCP）。
 
 ---
+界面如图所示
+
+<p align="center">
+  <img src="img/img.png" alt="界面截图 1" width="48%" />
+  &nbsp;&nbsp;
+  <img src="img/img_1.png" alt="界面截图 2" width="48%" />
+</p>
 
 ## 仓库结构
 

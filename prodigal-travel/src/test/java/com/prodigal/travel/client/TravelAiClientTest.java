@@ -35,7 +35,8 @@ class TravelAiClientTest {
     @Test
     void doChatWithRag() {
         String chatId = UUID.fastUUID().toString();
-        String content = travelAiClient.doChatWithRag("我想去伦敦旅游，有推荐的景点吗？并将内容发送给 邮箱", chatId);
+//        String content = travelAiClient.doChatWithRag("我想去伦敦旅游，有推荐的景点吗？并将内容生成PDF发送给 邮箱", chatId);
+        String content = travelAiClient.doChatWithTool("我想去甘肃旅游，有推荐的景点吗？并将内容生成PDF发送给 邮箱", chatId);
         assertNotNull(content);
     }
 
@@ -46,7 +47,7 @@ class TravelAiClientTest {
         String content = travelAiClient.doChatWithTool("当前时间是多少？厦门近几日的天气如何?", chatId);
         assertNotNull(content);
         //第二轮 ,2812632023@qq.com
-        content = travelAiClient.doChatWithTool("将内容发送给 198116203@qq.com", chatId);
+        content = travelAiClient.doChatWithTool("将内容发送给 邮箱", chatId);
         assertNotNull(content);
     }
 
@@ -58,7 +59,7 @@ class TravelAiClientTest {
 //        assertNotNull(content);
 //
 //        //第二轮 ,2812632023@qq.com
-//        content = travelAiClient.doChatWithTool("将上述内容发送给 198116203@qq.com", chatId);
+//        content = travelAiClient.doChatWithTool("将上述内容发送给 邮箱", chatId);
 //        assertNotNull(content);
 //    }
 }
