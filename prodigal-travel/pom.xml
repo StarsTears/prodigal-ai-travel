@@ -7,7 +7,7 @@
         <groupId>com.prodigal</groupId>
         <artifactId>prodigal-ai-travel</artifactId>
         <version>1.0.0</version>
-        <relativePath/>
+        <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>prodigal-travel</artifactId>
@@ -63,10 +63,10 @@
         </dependency>
 
         <!-- Spring AI MCP 客户端-->
-<!--        <dependency>-->
-<!--            <groupId>org.springframework.ai</groupId>-->
-<!--            <artifactId>spring-ai-starter-mcp-client</artifactId>-->
-<!--        </dependency>-->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-mcp-client-spring-boot-starter</artifactId>
+        </dependency>
 
         <!-- Spring AI MCP 服务端-->
 <!--        <dependency>-->

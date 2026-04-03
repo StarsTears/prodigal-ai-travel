@@ -51,15 +51,15 @@ class TravelAiClientTest {
         assertNotNull(content);
     }
 
-//    @Test
-//    void doChatWithMCP() {
-//        String chatId = UUID.fastUUID().toString();
-//        String message = "我想去贵州旅游，有推荐的景点吗？若要区梵净山游玩，请给出行程规划";
-//        String content = travelAiClient.doChatWithMCP(message, chatId);
-//        assertNotNull(content);
-//
-//        //第二轮 ,2812632023@qq.com
-//        content = travelAiClient.doChatWithTool("将上述内容发送给 邮箱", chatId);
-//        assertNotNull(content);
-//    }
+    @Test
+    void doChatWithMCP() {
+        String chatId = UUID.fastUUID().toString();
+        String message = "我想去贵州旅游，有推荐的景点吗？若要区梵净山游玩，请给出行程规划";
+        String content = travelAiClient.doChatWithMCP(message, chatId);
+        assertNotNull(content);
+
+        //第二轮 ,2812632023@qq.com
+        content = travelAiClient.doChatWithTool("将上述内容发送给 邮箱", chatId);
+        assertNotNull(content);
+    }
 }

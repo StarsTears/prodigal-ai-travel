@@ -130,25 +130,25 @@ public class TravelAiClient {
         return chatResponse.getResult().getOutput().getText();
     }
 
-//    @Resource
-//    private ToolCallbackProvider toolCallbackProvider;
-//    /**
-//     * MCP
-//     * @param message
-//     * @param chatId
-//     * @return
-//     */
-//    public String doChatWithMCP(String message, String chatId) {
-//        ChatResponse chatResponse = chatClient.prompt()
-//                .user(message)
-//                .advisors(spec -> spec.param(CHAT_MEMORY_CONVERSATION_ID_KEY, chatId) //对话id
-//                        .param(CHAT_MEMORY_RETRIEVE_SIZE_KEY, 10) //关联会话的条数
-//                )
-//                //开启日志
-//                .advisors(new LoggerAdvisor())
-//                .tools(toolCallbackProvider)
-//                .call()
-//                .chatResponse();
-//        return chatResponse.getResult().getOutput().getText();
-//    }
+    @Resource
+    private ToolCallbackProvider toolCallbackProvider;
+    /**
+     * MCP
+     * @param message
+     * @param chatId
+     * @return
+     */
+    public String doChatWithMCP(String message, String chatId) {
+        ChatResponse chatResponse = chatClient.prompt()
+                .user(message)
+                .advisors(spec -> spec.param(CHAT_MEMORY_CONVERSATION_ID_KEY, chatId) //对话id
+                        .param(CHAT_MEMORY_RETRIEVE_SIZE_KEY, 10) //关联会话的条数
+                )
+                //开启日志
+                .advisors(new LoggerAdvisor())
+                .tools(toolCallbackProvider)
+                .call()
+                .chatResponse();
+        return chatResponse.getResult().getOutput().getText();
+    }
 }

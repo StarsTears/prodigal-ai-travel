@@ -29,6 +29,7 @@
         <spring-ai.version>1.0.0-M6</spring-ai.version>
         <pgvector.version>1.0.0-M7</pgvector.version>
         <kryo.version>5.6.2</kryo.version>
+        <spring-ai-mcp.version>1.0.0-M6</spring-ai-mcp.version>
 
         <hutool.version>5.8.37</hutool.version>
         <knife4j.version>4.4.0</knife4j.version>
@@ -61,7 +62,7 @@
                 <version>${pgvector.version}</version>
             </dependency>
 
-            <!--支持文件会话记忆持久化的序列化-->
+            <!--支持文件会话记忆持久化的序列化 用于数据库存储持久化记录-->
             <dependency>
                 <groupId>com.esotericsoftware</groupId>
                 <artifactId>kryo</artifactId>
@@ -69,10 +70,11 @@
             </dependency>
 
             <!-- Spring AI MCP 客户端-->
-<!--            <dependency>-->
-<!--                <groupId>org.springframework.ai</groupId>-->
-<!--                <artifactId>spring-ai-starter-mcp-client</artifactId>-->
-<!--            </dependency>-->
+            <dependency>
+                <groupId>org.springframework.ai</groupId>
+                <artifactId>spring-ai-mcp-client-spring-boot-starter</artifactId>
+                <version>${spring-ai-mcp.version}</version>
+            </dependency>
 
             <!-- Spring AI MCP 服务端-->
 <!--            <dependency>-->
