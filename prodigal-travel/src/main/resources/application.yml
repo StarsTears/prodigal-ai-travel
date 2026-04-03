@@ -1,0 +1,111 @@
+server:
+  port: 8088
+  servlet:
+    context-path: /api
+spring:
+  application:
+    name: prodigal-ai-travel
+  profiles:
+    active: local
+  ai:
+    dashscope:
+      api-key: XXXX
+      chat:
+        options:
+          model: qwen-plus
+          temperature: 0.7
+      # RAG 向量入库需要 Embedding（与 chat 共用 api-key）
+      embedding:
+        options:
+          model: text-embedding-v2
+    vectorstore:
+      pgvector:
+        index-type: HNSW
+        distance-type: COSINE_DISTANCE
+        dimensions: 1536
+        max-document-batch-size: 10000 # Optional: Maximum number of documents per batch
+    # MCP 客户端：接入地图、天气等外部 MCP 时改为 enabled: true 并配置 sse.connections
+    mcp:
+      client:
+        enabled: true
+        stdio:
+          servers-configuration: XXXX
+        # sse:下·
+        #   connections:
+        #     example-map:
+        #       url: https://your-mcp-host/sse
+
+  #datasource
+  datasource:
+    url: jdbc:postgresql://your db host:5432/prodigal_ai_travel
+    username: XXX
+    password: XXX
+  mail:
+    host: smtp.qq.com
+    port: 587
+    username: prodigal.lang@qq.com
+    password: 你的邮箱 App 专用密码
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+# datasource:
+#    driver-class-name: com.mysql.cj.jdbc.Driver
+#    url: jdbc:mysql://localhost:3306/prodigal_ai_agent?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai
+#    username: XXX
+#    password: XXX
+# mybatis plus
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true #????
+    # ??SQL
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.prodigal.aitravel.model.entity
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+prodigal:
+  # searchApi https://www.searchapi.io/
+  search-api:
+    api-key: XXX
+  # 高德开放平台 Web 服务 API Key
+  amap:
+    api-key: XXX
+    host: https://restapi.amap.com/  # 高德 API 地址
+
+# springdoc-openapi
+# http://localhost:port/api/doc.html
+springdoc:
+  swagger-u1:
+    path: /swagger-ui.html
+    tags-sorter:  alpha
+    operations-sorter:  alpha
+  api-docs:
+    path: /v3/api-docs
+  group-configs:
+    group:  'default'
+    paths-to-match: '/**'
+    packages-to-scan: com.prodigal.travel.controller
+# knife4j
+knife4j:
+  enable: true
+  setting:
+    language: zh_cn
+  openapi:
+    title: "Prodigal AI Travel 接口文档"
+    version: v1.0
+    description: "Prodigal AI 旅游助手接口文档"
+    concat: Lang
+    group:
+      default:
+        group-name: "local"
+        api-rule: package
+        api-rule-resources:
+          - com.prodigal.travel.controller

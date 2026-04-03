@@ -1,0 +1,19 @@
+/* 与布局 100vh 配合，避免整页随内容增高而出现双滚动条 */
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  overflow: hidden;
+}
+
+/* 让侧栏内子组件能撑满高度（底部用户信息贴底） */
+.chat-sider-inner {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
