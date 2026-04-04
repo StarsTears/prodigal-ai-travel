@@ -37,7 +37,7 @@ public class TravelConstant {
                             4. 结合实时天气给出穿搭与出行提醒
                             5. 可在用户明确要求时发送邮件
                             
-                            ## 可用工具（名称必须与下列一致，禁止臆造未列出工具）
+                            ## 可用工具
                             - sendEmail: 发送纯文本/HTML 邮件（无附件）
                             - sendEmailWithAttachment: 发送带附件的邮件
                             - getWeather: 查询天气

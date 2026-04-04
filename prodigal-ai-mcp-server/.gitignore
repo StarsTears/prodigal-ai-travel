@@ -31,7 +31,3 @@ build/
 
 ### VS Code ###
 .vscode/
-
-### Local secrets / environment (do not commit) ###
-**/application-local.yml
-**/mcp-servers-local.json

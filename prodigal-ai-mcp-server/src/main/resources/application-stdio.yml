@@ -1,0 +1,12 @@
+spring:
+  ai:
+    mcp:
+      server:
+        name: prodigal-ai-mcp-server
+        version: 1.0.0
+        type: SYNC
+        stdio: true # 是否使用标准输入输出
+  # stdio 模式；关闭web以及控制台没必要的输出
+  main:
+    web-application-type: none
+    banner-mode: off

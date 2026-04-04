@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: prodigal-ai-mcp-server
+  profiles:
+    active: sse
+server:
+  port: 8090
+
+pexels:
+  api-key: XXX

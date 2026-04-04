@@ -54,7 +54,8 @@ class TravelAiClientTest {
     @Test
     void doChatWithMCP() {
         String chatId = UUID.fastUUID().toString();
-        String message = "我想去贵州旅游，有推荐的景点吗？若要区梵净山游玩，请给出行程规划";
+//        String message = "我想去贵州旅游，有推荐的景点吗？若要区梵净山游玩，请给出行程规划";
+        String message = "给我找一下山顶的风景照";
         String content = travelAiClient.doChatWithMCP(message, chatId);
         assertNotNull(content);
 

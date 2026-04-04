@@ -1,0 +1,15 @@
+spring:
+  ai:
+    mcp:
+      server:
+        name: prodigal-ai-mcp-server
+        version: 1.0.0
+        type: SYNC
+        # sse
+        stdio: false
+        #URL 前缀
+        base-url: /api/v1
+        #用于 Web 传输的自定义 SSE 端点路径
+#        sse-endpoint: /sse
+        #用于 Web 传输的自定义 SSE 消息端点路径，供客户端发送消息
+#        sse-message-endpoint: /sse/message
