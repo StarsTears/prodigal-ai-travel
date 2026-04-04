@@ -17,3 +17,17 @@ body {
   flex-direction: column;
   overflow: hidden;
 }
+
+/* 侧栏用户菜单：接近 DeepSeek 的圆角浮层与阴影 */
+.prodigal-profile-dropdown .ant-dropdown-menu {
+  padding: 6px;
+  border-radius: 10px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.12);
+}
+.prodigal-profile-dropdown .ant-dropdown-menu-item {
+  border-radius: 8px;
+  margin-inline: 2px;
+}
+.prodigal-profile-dropdown .ant-dropdown-menu-item-divider {
+  margin: 6px 8px;
+}

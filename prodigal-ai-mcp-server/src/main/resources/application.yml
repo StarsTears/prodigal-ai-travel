@@ -2,7 +2,7 @@ spring:
   application:
     name: prodigal-ai-mcp-server
   profiles:
-    active: sse
+    active: local,stdio
 server:
   port: 8090
 

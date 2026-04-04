@@ -3,8 +3,10 @@
 // API 更新时间：
 // API 唯一标识：
 import * as healthController from "./healthController";
-import * as lvyouzhushou from "./lvyouzhushou";
+import * as travelAssistant from "./travelAssistant";
+import * as auth from "./auth";
 export default {
-  lvyouzhushou,
+  travelAssistant,
   healthController,
+  auth,
 };

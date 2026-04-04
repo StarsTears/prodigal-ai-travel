@@ -31,17 +31,22 @@ spring:
         name: travel-mcp-client
         version: 1.0
         request-timeout: 300000
-#        stdio:
-#          servers-configuration: classpath:mcp-servers.json
-        sse:
-          connections:
-            url: http://your-mcp-host/sse
+        stdio:
+          servers-configuration: classpath:mcp-servers.json
+#        sse:
+#          connections:
+#            url: http://your-mcp-host/sse
 
   #datasource
+#  datasource:
+#    url: jdbc:postgresql://your db host:5432/prodigal_ai_travel
+#    username: XXX
+#    password: XXX
   datasource:
-    url: jdbc:postgresql://your db host:5432/prodigal_ai_travel
-    username: XXX
-    password: XXX
+     driver-class-name: com.mysql.cj.jdbc.Driver
+     url: jdbc:mysql://localhost:3306/prodigal_ai_agent?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai
+     username: XXX
+     password: XXX
   mail:
     host: smtp.qq.com
     port: 587
@@ -53,11 +58,7 @@ spring:
           auth: true
           starttls:
             enable: true
-# datasource:
-#    driver-class-name: com.mysql.cj.jdbc.Driver
-#    url: jdbc:mysql://localhost:3306/prodigal_ai_agent?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai
-#    username: XXX
-#    password: XXX
+
 # mybatis plus
 mybatis-plus:
   configuration:
@@ -65,7 +66,7 @@ mybatis-plus:
     # ??SQL
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
   mapper-locations: classpath:mapper/*.xml
-  type-aliases-package: com.prodigal.aitravel.model.entity
+  type-aliases-package: com.prodigal.travel.model.entity
   global-config:
     db-config:
       id-type: auto
@@ -74,6 +75,13 @@ mybatis-plus:
       logic-not-delete-value: 0
 
 prodigal:
+  jwt:
+    secret: ${PRODIGAL_JWT_SECRET:prodigal-travel-default-jwt-secret-min-32-chars-long!!}
+    expire-hours: 10
+  auth:
+    register:
+      code-ttl-minutes: 5
+      send-interval-seconds: 60
   # searchApi https://www.searchapi.io/
   search-api:
     api-key: XXX

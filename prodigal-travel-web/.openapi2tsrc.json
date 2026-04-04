@@ -1,6 +1,6 @@
 {
   "schemaPath": "http://localhost:8088/api/v3/api-docs",
-  "serversPath": "./src/services/generated",
+  "serversPath": "./src/api",
   "apiPrefix": "'/api'",
   "requestLibPath": "import { request } from '@/request'"
 }

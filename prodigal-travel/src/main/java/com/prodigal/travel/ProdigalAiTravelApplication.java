@@ -1,9 +1,15 @@
 package com.prodigal.travel;
 
+import com.prodigal.travel.config.properties.AuthRegisterProperties;
+import com.prodigal.travel.config.properties.JwtProperties;
+import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 
 @SpringBootApplication
+@MapperScan("com.prodigal.travel.mapper")
+@EnableConfigurationProperties({JwtProperties.class, AuthRegisterProperties.class})
 public class ProdigalAiTravelApplication {
 
     public static void main(String[] args) {

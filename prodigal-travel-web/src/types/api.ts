@@ -11,11 +11,3 @@ export interface TravelChatResponse {
   chatId: string;
   answer?: string;
 }
-
-/** 与后端 `ChatRequest` 对齐的请求 JSON */
-export interface TravelChatRequestBody {
-  /** 用户问题，@NotBlank */
-  message: string;
-  /** 会话 id；不传则后端生成 */
-  chatId?: string;
-}

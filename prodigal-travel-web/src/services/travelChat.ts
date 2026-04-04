@@ -1,8 +1,8 @@
-import { chat as postTravelChatRequest } from '@/services/generated/api/lvyouzhushou';
+import { chat as postTravelChatRequest } from '@/api/travelAssistant';
 import type { BaseResult, TravelChatResponse } from '@/types';
 
 /**
- * 聊天请求封装在 `@umijs/openapi` 生成的 `generated/api/lvyouzhushou.ts`（`npm run openapi2ts`）。
+ * 聊天请求封装在 `@umijs/openapi` 生成的 `generated/api/travelAssistant.ts`（`npm run openapi2ts`）。
  * 路径前缀与 Spring `context-path=/api` 一致；重新生成后若路径异常，可将 `.openapi2tsrc.json` 中
  * `apiPrefix` 设为 `"'/api'"`（带引号）再执行 openapi2ts。
  */

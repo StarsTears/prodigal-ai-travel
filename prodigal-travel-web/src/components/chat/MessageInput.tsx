@@ -1,5 +1,5 @@
 import { SendOutlined } from '@ant-design/icons';
-import { Button, Col, Flex, Input, Row, theme } from 'antd';
+import { Button, Input, theme } from 'antd';
 import React, { useCallback, useState } from 'react';
 
 export interface MessageInputProps {
@@ -10,6 +10,10 @@ export interface MessageInputProps {
 
 const { TextArea } = Input;
 
+/** 为右下角发送按钮预留空间，避免文字与按钮重叠 */
+const TEXTAREA_PAD_RIGHT = 92;
+const TEXTAREA_PAD_BOTTOM = 40;
+
 export const MessageInput: React.FC<MessageInputProps> = ({
   disabled,
   onSend,
@@ -19,6 +23,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   const [value, setValue] = useState('');
 
   const composerStyle: React.CSSProperties = {
+    position: 'relative',
     borderRadius: 12,
     border: `1px solid ${token.colorBorderSecondary}`,
     boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
@@ -34,44 +39,47 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   }, [disabled, onSend, value]);
 
   return (
-    <Row gutter={[0, 12]}>
-      <Col span={24}>
-        <div style={composerStyle}>
-          <TextArea
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                void submit();
-              }
-            }}
-            placeholder={placeholder}
-            disabled={disabled}
-            autoSize={{ minRows: 2, maxRows: 8 }}
-            variant="borderless"
-            styles={{
-              textarea: {
-                padding: '6px 4px',
-                fontSize: token.fontSize,
-              },
-            }}
-          />
-        </div>
-      </Col>
-      <Col span={24}>
-        <Flex justify="end">
-          <Button
-            type="primary"
-            icon={<SendOutlined />}
-            loading={disabled}
-            onClick={() => void submit()}
-            disabled={disabled || !value.trim()}
-          >
-            发送
-          </Button>
-        </Flex>
-      </Col>
-    </Row>
+    <div style={composerStyle}>
+      <TextArea
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            void submit();
+          }
+        }}
+        placeholder={placeholder}
+        disabled={disabled}
+        autoSize={{ minRows: 2, maxRows: 8 }}
+        variant="borderless"
+        styles={{
+          textarea: {
+            padding: `6px ${TEXTAREA_PAD_RIGHT}px ${TEXTAREA_PAD_BOTTOM}px 4px`,
+            fontSize: token.fontSize,
+            lineHeight: 1.5,
+          },
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          right: 8,
+          bottom: 8,
+          zIndex: 1,
+        }}
+      >
+        <Button
+          type="primary"
+          size="middle"
+          icon={<SendOutlined />}
+          loading={disabled}
+          onClick={() => void submit()}
+          disabled={disabled || !value.trim()}
+        >
+          发送
+        </Button>
+      </div>
+    </div>
   );
 };

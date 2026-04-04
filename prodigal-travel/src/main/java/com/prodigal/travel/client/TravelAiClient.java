@@ -24,8 +24,7 @@ import static org.springframework.ai.chat.client.advisor.AbstractChatMemoryAdvis
 /**
  * 旅游助手专用 {@link ChatClient}、向量库与本地工具注册。
  * <p>
- * MCP：在 {@code application.yml} 中设置 {@code spring.ai.mcp.client.enabled=true} 并配置 SSE 连接后，
- * Spring AI 会将 MCP 工具与下方 {@link ToolCallbackProvider} 一并交给模型调度（具体行为以当前版本自动配置为准）。
+ * MCP：启用 {@code spring.ai.mcp.client} 后，{@link #doChatWithMCP} 会将
  */
 @Slf4j
 @Component
@@ -146,9 +145,13 @@ public class TravelAiClient {
                 )
                 //开启日志
                 .advisors(new LoggerAdvisor())
+                //MCP 的工具
                 .tools(toolCallbackProvider)
+                //工具调用
+                .tools(allTools)
                 .call()
                 .chatResponse();
         return chatResponse.getResult().getOutput().getText();
     }
+
 }

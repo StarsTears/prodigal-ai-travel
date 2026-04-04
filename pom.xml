@@ -31,6 +31,8 @@
         <kryo.version>5.6.2</kryo.version>
         <spring-ai-mcp.version>1.0.0-M6</spring-ai-mcp.version>
 
+        <mybatis-plus.version>3.5.7</mybatis-plus.version>
+        <jwt.version>4.4.0</jwt.version>
         <hutool.version>5.8.37</hutool.version>
         <knife4j.version>4.4.0</knife4j.version>
         <caffeine.version>3.1.8</caffeine.version>
@@ -83,6 +85,19 @@
 <!--                <version>${spring-ai-mcp.version}</version>-->
 <!--            </dependency>-->
 
+            <!--mybatis plus-->
+            <dependency>
+                <groupId>com.baomidou</groupId>
+                <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+                <version>${mybatis-plus.version}</version>
+            </dependency>
+
+            <!--jwt 认证-->
+<!--            <dependency>-->
+<!--                <groupId>com.auth0</groupId>-->
+<!--                <artifactId>java-jwt</artifactId>-->
+<!--                <version>${jwt.version}</version>-->
+<!--            </dependency>-->
 
             <!--hutool-->
             <dependency>
