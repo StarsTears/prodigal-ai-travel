@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.io.Serializable;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -24,5 +25,10 @@ public class ChatMessageVO implements Serializable {
     private String title;
 
     private List<ChatMessage> messages;
+
+    /**
+     * 会话最近活动时间（用于前端历史分组、排序），一般对应库表 update_time。
+     */
+    private Date updateTime;
 
 }

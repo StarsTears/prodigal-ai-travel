@@ -30,6 +30,22 @@ const sortConversations = (
 ): ConversationRecord[] =>
   [...list].sort((a, b) => b.updatedAt - a.updatedAt);
 
+/** 解析接口里的时间字段（ISO 字符串、毫秒/秒数字）。 */
+function parseApiTimeMs(raw: string | number | undefined | null): number | undefined {
+  if (raw == null) return undefined;
+  if (typeof raw === 'number' && Number.isFinite(raw)) {
+    return raw > 1e11 ? raw : raw * 1000;
+  }
+  const s = String(raw).trim();
+  if (!s) return undefined;
+  if (/^\d+$/.test(s)) {
+    const n = Number(s);
+    return n > 1e11 ? n : n * 1000;
+  }
+  const t = Date.parse(s);
+  return Number.isNaN(t) ? undefined : t;
+}
+
 function mapApiMessage(m: API.ChatMessage): ChatMessage {
   const r = (m.role ?? '').toLowerCase();
   const role: ChatMessage['role'] =
@@ -58,24 +74,33 @@ function mapApiMessages(
 /** 列表接口：仅元数据，messages 为空 */
 function voToListRecord(vo: API.ChatMessageVO, orderIndex: number): ConversationRecord {
   const cid = vo.conversationId ?? '';
+  const updatedAt =
+    parseApiTimeMs(vo.updateTime) ?? Date.now() - orderIndex;
   return {
     id: cid,
     backendChatId: cid,
     title: (vo.title ?? '').trim() || '对话',
     messages: [],
-    updatedAt: Date.now() - orderIndex,
+    updatedAt,
   };
 }
 
 /** 详情接口：含完整消息 */
 function voToDetailRecord(vo: API.ChatMessageVO): ConversationRecord {
   const cid = vo.conversationId ?? '';
+  const msgs = mapApiMessages(vo.messages);
+  let fromMessages = 0;
+  for (const m of msgs) {
+    if (m.createdAt > fromMessages) fromMessages = m.createdAt;
+  }
+  const updatedAt =
+    parseApiTimeMs(vo.updateTime) ?? (fromMessages > 0 ? fromMessages : Date.now());
   return {
     id: cid,
     backendChatId: cid,
     title: (vo.title ?? '').trim() || '对话',
-    messages: mapApiMessages(vo.messages),
-    updatedAt: Date.now(),
+    messages: msgs,
+    updatedAt,
   };
 }
 

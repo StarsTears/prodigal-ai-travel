@@ -47,6 +47,8 @@ declare namespace API {
     conversationId?: string;
     title?: string;
     messages?: ChatMessage[];
+    /** 会话最近活动时间（ISO 或时间戳，由 Jackson 序列化） */
+    updateTime?: string | number;
   };
 
   type ChatRequest = {

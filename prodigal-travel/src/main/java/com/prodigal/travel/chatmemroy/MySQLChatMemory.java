@@ -18,6 +18,7 @@ import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
@@ -66,6 +67,11 @@ public class MySQLChatMemory implements ChatMemory {
         }
         if (!rows.isEmpty()) {
             chatMessageService.saveBatch(rows);
+            chatConversationService.lambdaUpdate()
+                    .eq(ChatConversation::getConversationId, parsed.chatUuid())
+                    .eq(ChatConversation::getUserId, parsed.userId())
+                    .set(ChatConversation::getUpdateTime, new Date())
+                    .update();
         }
     }
 

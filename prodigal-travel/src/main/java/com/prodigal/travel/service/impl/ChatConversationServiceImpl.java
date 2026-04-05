@@ -38,6 +38,7 @@ public class ChatConversationServiceImpl extends ServiceImpl<ChatConversationMap
         LambdaQueryWrapper<ChatConversation> queryWrapper = Wrappers.<ChatConversation>lambdaQuery()
                 .eq(ChatConversation::getUserId, userId)
                 .eq(StrUtil.isNotBlank(conversationId), ChatConversation::getConversationId, conversationId)
+                .orderByDesc(ChatConversation::getUpdateTime)
                 .orderByDesc(ChatConversation::getCreateTime);
         List<ChatConversation> list = this.list(queryWrapper);
         boolean withMessages = StrUtil.isNotBlank(conversationId);
@@ -54,6 +55,7 @@ public class ChatConversationServiceImpl extends ServiceImpl<ChatConversationMap
                     .conversationId(conv.getConversationId())
                     .title(conv.getTitle())
                     .messages(messages)
+                    .updateTime(conv.getUpdateTime() != null ? conv.getUpdateTime() : conv.getCreateTime())
                     .build();
         }).toList();
     }
