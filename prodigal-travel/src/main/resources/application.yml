@@ -7,6 +7,12 @@ spring:
     name: prodigal-ai-travel
   profiles:
     active: local
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      database: ${REDIS_DATABASE:0}
   ai:
     dashscope:
       api-key: XXXX
@@ -30,7 +36,7 @@ spring:
         enabled: true
         name: travel-mcp-client
         version: 1.0
-        request-timeout: 300000
+        request-timeout: 180000
         stdio:
           servers-configuration: classpath:mcp-servers.json
 #        sse:

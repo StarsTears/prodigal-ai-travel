@@ -7,26 +7,27 @@ import com.prodigal.travel.common.BaseResult;
 import com.prodigal.travel.common.ResultUtils;
 import com.prodigal.travel.config.OpenApiSecurityConfig;
 import com.prodigal.travel.controller.request.ChatRequest;
+import com.prodigal.travel.controller.vo.ChatMessageVO;
 import com.prodigal.travel.controller.vo.TravelChatResponse;
 import com.prodigal.travel.constants.LoginUserConstant;
+import com.prodigal.travel.service.ChatConversationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestAttribute;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/travel")
 @RequiredArgsConstructor
-@Tag(name = "旅游助手", description = "国内 RAG + 按出发地规划 + 天气工具 + 可选 MCP")
+@Tag(name = "travelAssistant", description = "国内 RAG + 按出发地规划 + 天气工具 + 可选 MCP")
 @SecurityRequirement(name = OpenApiSecurityConfig.SECURITY_SCHEME_NAME)
 public class TravelAssistantController {
 
     private final TravelAiClient travelAiClient;
+    private final ChatConversationService chatConversationService;
 
     @Operation(
             summary = "旅游助手对话",
@@ -45,4 +46,25 @@ public class TravelAssistantController {
         TravelChatResponse response = new TravelChatResponse();
         return ResultUtils.success(response.chatId(chatId).answer(answer));
     }
+
+    @Operation(
+            summary = "历史会话",
+            description = "不传 chatId 时返回当前用户全部会话（仅元数据）；传 chatId 时返回该会话及全部消息。"
+    )
+    @GetMapping("/conversations")
+    public BaseResult<List<ChatMessageVO>> conversations(
+            @RequestAttribute(LoginUserConstant.REQUEST_ATTR_USER_ID) Long loginUserId,
+            @RequestParam(required = false) String chatId) {
+        return ResultUtils.success(chatConversationService.findByUserId(chatId, loginUserId));
+    }
+
+    @Operation(summary = "删除会话", description = "删除指定会话及其消息；需登录")
+    @DeleteMapping("/conversations")
+    public BaseResult<Void> deleteConversation(
+            @RequestAttribute(LoginUserConstant.REQUEST_ATTR_USER_ID) Long loginUserId,
+            @RequestParam String chatId) {
+        chatConversationService.remove(chatId, loginUserId);
+        return ResultUtils.success(null);
+    }
+
 }

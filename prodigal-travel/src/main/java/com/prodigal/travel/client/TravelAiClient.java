@@ -1,6 +1,7 @@
 package com.prodigal.travel.client;
 
 import com.prodigal.travel.advisor.LoggerAdvisor;
+import com.prodigal.travel.chatmemroy.MySQLChatMemory;
 import com.prodigal.travel.constants.TravelConstant;
 import com.prodigal.travel.rag.QueryRewriter;
 import com.prodigal.travel.rag.TravelRagCustomAdvisorFactory;
@@ -39,15 +40,31 @@ public class TravelAiClient {
 
     private final ChatModel dashscopeChatModel;
 
-    public TravelAiClient(ChatModel dashscopeChatModel) {
+    /**
+     * 基于内存的对话记忆
+     * @param dashscopeChatModel
+     */
+//    public TravelAiClient(ChatModel dashscopeChatModel) {
+//        this.dashscopeChatModel = dashscopeChatModel;
+//        //1、基于内存的对话记忆
+//        ChatMemory chatMemory = new InMemoryChatMemory();
+//        chatClient = ChatClient.builder(dashscopeChatModel)
+//                .defaultSystem(TravelConstant.SYSTEM_PROMPT)
+//                .defaultAdvisors(new MessageChatMemoryAdvisor(chatMemory))
+//                .build();
+//    }
+
+    /**
+     * 基于 MySQL 的会话记忆
+     * @param dashscopeChatModel
+     * @param chatMemory
+     */
+    public TravelAiClient(ChatModel dashscopeChatModel, MySQLChatMemory chatMemory) {
         this.dashscopeChatModel = dashscopeChatModel;
-        //1、基于内存的对话记忆
-        ChatMemory chatMemory = new InMemoryChatMemory();
         chatClient = ChatClient.builder(dashscopeChatModel)
                 .defaultSystem(TravelConstant.SYSTEM_PROMPT)
                 .defaultAdvisors(new MessageChatMemoryAdvisor(chatMemory))
                 .build();
-        //
     }
 
     /**

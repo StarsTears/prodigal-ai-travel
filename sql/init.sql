@@ -32,9 +32,9 @@ CREATE TABLE IF NOT EXISTS user (
 
 -- 会话元数据：便于按用户列出历史会话、标题等（与 TravelAssistantController 的 chatId 一致）
 CREATE TABLE IF NOT EXISTS chat_conversation (
-    id               BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键',
-    user_id          VARCHAR(64)  NOT NULL COMMENT '用户标识，与请求头 X-User-Id 一致',
+    id               VARCHAR(64) PRIMARY KEY  COMMENT '主键',
     conversation_id  VARCHAR(64)  NOT NULL COMMENT '会话 ID（UUID）',
+    user_id          BIGINT       NOT NULL DEFAULT 0 COMMENT '用户标识，与请求头 X-User-Id 一致',
     title            VARCHAR(255) DEFAULT NULL COMMENT '会话标题，可由首条消息摘要生成',
     create_time      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
@@ -45,9 +45,9 @@ CREATE TABLE IF NOT EXISTS chat_conversation (
 
 -- 单条消息持久化（Spring AI ChatMemory / 前端消息列表）
 CREATE TABLE IF NOT EXISTS chat_message (
-    id               BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键',
+    id               VARCHAR(64) PRIMARY KEY  COMMENT '主键',
     conversation_id  VARCHAR(64) NOT NULL COMMENT '会话 ID，对应 chat_conversation.conversation_id',
-    user_id          VARCHAR(64) NOT NULL COMMENT '用户标识，与 X-User-Id 一致',
+    user_id          BIGINT      NOT NULL DEFAULT 0 COMMENT '用户标识，与 X-User-Id 一致',
     role             VARCHAR(32) NOT NULL COMMENT '角色：user、assistant、system、tool 等',
     content          LONGTEXT    NOT NULL COMMENT '消息内容',
     create_time      DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',

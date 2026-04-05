@@ -4,7 +4,6 @@ import {
   LogoutOutlined,
   MoreOutlined,
   PlusOutlined,
-  SearchOutlined,
   SettingOutlined,
   UserDeleteOutlined,
 } from '@ant-design/icons';
@@ -18,6 +17,7 @@ import {
   Menu,
   Modal,
   Popconfirm,
+  Spin,
   Typography,
   message,
   theme,
@@ -32,13 +32,17 @@ const DISPLAY_NAME_KEY = 'prodigal-travel-display-name';
 export interface SidebarProps {
   conversations: ConversationRecord[];
   activeId: string | null;
-  search: string;
-  onSearchChange: (v: string) => void;
   onNew: () => void;
   onSelect: (id: string) => void;
-  onDelete: (id: string) => void;
+  onDelete: (id: string) => void | Promise<void>;
   /** 未登录时点击打开登录弹窗 */
   onOpenLogin?: () => void;
+  /**
+   * 已移除侧栏搜索框；保留可选字段并默认 `''`，避免旧代码或合并残留仍引用 `search` 时报 ReferenceError。
+   */
+  search?: string;
+  /** 已登录且正在从服务端拉取会话列表 */
+  listLoading?: boolean;
 }
 
 const { Text } = Typography;
@@ -46,12 +50,12 @@ const { Text } = Typography;
 export const Sidebar: React.FC<SidebarProps> = ({
   conversations,
   activeId,
-  search,
-  onSearchChange,
   onNew,
   onSelect,
   onDelete,
   onOpenLogin,
+  search = '',
+  listLoading = false,
 }) => {
   const { token: themeToken } = theme.useToken();
   const { user, logout, deregisterAccount, token } = useAuth();
@@ -166,6 +170,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         padding: 12,
         boxSizing: 'border-box',
       }}
+      data-deprecated-sidebar-search={search || undefined}
     >
       <Flex align="center" gap={10} style={{ flexShrink: 0, paddingBottom: 4 }}>
         <img
@@ -183,18 +188,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <Button type="primary" icon={<PlusOutlined />} block onClick={onNew}>
           新对话
         </Button>
-        <Input
-          allowClear
-          style={{ marginTop: 8 }}
-          value={search}
-          onChange={(e) => onSearchChange(e.target.value)}
-          placeholder="搜索历史…"
-          prefix={<SearchOutlined />}
-        />
       </div>
-      <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
-        {conversations.length === 0 ? (
-          <Empty description={<Text type="secondary">暂无匹配记录</Text>} />
+      <div style={{ flex: 1, minHeight: 0, overflow: 'auto', position: 'relative' }}>
+        {listLoading ? (
+          <Flex align="center" justify="center" style={{ minHeight: 120 }}>
+            <Spin />
+          </Flex>
+        ) : conversations.length === 0 ? (
+          <Empty description={<Text type="secondary">暂无对话</Text>} />
         ) : (
           <Menu
             mode="inline"

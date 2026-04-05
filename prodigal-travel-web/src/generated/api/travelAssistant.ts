@@ -32,30 +32,17 @@ export async function conversations(
   });
 }
 
-/**
- * 删除会话：删除该会话在库中的元数据及全部消息（后端按 userId + chatId 校验归属）。
- * 需登录：`Authorization: Bearer`。
- * 对应后端 `DELETE /travel/conversations?chatId=...`（`chatId` 为 Query 必填）。
- */
+/** 删除会话 删除指定会话及其消息；需登录 DELETE /travel/conversations */
 export async function deleteConversation(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
   params: API.deleteConversationParams,
   options?: { [key: string]: any }
 ) {
-  const chatId = params?.chatId?.trim();
-  if (!chatId) {
-    return Promise.reject(new Error('缺少会话 ID（chatId）'));
-  }
   return request<API.BaseResultVoid>(`/api/travel/conversations`, {
-    method: 'DELETE',
-    params: { chatId },
+    method: "DELETE",
+    params: {
+      ...params,
+    },
     ...(options || {}),
   });
-}
-
-/** 同 {@link deleteConversation}，单参写法。 */
-export async function deleteConversationByChatId(
-  chatId: string,
-  options?: { [key: string]: any }
-) {
-  return deleteConversation({ chatId }, options);
 }

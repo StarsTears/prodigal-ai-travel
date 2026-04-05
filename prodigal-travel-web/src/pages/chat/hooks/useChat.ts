@@ -1,7 +1,13 @@
+import { message } from 'antd';
 import { isAxiosError } from 'axios';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { CONVERSATIONS_STORAGE_KEY } from '@/utils/constants';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  conversations as fetchConversations,
+  deleteConversationByChatId as deleteConversationApi,
+} from '@/api/travelAssistant';
+import { useAuth } from '@/contexts/AuthContext';
 import type { ChatMessage, ConversationRecord } from '@/types';
+import { assertBaseResultOk, unwrapBaseResult } from '@/utils/apiResult';
 import { useStreaming } from './useStreaming';
 
 const genId = (): string => {
@@ -11,37 +17,7 @@ const genId = (): string => {
   return `id-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 };
 
-const readStore = (): ConversationRecord[] => {
-  if (typeof window === 'undefined') return [];
-  try {
-    const raw = window.localStorage.getItem(CONVERSATIONS_STORAGE_KEY);
-    if (!raw) return [];
-    const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter(isConversationRecord);
-  } catch {
-    return [];
-  }
-};
-
-const isConversationRecord = (v: unknown): v is ConversationRecord => {
-  if (typeof v !== 'object' || v === null) return false;
-  const o = v as ConversationRecord;
-  return (
-    typeof o.id === 'string' &&
-    typeof o.title === 'string' &&
-    Array.isArray(o.messages) &&
-    typeof o.updatedAt === 'number' &&
-    (o.backendChatId === undefined || typeof o.backendChatId === 'string')
-  );
-};
-
-const writeStore = (list: ConversationRecord[]) => {
-  window.localStorage.setItem(
-    CONVERSATIONS_STORAGE_KEY,
-    JSON.stringify(list)
-  );
-};
+const PENDING_PREFIX = 'pending-';
 
 const defaultTitleFromMessage = (text: string): string => {
   const t = text.replace(/\s+/g, ' ').trim();
@@ -53,6 +29,55 @@ const sortConversations = (
   list: ConversationRecord[]
 ): ConversationRecord[] =>
   [...list].sort((a, b) => b.updatedAt - a.updatedAt);
+
+function mapApiMessage(m: API.ChatMessage): ChatMessage {
+  const r = (m.role ?? '').toLowerCase();
+  const role: ChatMessage['role'] =
+    r === 'user' ? 'user' : r === 'system' ? 'system' : 'assistant';
+  let createdAt = Date.now();
+  if (m.createTime != null) {
+    const t = new Date(String(m.createTime)).getTime();
+    if (!Number.isNaN(t)) createdAt = t;
+  }
+  return {
+    id: m.id ?? genId(),
+    role,
+    content: m.content ?? '',
+    createdAt,
+  };
+}
+
+function mapApiMessages(
+  list: API.ChatMessage[] | undefined
+): ChatMessage[] {
+  return (list ?? [])
+    .map((m) => mapApiMessage(m))
+    .filter((m) => m.role === 'user' || m.role === 'assistant');
+}
+
+/** 列表接口：仅元数据，messages 为空 */
+function voToListRecord(vo: API.ChatMessageVO, orderIndex: number): ConversationRecord {
+  const cid = vo.conversationId ?? '';
+  return {
+    id: cid,
+    backendChatId: cid,
+    title: (vo.title ?? '').trim() || '对话',
+    messages: [],
+    updatedAt: Date.now() - orderIndex,
+  };
+}
+
+/** 详情接口：含完整消息 */
+function voToDetailRecord(vo: API.ChatMessageVO): ConversationRecord {
+  const cid = vo.conversationId ?? '';
+  return {
+    id: cid,
+    backendChatId: cid,
+    title: (vo.title ?? '').trim() || '对话',
+    messages: mapApiMessages(vo.messages),
+    updatedAt: Date.now(),
+  };
+}
 
 const formatChatError = (e: unknown): string => {
   if (isAxiosError(e)) {
@@ -81,28 +106,111 @@ const formatChatError = (e: unknown): string => {
 };
 
 export function useChat() {
+  const { token, ready } = useAuth();
   const { runStream, abort } = useStreaming();
   const [conversations, setConversations] = useState<ConversationRecord[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [historySearch, setHistorySearch] = useState('');
   const [sending, setSending] = useState(false);
+  const [listLoading, setListLoading] = useState(false);
+  const activeIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    const list = readStore();
-    setConversations(list);
-    if (list.length > 0) {
-      const latest = sortConversations(list)[0];
-      setActiveId(latest.id);
+    activeIdRef.current = activeId;
+  }, [activeId]);
+
+  const mergeDetailIntoList = useCallback(
+    (chatId: string, rec: ConversationRecord) => {
+      setConversations((prev) => {
+        const idx = prev.findIndex((c) => c.id === chatId);
+        if (idx === -1) {
+          return sortConversations([rec, ...prev]);
+        }
+        const next = [...prev];
+        next[idx] = {
+          ...next[idx],
+          title: rec.title,
+          messages: rec.messages,
+          updatedAt: rec.updatedAt,
+        };
+        return sortConversations(next);
+      });
+    },
+    []
+  );
+
+  const loadConversationDetail = useCallback(
+    async (chatId: string) => {
+      if (!ready || !token || chatId.startsWith(PENDING_PREFIX)) return;
+      try {
+        const res = await fetchConversations({ chatId });
+        const rows = unwrapBaseResult<API.ChatMessageVO[]>(res.data);
+        const vo = rows[0];
+        if (vo) {
+          mergeDetailIntoList(chatId, voToDetailRecord(vo));
+        }
+      } catch {
+        message.error('加载会话消息失败');
+      }
+    },
+    [mergeDetailIntoList, ready, token]
+  );
+
+  /**
+   * 全量拉会话列表 + 当前选中会话详情。
+   * 仅用于登录后首屏；不在每条聊天消息后调用，避免重复打 MySQL、侧栏长时间 loading。
+   */
+  const refreshConversationList = useCallback(async () => {
+    if (!ready || !token) return;
+    setListLoading(true);
+    try {
+      const res = await fetchConversations({});
+      const rows = unwrapBaseResult<API.ChatMessageVO[]>(res.data);
+      const mapped = rows.map((vo, i) => voToListRecord(vo, i));
+      const currentActive = activeIdRef.current;
+      setConversations(mapped);
+      setListLoading(false);
+
+      if (mapped.length === 0) {
+        setActiveId(null);
+        return;
+      }
+      const targetId =
+        currentActive && mapped.some((c) => c.id === currentActive)
+          ? currentActive
+          : mapped[0].id;
+      setActiveId(targetId);
+      void loadConversationDetail(targetId);
+    } catch {
+      message.error('加载会话列表失败');
+      setConversations([]);
+      setActiveId(null);
+      setListLoading(false);
     }
-  }, []);
+  }, [loadConversationDetail, ready, token]);
+
+  const refreshListRef = useRef(refreshConversationList);
+  refreshListRef.current = refreshConversationList;
+
+  /**
+   * 须等 `ready`（本地 token 与用户态已恢复完毕）且存在 token 才拉会话历史，
+   * 避免首屏未登录或 hydration 完成前就请求 `/travel/conversations`。
+   */
+  useEffect(() => {
+    if (!ready) {
+      return;
+    }
+    if (!token) {
+      setConversations([]);
+      setActiveId(null);
+      setListLoading(false);
+      return;
+    }
+    void refreshListRef.current();
+  }, [token, ready]);
 
   const persist = useCallback(
     (updater: (prev: ConversationRecord[]) => ConversationRecord[]) => {
-      setConversations((prev) => {
-        const next = sortConversations(updater(prev));
-        writeStore(next);
-        return next;
-      });
+      setConversations((prev) => sortConversations(updater(prev)));
     },
     []
   );
@@ -116,7 +224,7 @@ export function useChat() {
 
   const newChat = useCallback(() => {
     abort();
-    const id = genId();
+    const id = `${PENDING_PREFIX}${genId()}`;
     const now = Date.now();
     const record: ConversationRecord = {
       id,
@@ -132,25 +240,57 @@ export function useChat() {
     (id: string) => {
       abort();
       setActiveId(id);
+      if (ready && token && !id.startsWith(PENDING_PREFIX)) {
+        void loadConversationDetail(id);
+      }
     },
-    [abort]
+    [abort, loadConversationDetail, ready, token]
   );
 
   const deleteChat = useCallback(
-    (id: string) => {
+    async (id: string) => {
       abort();
-      let nextList: ConversationRecord[] = [];
-      setConversations((prev) => {
-        nextList = prev.filter((c) => c.id !== id);
-        writeStore(nextList);
-        return nextList;
-      });
-      setActiveId((cur) => {
-        if (cur !== id) return cur;
-        return sortConversations(nextList)[0]?.id ?? null;
-      });
+      if (id.startsWith(PENDING_PREFIX)) {
+        let nextList: ConversationRecord[] = [];
+        setConversations((prev) => {
+          nextList = prev.filter((c) => c.id !== id);
+          return nextList;
+        });
+        setActiveId((cur) => {
+          if (cur !== id) return cur;
+          return sortConversations(nextList)[0]?.id ?? null;
+        });
+        return;
+      }
+      if (!ready || !token) {
+        let nextList: ConversationRecord[] = [];
+        setConversations((prev) => {
+          nextList = prev.filter((c) => c.id !== id);
+          return nextList;
+        });
+        setActiveId((cur) => {
+          if (cur !== id) return cur;
+          return sortConversations(nextList)[0]?.id ?? null;
+        });
+        return;
+      }
+      try {
+        const res = await deleteConversationApi(id);
+        assertBaseResultOk(res.data);
+        let nextList: ConversationRecord[] = [];
+        setConversations((prev) => {
+          nextList = prev.filter((c) => c.id !== id);
+          return nextList;
+        });
+        setActiveId((cur) => {
+          if (cur !== id) return cur;
+          return sortConversations(nextList)[0]?.id ?? null;
+        });
+      } catch (e) {
+        message.error(e instanceof Error ? e.message : '删除会话失败');
+      }
     },
-    [abort]
+    [abort, ready, token]
   );
 
   const sendUserMessage = useCallback(
@@ -160,7 +300,7 @@ export function useChat() {
 
       let convId = activeId;
       if (!convId) {
-        convId = genId();
+        convId = `${PENDING_PREFIX}${genId()}`;
         const record: ConversationRecord = {
           id: convId,
           title: defaultTitleFromMessage(trimmed),
@@ -171,8 +311,10 @@ export function useChat() {
         setActiveId(convId);
       }
 
-      const backendChatId = conversations.find((c) => c.id === convId)
-        ?.backendChatId;
+      const conv = conversations.find((c) => c.id === convId);
+      const chatIdForApi =
+        conv?.backendChatId ??
+        (convId.startsWith(PENDING_PREFIX) ? undefined : convId);
 
       const userMsg: ChatMessage = {
         id: genId(),
@@ -217,7 +359,7 @@ export function useChat() {
       setSending(true);
       try {
         const result = await runStream(
-          { message: trimmed, chatId: backendChatId },
+          { message: trimmed, chatId: chatIdForApi },
           (chunk) => {
             persist((prev) => {
               const idx = prev.findIndex((c) => c.id === convId);
@@ -242,24 +384,46 @@ export function useChat() {
           }
         );
 
-        persist((prev) => {
-          const idx = prev.findIndex((c) => c.id === convId);
-          if (idx === -1) return prev;
-          const c = prev[idx];
-          const nextRecord: ConversationRecord = {
-            ...c,
-            backendChatId: result.chatId,
-            messages: c.messages.map((m) =>
-              m.id === assistantMsg.id ? { ...m, streaming: false } : m
-            ),
-            updatedAt: Date.now(),
-          };
-          return [
-            ...prev.slice(0, idx),
-            nextRecord,
-            ...prev.slice(idx + 1),
-          ];
-        });
+        const serverId = result.chatId?.trim();
+        if (serverId && serverId.length > 0) {
+          persist((prev) => {
+            const idx = prev.findIndex((c) => c.id === convId);
+            if (idx === -1) return prev;
+            const c = prev[idx];
+            const nextRecord: ConversationRecord = {
+              ...c,
+              id: serverId,
+              backendChatId: serverId,
+              messages: c.messages.map((m) =>
+                m.id === assistantMsg.id ? { ...m, streaming: false } : m
+              ),
+              updatedAt: Date.now(),
+            };
+            const rest = prev.filter((x, i) => i !== idx && x.id !== serverId);
+            return sortConversations([nextRecord, ...rest]);
+          });
+          if (convId !== serverId) {
+            setActiveId(serverId);
+          }
+        } else {
+          persist((prev) => {
+            const idx = prev.findIndex((c) => c.id === convId);
+            if (idx === -1) return prev;
+            const c = prev[idx];
+            const nextRecord: ConversationRecord = {
+              ...c,
+              messages: c.messages.map((m) =>
+                m.id === assistantMsg.id ? { ...m, streaming: false } : m
+              ),
+              updatedAt: Date.now(),
+            };
+            return [
+              ...prev.slice(0, idx),
+              nextRecord,
+              ...prev.slice(idx + 1),
+            ];
+          });
+        }
       } catch (e) {
         const canceled =
           (isAxiosError(e) && e.code === 'ERR_CANCELED') ||
@@ -307,26 +471,15 @@ export function useChat() {
         setSending(false);
       }
     },
-    [activeId, conversations, persist, runStream, sending]
+    [activeId, conversations, persist, ready, runStream, sending, token]
   );
 
-  const filteredConversations = useMemo(() => {
-    const q = historySearch.trim().toLowerCase();
-    if (!q) return conversations;
-    return conversations.filter(
-      (c) =>
-        c.title.toLowerCase().includes(q) ||
-        c.messages.some((m) => m.content.toLowerCase().includes(q))
-    );
-  }, [conversations, historySearch]);
-
   return {
-    conversations: filteredConversations,
+    conversations,
     activeId,
     messages,
-    historySearch,
-    setHistorySearch,
     sending,
+    listLoading,
     newChat,
     selectChat,
     deleteChat,

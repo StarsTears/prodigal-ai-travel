@@ -8,6 +8,10 @@ import org.springframework.util.StringUtils;
 
 import java.nio.charset.StandardCharsets;
 
+/**
+ * 从 HTTP 头解析 Bearer token，以及在无 Redis 白名单参与的场景下校验 JWT 并取 {@code userId}
+ *（例如注销前确认身份）。
+ */
 @Component
 @RequiredArgsConstructor
 public class JwtTokenHelper {
@@ -16,6 +20,10 @@ public class JwtTokenHelper {
 
     private final JwtProperties jwtProperties;
 
+    /**
+     * @param authorizationHeader 原始 {@code Authorization} 头
+     * @return 裸 JWT 字符串；格式不对或为空则 {@code null}
+     */
     public String extractBearerToken(String authorizationHeader) {
         if (!StringUtils.hasText(authorizationHeader)
                 || !authorizationHeader.regionMatches(true, 0, PREFIX, 0, PREFIX.length())) {

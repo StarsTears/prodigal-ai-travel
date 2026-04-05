@@ -60,6 +60,10 @@ declare namespace API {
     chatId?: string;
   };
 
+  type deleteConversationParams = {
+    chatId: string;
+  };
+
   type LoginByCodeRequest = {
     email: string;
     /** 邮箱收到的 6 位数字验证码 */

@@ -19,10 +19,17 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * 认证 HTTP 入口（context-path 下一般为 {@code /api/auth/**}）。
+ *
+ * <p>登录成功返回的 token 需由前端在访问 {@code /travel/**} 时通过 {@code Authorization: Bearer} 携带；
+ * 该路径由 {@link com.prodigal.travel.security.JwtAuthenticationFilter} 鉴权。流程说明见
+ * {@code com.prodigal.travel.security} 包的 {@code package-info.java}。
+ */
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
-@Tag(name = "用户认证", description = "注册；登录；退出（吊销 token 缓存）；注销（逻辑删用户）")
+@Tag(name = "auth", description = "注册；登录；退出（吊销 token 缓存）；注销（逻辑删用户）")
 public class AuthController {
 
     private final UserAuthService userAuthService;

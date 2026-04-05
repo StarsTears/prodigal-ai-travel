@@ -1,6 +1,7 @@
 package com.prodigal.travel.service.auth;
 
 import com.prodigal.travel.config.MailConfig;
+import com.prodigal.travel.constants.TravelConstant;
 import com.prodigal.travel.exception.BusinessException;
 import com.prodigal.travel.exception.ResponseStatus;
 import jakarta.mail.MessagingException;
@@ -21,8 +22,6 @@ import java.nio.charset.StandardCharsets;
 @RequiredArgsConstructor
 public class MailService {
 
-    private static final String PERSONAL = "Prodigal AI 旅游助手";
-
     private final JavaMailSender javaMailSender;
     private final MailConfig mailConfig;
 
@@ -33,7 +32,7 @@ public class MailService {
         try {
             MimeMessage message = javaMailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, false, StandardCharsets.UTF_8.name());
-            helper.setFrom(mailConfig.getUsername(), PERSONAL);
+            helper.setFrom(mailConfig.getUsername(), TravelConstant.PERSONAL);
             helper.setTo(toEmail);
             helper.setSubject("【AI 旅游助手】邮箱登录验证码");
             helper.setText(buildEmailCodeBody(code, ttlMinutes), false);

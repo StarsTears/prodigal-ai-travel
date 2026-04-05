@@ -11,6 +11,7 @@ import cn.hutool.core.util.StrUtil;
 import cn.hutool.http.Header;
 import cn.hutool.http.HttpRequest;
 import cn.hutool.http.HttpResponse;
+import com.prodigal.travel.constants.TravelConstant;
 import lombok.extern.slf4j.Slf4j;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
@@ -38,7 +39,6 @@ public class EmailTool {
     private final JavaMailSender mailSender;
     private final String fromAddress;
     private final String smtpHost;
-    private final String personal = "Prodigal AI 旅游助手";
 
     public EmailTool(JavaMailSender mailSender, String fromAddress, String smtpHost) {
         this.mailSender = mailSender;
@@ -72,7 +72,7 @@ public class EmailTool {
                 return "邮件发送失败：收件人解析为空，请检查 to 参数格式";
             }
 
-            helper.setFrom(fromAddress, personal);
+            helper.setFrom(fromAddress, TravelConstant.PERSONAL);
             helper.setTo(recipients);
             helper.setSubject(subject);
 
@@ -125,7 +125,7 @@ public class EmailTool {
                 return "邮件发送失败：收件人解析为空，请检查 to 参数格式";
             }
 
-            helper.setFrom(fromAddress, personal);
+            helper.setFrom(fromAddress, TravelConstant.PERSONAL);
             helper.setTo(recipients);
             helper.setSubject(subject);
             helper.setText(content, html != null && html);
@@ -237,7 +237,7 @@ public class EmailTool {
                 return "邮件发送失败：收件人解析为空，请检查 to 参数格式";
             }
 
-            helper.setFrom(fromAddress, personal);
+            helper.setFrom(fromAddress, TravelConstant.PERSONAL);
             helper.setTo(recipients);
             helper.setSubject(subject);
             helper.setText(content, html != null && html);

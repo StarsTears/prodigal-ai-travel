@@ -23,9 +23,9 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
+ * 用户数据与登录响应构造：{@link #buildLoginResponse} 统一完成「签发 JWT + Redis remember」。
+ *
  * @author 35104
- * @description 针对表【user(用户表)】的数据库操作Service实现
- * @createDate 2026-04-04 13:02:34
  */
 @Service
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
@@ -55,6 +55,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         return Boolean.TRUE;
     }
 
+    /**
+     * 支持用户名或邮箱（邮箱按小写匹配）+ 密码；禁用账号直接拒绝。
+     */
     @Override
     public LoginResponse login(String account, String rawPassword) {
         String key = account.trim();
@@ -80,6 +83,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                 .last("LIMIT 1"));
     }
 
+    /**
+     * 邮箱验证码等场景：不再校验密码，仍校验账号状态，再走与密码登录相同的签发逻辑。
+     */
     @Override
     public LoginResponse loginWithoutPassword(User user) {
         ThrowUtils.throwIf(user == null, ResponseStatus.USER_NOT_FOUND);
@@ -94,6 +100,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         return this.exists(new LambdaQueryWrapper<User>().eq(User::getEmail, email));
     }
 
+    /**
+     * 生成 {@link LoginResponse}：{@link #issueToken} 后必须把 token 写入白名单，否则后续 {@code /travel/*} 会 401。
+     */
     private LoginResponse buildLoginResponse(User user) {
         String token = issueToken(user);
         loginTokenCache.remember(user.getId(), token);
@@ -106,6 +115,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                 .build();
     }
 
+    /**
+     * Hutool JWT：payload 含 {@code userId}、{@code username}、{@code exp}（秒），与 {@code prodigal.jwt} 配置一致。
+     */
     private String issueToken(User user) {
         long exp = Instant.now().getEpochSecond() + jwtProperties.getExpireHours() * 3600L;
         Map<String, Object> payload = new HashMap<>(4);

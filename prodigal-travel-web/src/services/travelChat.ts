@@ -50,24 +50,18 @@ export async function postTravelChat(
   return unwrapBaseResult(res.data as BaseResult<TravelChatResponse>);
 }
 
-const CHUNK_SIZE = 8;
-const CHUNK_DELAY_MS = 16;
-
+/**
+ * 后端当前为整段 JSON 返回。此前用 8 字 + 16ms 循环「假流式」，长回复会额外多等数秒且首字仍要等模型结束。
+ * 收到完整答案后一次性写入 UI，避免人为延迟；真正流式需后端 SSE/WebFlux。
+ */
 export async function streamTravelAnswer(
   options: TravelChatCallOptions,
   onDelta: (chunk: string) => void
 ): Promise<TravelChatResponse> {
   const data = await postTravelChat(options);
   const text = data.answer ?? '';
-  for (
-    let i = 0;
-    i < text.length && !options.signal?.aborted;
-    i += CHUNK_SIZE
-  ) {
-    onDelta(text.slice(i, i + CHUNK_SIZE));
-    await new Promise<void>((r) => {
-      setTimeout(r, CHUNK_DELAY_MS);
-    });
+  if (text.length > 0 && !options.signal?.aborted) {
+    onDelta(text);
   }
   return data;
 }

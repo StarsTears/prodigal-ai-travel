@@ -8,6 +8,7 @@ package com.prodigal.travel.constants;
  * @since 2026/4/1
  */
 public class TravelConstant {
+    public static final String PERSONAL = "Prodigal AI 旅游助手";
     /**
      * 系统提示语
      */

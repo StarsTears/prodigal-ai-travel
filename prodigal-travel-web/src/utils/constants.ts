@@ -12,7 +12,5 @@ const readApiBase = (): string => {
  */
 export const API_BASE: string = readApiBase();
 
-export const CONVERSATIONS_STORAGE_KEY = 'ai-travel-conversations-v1';
-
 export const AUTH_TOKEN_KEY = 'prodigal-travel-auth-token';
 export const AUTH_USER_KEY = 'prodigal-travel-auth-user';

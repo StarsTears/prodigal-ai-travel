@@ -22,7 +22,12 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
 /**
- * 校验 {@code Authorization: Bearer &lt;jwt&gt;}，通过后将用户主键写入 request 属性。
+ * 保护 {@code /travel/*}：校验 Bearer JWT 与 Redis 会话白名单，通过后写入当前用户 id。
+ *
+ * <p>校验顺序：Authorization 头格式 → Hutool 验签（含 exp）→ {@link LoginTokenCache#isActive(String)}
+ * → 从 payload 读取 {@code userId} → {@link LoginUserConstant#REQUEST_ATTR_USER_ID}。
+ *
+ * <p>完整流程说明见同目录 {@code package-info.java}。
  */
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -33,6 +38,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final LoginTokenCache loginTokenCache;
     private final ObjectMapper objectMapper;
 
+    /**
+     * 仅拦截以 {@code /travel/} 开头的请求；其它路径（含 {@code /auth/*}）不经过本过滤器。
+     */
     @Override
     protected boolean shouldNotFilter(@NonNull HttpServletRequest request) {
         String path = request.getServletPath();
@@ -43,6 +51,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         return "OPTIONS".equalsIgnoreCase(request.getMethod());
     }
 
+    /**
+     * 未通过任一环节时返回 401 JSON，不进入后续 Controller。
+     */
     @Override
     protected void doFilterInternal(
             @NonNull HttpServletRequest request,

@@ -46,9 +46,8 @@ const ChatPage: React.FC = () => {
     conversations,
     activeId,
     messages,
-    historySearch,
-    setHistorySearch,
     sending,
+    listLoading,
     newChat,
     selectChat,
     deleteChat,
@@ -98,8 +97,7 @@ const ChatPage: React.FC = () => {
     <Sidebar
       conversations={conversations}
       activeId={activeId}
-      search={historySearch}
-      onSearchChange={setHistorySearch}
+      listLoading={Boolean(token) && listLoading}
       onNew={newChat}
       onSelect={(id) => {
         selectChat(id);
