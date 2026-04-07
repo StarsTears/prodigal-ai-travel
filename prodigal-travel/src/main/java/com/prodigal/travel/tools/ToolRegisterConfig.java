@@ -33,7 +33,15 @@ public class ToolRegisterConfig {
         WeatherTool weatherTool = new WeatherTool(amapApiKey);
         DateTimeTool dateTimeTool = new DateTimeTool();
         PDFGenerationTool pdfGenerationTool = new PDFGenerationTool();
-        return ToolCallbacks.from(fileOperationTool, webSearchTool, emailTool,
-                weatherTool,dateTimeTool,pdfGenerationTool);
+        TerminateTool terminateTool = new TerminateTool();
+        return ToolCallbacks.from(
+                fileOperationTool,
+                webSearchTool,
+                emailTool,
+                weatherTool,
+                dateTimeTool,
+                pdfGenerationTool,
+                terminateTool
+        );
     }
 }

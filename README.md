@@ -29,7 +29,7 @@
 - **Spring AI Alibaba**（通义对话与 Embedding）  
 - **spring-ai-starter-vector-store-pgvector**（向量库，需 PostgreSQL 启用 `vector` 扩展）  
 - Knife4j / OpenAPI 3 接口文档  
-- Hutool、POI、Caffeine 缓存、Spring Mail  
+- Hutool、POI、Redis 缓存、Spring Mail  
 
 **前端**
 
@@ -59,7 +59,7 @@
    项目内已实现查询重写、自定义检索顾问、`TravelKnowledgeLoader` 等；`TravelAiClient#doChatWithRag` 为带 pgvector 的对话路径。**当前对外接口** `POST /travel/chat` 使用的是 `doChat`（记忆 + 工具）。若需上线 RAG，可在控制器中改为调用 `doChatWithRag` 或增加新路由。
 
 5. **MCP**  
-   暂未实现！！
+   使用stdio 方式：执行图片搜索能力
 
 ---
 
