@@ -35,4 +35,5 @@ build/
 
 ### Local secrets / environment (do not commit) ###
 **/application-local.yml
+**/application-prod.yml
 **/mcp-servers-local.json

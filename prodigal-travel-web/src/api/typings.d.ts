@@ -47,8 +47,7 @@ declare namespace API {
     conversationId?: string;
     title?: string;
     messages?: ChatMessage[];
-    /** 会话最近活动时间（ISO 或时间戳，由 Jackson 序列化） */
-    updateTime?: string | number;
+    updateTime?: string;
   };
 
   type ChatRequest = {
@@ -60,6 +59,10 @@ declare namespace API {
 
   type conversationsParams = {
     chatId?: string;
+  };
+
+  type deleteConversationParams = {
+    chatId: string;
   };
 
   type LoginByCodeRequest = {
@@ -94,6 +97,10 @@ declare namespace API {
 
   type SendRegisterCodeRequest = {
     email: string;
+  };
+
+  type SseEmitter = {
+    timeout?: number;
   };
 
   type TravelChatResponse = {

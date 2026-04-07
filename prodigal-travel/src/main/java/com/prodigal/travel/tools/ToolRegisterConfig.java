@@ -32,6 +32,7 @@ public class ToolRegisterConfig {
         EmailTool emailTool = new EmailTool(javaMailSender, mailConfig.getUsername(), mailConfig.getHost());
         WeatherTool weatherTool = new WeatherTool(amapApiKey);
         DateTimeTool dateTimeTool = new DateTimeTool();
+        ImageSearchTool imageSearchTool = new ImageSearchTool();
         PDFGenerationTool pdfGenerationTool = new PDFGenerationTool();
         TerminateTool terminateTool = new TerminateTool();
         return ToolCallbacks.from(
@@ -41,7 +42,8 @@ public class ToolRegisterConfig {
                 weatherTool,
                 dateTimeTool,
                 pdfGenerationTool,
-                terminateTool
+                terminateTool,
+                imageSearchTool
         );
     }
 }
