@@ -102,18 +102,16 @@ export const MessageList: React.FC<MessageListProps> = ({
   }, [messages]);
 
   if (messages.length === 0) {
-    const manusEmptyTextStyle: React.CSSProperties =
-      bubbleVariant === 'manus'
-        ? {
-            fontSize: 15,
-            lineHeight: 1.8,
-            color: 'rgba(226, 232, 240, 0.9)',
-          }
-        : {};
+    const emptyTextStyle: React.CSSProperties = {
+      fontSize: 15,
+      lineHeight: 1.8,
+      color: 'rgba(226, 232, 240, 0.9)',
+      textShadow: '0 1px 10px rgba(2, 6, 23, 0.55)',
+    };
     return (
       <Empty
         description={
-          <Text type="secondary" style={manusEmptyTextStyle}>
+          <Text style={emptyTextStyle}>
             {emptyHint ??
               '你好！我是 AI 旅游助手。请用「对话列表」「示例问题」管理会话与发起咨询（窄屏在输入区上方，宽屏在两侧）。'}
           </Text>

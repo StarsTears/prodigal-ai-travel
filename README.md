@@ -119,6 +119,24 @@ npm run dev
 
 ## 5. Docker 启动
 
+### 5.1 准备环境变量
+
+复制模板并填写生产配置：
+
+```bash
+cp .env.example .env
+```
+
+重点必填项：
+
+- `SPRING_DATASOURCE_URL / USERNAME / PASSWORD`
+- `SPRING_DATA_REDIS_HOST / PORT / PASSWORD`
+- `SPRING_AI_DASHSCOPE_API_KEY`
+- `PRODIGAL_JWT_SECRET`
+- `SPRING_MAIL_USERNAME / PASSWORD`
+
+### 5.2 构建并启动
+
 项目根目录执行：
 
 ```bash
@@ -130,8 +148,17 @@ docker compose up -d --build
 
 说明：
 
-- `docker-compose.yml` 默认只编排前后端容器
-- MySQL/Redis 需你自行提供（本机或外部），并通过环境变量注入连接配置
+- `docker-compose.yml` 默认只编排前后端容器（不内置 MySQL/Redis）
+- MySQL/Redis 可使用外部服务，也可自行扩展 compose 新增容器
+- 前端容器通过 Nginx 将 `/api` 反向代理至 `prodigal-api:8088`
+
+### 5.3 运行状态检查
+
+```bash
+docker compose ps
+docker compose logs -f prodigal-api
+curl -X POST http://localhost:8088/api/health/check
+```
 
 ---
 

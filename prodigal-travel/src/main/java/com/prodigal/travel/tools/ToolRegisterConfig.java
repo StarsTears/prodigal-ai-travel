@@ -22,6 +22,8 @@ public class ToolRegisterConfig {
     private String searchApiKey;
     @Value("${prodigal.amap.api-key}")
     private String amapApiKey;
+    @Value("${prodigal.pexels.api-key}")
+    private  String imageSearchApiKey;
     @Resource
     private MailConfig mailConfig;
 
@@ -32,7 +34,7 @@ public class ToolRegisterConfig {
         EmailTool emailTool = new EmailTool(javaMailSender, mailConfig.getUsername(), mailConfig.getHost());
         WeatherTool weatherTool = new WeatherTool(amapApiKey);
         DateTimeTool dateTimeTool = new DateTimeTool();
-        ImageSearchTool imageSearchTool = new ImageSearchTool();
+        ImageSearchTool imageSearchTool = new ImageSearchTool(imageSearchApiKey);
         PDFGenerationTool pdfGenerationTool = new PDFGenerationTool();
         TerminateTool terminateTool = new TerminateTool();
         return ToolCallbacks.from(

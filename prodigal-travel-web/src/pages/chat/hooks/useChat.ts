@@ -589,6 +589,7 @@ export function useChat(options: UseChatOptions) {
 
         flushTypewriter();
         const serverId = result.chatId?.trim();
+        const finalTravelAnswer = mode === 'travel' ? result.answer ?? '' : '';
         if (serverId && serverId.length > 0) {
           persist((prev) => {
             const idx = prev.findIndex((c) => c.id === convId);
@@ -598,11 +599,15 @@ export function useChat(options: UseChatOptions) {
               ...c,
               id: serverId,
               backendChatId: serverId,
-              messages: c.messages.map((m) =>
-                mode === 'manus' && m.id === assistantManus.id
-                  ? finalizeManusAssistantMessage(m)
-                  : { ...m, streaming: false }
-              ),
+              messages: c.messages.map((m) => {
+                if (mode === 'manus' && m.id === assistantManus.id) {
+                  return finalizeManusAssistantMessage(m);
+                }
+                if (mode === 'travel' && m.id === assistantMsg.id) {
+                  return { ...m, content: finalTravelAnswer || m.content, streaming: false };
+                }
+                return { ...m, streaming: false };
+              }),
               updatedAt: Date.now(),
             };
             const rest = prev.filter((x, i) => i !== idx && x.id !== serverId);
@@ -619,13 +624,11 @@ export function useChat(options: UseChatOptions) {
             const aid = mode === 'manus' ? assistantManus.id : assistantMsg.id;
             const nextRecord: ConversationRecord = {
               ...c,
-              messages: c.messages.map((m) =>
-                m.id === aid
-                  ? mode === 'manus'
-                    ? finalizeManusAssistantMessage(m)
-                    : { ...m, streaming: false }
-                  : m
-              ),
+              messages: c.messages.map((m) => {
+                if (m.id !== aid) return m;
+                if (mode === 'manus') return finalizeManusAssistantMessage(m);
+                return { ...m, content: finalTravelAnswer || m.content, streaming: false };
+              }),
               updatedAt: Date.now(),
             };
             return [

@@ -1,0 +1,28 @@
+# 单机前后端：docker compose up -d --build
+# 后端需能连上 MySQL / Redis：在下方 environment 填写，或使用 env_file: .env
+services:
+  prodigal-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: prodigal-api
+    restart: unless-stopped
+    ports:
+      - "8088:8088"
+    env_file:
+      - .env
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+      AMAP_MAPS_API_KEY: ${PRODIGAL_AMAP_API_KEY}
+
+  prodigal-web:
+    build:
+      context: ./prodigal-travel-web
+      dockerfile: Dockerfile
+    container_name: prodigal-web
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - prodigal-api

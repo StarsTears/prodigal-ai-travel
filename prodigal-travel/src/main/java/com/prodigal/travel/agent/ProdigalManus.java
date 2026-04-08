@@ -1,12 +1,9 @@
 package com.prodigal.travel.agent;
 
 import com.prodigal.travel.advisor.LoggerAdvisor;
-import com.prodigal.travel.chatmemroy.MySQLChatMemory;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.tool.ToolCallback;
-import org.springframework.ai.tool.ToolCallbackProvider;
 import org.springframework.stereotype.Component;
 
 /**

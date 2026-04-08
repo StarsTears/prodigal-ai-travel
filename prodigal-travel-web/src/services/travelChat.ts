@@ -31,11 +31,14 @@ function resolveChatId(options: StreamCallOptions): string {
 }
 
 function parseEventPayload(raw: string): string {
-  const text = raw.trim();
-  if (!text || text === '[DONE]') return '';
-  if (text.startsWith('{') && text.endsWith('}')) {
+  // 流式分片里纯换行（"\n"）对 Markdown 很关键，不能先 trim 掉。
+  const normalized = raw.replace(/\r\n/g, '\n');
+  if (normalized === '') return '';
+  const probe = normalized.trim();
+  if (probe === '[DONE]') return '';
+  if (probe.startsWith('{') && probe.endsWith('}')) {
     try {
-      const obj = JSON.parse(text) as { data?: unknown; answer?: unknown; delta?: unknown };
+      const obj = JSON.parse(probe) as { data?: unknown; answer?: unknown; delta?: unknown };
       if (typeof obj.delta === 'string') return obj.delta;
       if (typeof obj.answer === 'string') return obj.answer;
       if (typeof obj.data === 'string') return obj.data;
@@ -43,7 +46,7 @@ function parseEventPayload(raw: string): string {
       // Fall through and return raw text.
     }
   }
-  return text;
+  return normalized;
 }
 
 /** 解析已完整的 SSE 事件块（以空行分隔），返回未消费完的尾部 buffer */

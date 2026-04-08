@@ -9,7 +9,6 @@ import cn.hutool.json.JSONUtil;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,8 +26,11 @@ public class ImageSearchTool {
     /** 与文档一致：每页最多 80，默认取若干条直链 */
     private static final int DEFAULT_PER_PAGE = 15;
 
-    @Value("${prodigal.pexels.api-key}")
     private String apiKey;
+
+    ImageSearchTool(String apiKey) {
+        this.apiKey = apiKey;
+    }
 
     @Tool(description = "Search royalty-free stock photos on Pexels by keyword; returns image URLs (large), comma-separated if multiple.")
     public String searchImage(@ToolParam(description = "Search query, e.g. nature, city, food") String query) {
