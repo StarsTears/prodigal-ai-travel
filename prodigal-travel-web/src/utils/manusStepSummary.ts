@@ -57,13 +57,15 @@ function tryFormatTimeSummary(name: string, body: string): string | null {
 
 function formatToolBody(body: string): string {
   const t = body.trim();
-  if (!t) return '（无返回内容）';
+  if (!t) return '';
   if (t.startsWith('{') && t.endsWith('}')) {
     try {
       const o = JSON.parse(t) as Record<string, unknown>;
-      return Object.entries(o)
+      const lines = Object.entries(o)
+        .filter(([, v]) => String(v).trim())
         .map(([k, v]) => `- **${k}**：${String(v)}`)
         .join('\n');
+      return lines;
     } catch {
       /* fall through */
     }
@@ -82,6 +84,13 @@ function formatToolBody(body: string): string {
   return t;
 }
 
+function isMeaningfulBody(body: string): boolean {
+  const t = body.trim();
+  if (!t) return false;
+  if (t === '{}' || t === '[]' || t === 'null' || t === 'undefined') return false;
+  return true;
+}
+
 function isNoiseStep(raw: string): boolean {
   const s = raw.trim();
   if (!s) return true;
@@ -96,33 +105,46 @@ function isNoiseStep(raw: string): boolean {
  */
 export function summarizeManusSteps(steps: string[]): string {
   const useful = steps.filter((s) => !isNoiseStep(s));
-  const endNotice = steps.find((s) => /^执行结束:/.test(s.trim()))?.trim();
+  const toolSections: Array<{ name: string; text: string }> = [];
+  const freeTextSections: string[] = [];
 
-  if (useful.length === 0) {
-    if (endNotice) {
-      return `本轮未拿到可用的自然语言收尾（${endNotice}）。请展开上方「思考与执行过程」查看工具原始输出。`;
-    }
-    return '暂无工具结果可整理为摘要。';
-  }
-
-  const out: string[] = ['**摘要**（根据上方工具返回整理）：', ''];
   for (const step of useful) {
     const tools = parseToolBlocks(step);
     if (tools.length > 0) {
       for (const { name, body } of tools) {
+        if (!isMeaningfulBody(body)) continue;
         const lineSummary = tryFormatTimeSummary(name, body);
-        out.push(`### ${name}`);
-        out.push('');
-        out.push(lineSummary ?? formatToolBody(body));
-        out.push('');
+        const text = (lineSummary ?? formatToolBody(body)).trim();
+        if (!text) continue;
+        toolSections.push({ name, text });
       }
-    } else {
-      out.push(step.trim());
-      out.push('');
+      continue;
     }
+    const text = step.trim();
+    if (text) freeTextSections.push(text);
   }
-  if (endNotice) {
-    out.push(`> 说明：${endNotice}`);
+
+  // 若步骤都没有正文，就不输出综合回复内容。
+  if (toolSections.length === 0 && freeTextSections.length === 0) {
+    return '';
   }
+
+  const out: string[] = [
+    '## 综合回复',
+    '已为你提炼关键信息，给你一版可直接参考的结果：',
+    '',
+  ];
+  for (const { name, text } of toolSections) {
+    out.push(`### ${name}`);
+    out.push('');
+    out.push(text);
+    out.push('');
+  }
+  for (const text of freeTextSections) {
+    out.push(text);
+    out.push('');
+  }
+
+  out.push('如果你愿意，我可以基于这版结果继续帮你细化下一步建议。');
   return out.join('\n').trim();
 }

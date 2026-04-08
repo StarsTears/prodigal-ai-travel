@@ -19,12 +19,15 @@ if (process.env.NODE_ENV === 'development') {
 import React from 'react';
 
 export async function getRoutes() {
-  const routes = {"chat/hooks/useStreaming":{"path":"chat/hooks/useStreaming","id":"chat/hooks/useStreaming","parentId":"@@/global-layout"},"chat/hooks/useChat":{"path":"chat/hooks/useChat","id":"chat/hooks/useChat","parentId":"@@/global-layout"},"chat/index":{"path":"chat","id":"chat/index","parentId":"@@/global-layout"},"index":{"path":"/","id":"index","parentId":"@@/global-layout"},"@@/global-layout":{"id":"@@/global-layout","path":"/","isLayout":true}} as const;
+  const routes = {"chat/hooks/useStreaming":{"path":"chat/hooks/useStreaming","id":"chat/hooks/useStreaming","parentId":"@@/global-layout"},"chat/hooks/useChat":{"path":"chat/hooks/useChat","id":"chat/hooks/useChat","parentId":"@@/global-layout"},"chat/travel/index":{"path":"chat/travel","id":"chat/travel/index","parentId":"@@/global-layout"},"chat/manus/index":{"path":"chat/manus","id":"chat/manus/index","parentId":"@@/global-layout"},"entry/index":{"path":"entry","id":"entry/index","parentId":"@@/global-layout"},"chat/index":{"path":"chat","id":"chat/index","parentId":"@@/global-layout"},"index":{"path":"/","id":"index","parentId":"@@/global-layout"},"@@/global-layout":{"id":"@@/global-layout","path":"/","isLayout":true}} as const;
   return {
     routes,
     routeComponents: {
 'chat/hooks/useStreaming': React.lazy(() => import(/* webpackChunkName: "src__pages__chat__hooks__useStreaming" */'../../../src/pages/chat/hooks/useStreaming.ts')),
 'chat/hooks/useChat': React.lazy(() => import(/* webpackChunkName: "src__pages__chat__hooks__useChat" */'../../../src/pages/chat/hooks/useChat.ts')),
+'chat/travel/index': React.lazy(() => import(/* webpackChunkName: "src__pages__chat__travel__index" */'../../../src/pages/chat/travel/index.tsx')),
+'chat/manus/index': React.lazy(() => import(/* webpackChunkName: "src__pages__chat__manus__index" */'../../../src/pages/chat/manus/index.tsx')),
+'entry/index': React.lazy(() => import(/* webpackChunkName: "src__pages__entry__index" */'../../../src/pages/entry/index.tsx')),
 'chat/index': React.lazy(() => import(/* webpackChunkName: "src__pages__chat__index" */'../../../src/pages/chat/index.tsx')),
 'index': React.lazy(() => import(/* webpackChunkName: "src__pages__index" */'../../../src/pages/index.tsx')),
 '@@/global-layout': React.lazy(() => import(/* webpackChunkName: "layouts__index" */'D:/workSpace/Prodigal/prodigal-ai-travel/prodigal-travel-web/src/layouts/index.tsx')),

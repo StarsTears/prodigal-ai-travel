@@ -140,6 +140,14 @@ export const UserSessionBlock: React.FC<UserSessionBlockProps> = ({
   };
 
   const avatarSize = compact ? 26 : 28;
+  const panelBg = compact ? themeToken.colorBgContainer : 'transparent';
+  const panelBorder = compact
+    ? '1px solid rgba(0, 0, 0, 0.06)'
+    : '1px solid transparent';
+  const textColor = compact ? undefined : 'rgba(226, 232, 240, 0.92)';
+  const iconColor = compact
+    ? themeToken.colorTextTertiary
+    : 'rgba(148, 163, 184, 0.95)';
 
   return (
     <>
@@ -170,17 +178,19 @@ export const UserSessionBlock: React.FC<UserSessionBlockProps> = ({
                 transition: 'background 0.15s ease',
                 ...(compact
                   ? {
-                      border: '1px solid rgba(0, 0, 0, 0.06)',
-                      background: themeToken.colorBgContainer,
+                      border: panelBorder,
+                      background: panelBg,
                     }
                   : {}),
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = themeToken.colorFillTertiary;
+                e.currentTarget.style.background = compact
+                  ? themeToken.colorFillTertiary
+                  : 'rgba(148, 163, 184, 0.12)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = compact
-                  ? themeToken.colorBgContainer
+                  ? panelBg
                   : 'transparent';
               }}
               aria-label="用户菜单"
@@ -196,13 +206,14 @@ export const UserSessionBlock: React.FC<UserSessionBlockProps> = ({
                   minWidth: compact ? 72 : 0,
                   maxWidth: compact ? 140 : undefined,
                   fontSize: compact ? 13 : 14,
+                  color: textColor,
                 }}
               >
                 {displayName}
               </Typography.Text>
               <MoreOutlined
                 style={{
-                  color: themeToken.colorTextTertiary,
+                  color: iconColor,
                   fontSize: compact ? 14 : 16,
                   flexShrink: 0,
                 }}
@@ -219,8 +230,8 @@ export const UserSessionBlock: React.FC<UserSessionBlockProps> = ({
               borderRadius: themeToken.borderRadiusLG,
               ...(compact
                 ? {
-                    border: '1px solid rgba(0, 0, 0, 0.06)',
-                    background: themeToken.colorBgContainer,
+                    border: panelBorder,
+                    background: panelBg,
                   }
                 : {}),
             }}
@@ -235,6 +246,7 @@ export const UserSessionBlock: React.FC<UserSessionBlockProps> = ({
                 minWidth: 0,
                 maxWidth: compact ? 100 : undefined,
                 fontSize: compact ? 13 : 14,
+                color: textColor,
               }}
             >
               {displayName}

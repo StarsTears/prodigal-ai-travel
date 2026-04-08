@@ -92,6 +92,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   listLoading = false,
 }) => {
   const { token: themeToken } = theme.useToken();
+  const textPrimary = 'rgba(226, 232, 240, 0.94)';
+  const textSecondary = 'rgba(148, 163, 184, 0.9)';
 
   const groupedConversations = useMemo(
     () => groupConversationsByDate(conversations),
@@ -122,7 +124,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           height={28}
           style={{ display: 'block', flexShrink: 0 }}
         />
-        <Typography.Text strong style={{ fontSize: 15 }}>
+        <Typography.Text strong style={{ fontSize: 15, color: textPrimary }}>
           AI 旅游助手
         </Typography.Text>
       </Flex>
@@ -146,7 +148,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <Spin />
           </Flex>
         ) : conversations.length === 0 ? (
-          <Empty description={<Text type="secondary">暂无对话</Text>} />
+          <Empty
+            description={
+              <Text style={{ color: textSecondary }}>
+                暂无对话
+              </Text>
+            }
+          />
         ) : (
           <Flex vertical gap={0}>
             {groupedConversations.map((group, gi) => (
@@ -160,7 +168,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     marginTop: gi === 0 ? 0 : 18,
                     marginBottom: 10,
                     paddingLeft: 4,
-                    color: themeToken.colorTextTertiary,
+                    color: textSecondary,
                   }}
                 >
                   {group.label}
@@ -187,8 +195,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           borderRadius: themeToken.borderRadiusLG,
                           cursor: 'pointer',
                           background: selected
-                            ? themeToken.colorPrimaryBg
+                            ? 'rgba(59, 130, 246, 0.22)'
                             : 'transparent',
+                          border: selected
+                            ? '1px solid rgba(125, 211, 252, 0.4)'
+                            : '1px solid transparent',
                           transition: 'background 0.15s ease',
                           outline: 'none',
                         }}
@@ -200,8 +211,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             minWidth: 0,
                             fontSize: 14,
                             color: selected
-                              ? themeToken.colorPrimary
-                              : themeToken.colorText,
+                              ? '#bfdbfe'
+                              : textPrimary,
                           }}
                         >
                           {c.title}
@@ -238,7 +249,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           flexShrink: 0,
           marginTop: 'auto',
           paddingTop: 12,
-          borderTop: '1px solid rgba(0, 0, 0, 0.06)',
+          borderTop: '1px solid rgba(255, 255, 255, 0.1)',
         }}
       >
         <UserSessionBlock onOpenLogin={onOpenLogin} />

@@ -26,6 +26,8 @@ const genId = (): string => {
 };
 
 const PENDING_PREFIX = 'pending-';
+const TYPEWRITER_TICK_MS = 24;
+const TYPEWRITER_CHARS_PER_TICK = 4;
 
 const defaultTitleFromMessage = (text: string): string => {
   const t = text.replace(/\s+/g, ' ').trim();
@@ -161,10 +163,24 @@ export function useChat(options: UseChatOptions) {
   const [sending, setSending] = useState(false);
   const [listLoading, setListLoading] = useState(false);
   const activeIdRef = useRef<string | null>(null);
+  const typewriterRef = useRef<{
+    timer: number | null;
+    convId: string | null;
+    messageId: string | null;
+    buffer: string;
+  }>({ timer: null, convId: null, messageId: null, buffer: '' });
 
   useEffect(() => {
     activeIdRef.current = activeId;
   }, [activeId]);
+
+  const stopTypewriter = useCallback(() => {
+    const tw = typewriterRef.current;
+    if (tw.timer != null) {
+      window.clearInterval(tw.timer);
+    }
+    typewriterRef.current = { timer: null, convId: null, messageId: null, buffer: '' };
+  }, []);
 
   const mergeDetailIntoList = useCallback(
     (chatId: string, rec: ConversationRecord) => {
@@ -289,6 +305,77 @@ export function useChat(options: UseChatOptions) {
     []
   );
 
+  // 逐字追加到指定 assistant 消息，模拟「打字机效果」
+  const enqueueTypewriter = useCallback(
+    (args: { convId: string; messageId: string; delta: string }) => {
+      const { convId, messageId, delta } = args;
+      if (!delta) return;
+      const tw = typewriterRef.current;
+
+      // 若目标消息变更（新会话/新 assistant 消息），直接切换并清空旧缓冲
+      if (tw.convId !== convId || tw.messageId !== messageId) {
+        stopTypewriter();
+        typewriterRef.current = { timer: null, convId, messageId, buffer: delta };
+      } else {
+        tw.buffer += delta;
+      }
+
+      const startTimer = () => {
+        const cur = typewriterRef.current;
+        if (cur.timer != null) return;
+        cur.timer = window.setInterval(() => {
+          const s = typewriterRef.current;
+          if (!s.convId || !s.messageId) return;
+          if (!s.buffer) {
+            stopTypewriter();
+            return;
+          }
+          const take = s.buffer.slice(0, TYPEWRITER_CHARS_PER_TICK);
+          s.buffer = s.buffer.slice(TYPEWRITER_CHARS_PER_TICK);
+          persist((prev) => {
+            const idx = prev.findIndex((c) => c.id === s.convId);
+            if (idx === -1) return prev;
+            const c = prev[idx];
+            const nextMessages = c.messages.map((m) =>
+              m.id === s.messageId ? { ...m, content: m.content + take } : m
+            );
+            const nextRecord: ConversationRecord = {
+              ...c,
+              messages: nextMessages,
+              updatedAt: Date.now(),
+            };
+            return [...prev.slice(0, idx), nextRecord, ...prev.slice(idx + 1)];
+          });
+        }, TYPEWRITER_TICK_MS);
+      };
+
+      startTimer();
+    },
+    [persist, stopTypewriter]
+  );
+
+  const flushTypewriter = useCallback(() => {
+    const tw = typewriterRef.current;
+    if (!tw.convId || !tw.messageId || !tw.buffer) return;
+    const rest = tw.buffer;
+    tw.buffer = '';
+    persist((prev) => {
+      const idx = prev.findIndex((c) => c.id === tw.convId);
+      if (idx === -1) return prev;
+      const c = prev[idx];
+      const nextMessages = c.messages.map((m) =>
+        m.id === tw.messageId ? { ...m, content: m.content + rest } : m
+      );
+      const nextRecord: ConversationRecord = {
+        ...c,
+        messages: nextMessages,
+        updatedAt: Date.now(),
+      };
+      return [...prev.slice(0, idx), nextRecord, ...prev.slice(idx + 1)];
+    });
+    stopTypewriter();
+  }, [persist, stopTypewriter]);
+
   const activeConversation = useMemo(() => {
     if (!activeId) return null;
     return conversations.find((c) => c.id === activeId) ?? null;
@@ -298,6 +385,7 @@ export function useChat(options: UseChatOptions) {
 
   const newChat = useCallback(() => {
     abort();
+    stopTypewriter();
     const id = `${PENDING_PREFIX}${genId()}`;
     const now = Date.now();
     const record: ConversationRecord = {
@@ -313,17 +401,19 @@ export function useChat(options: UseChatOptions) {
   const selectChat = useCallback(
     (id: string) => {
       abort();
+      stopTypewriter();
       setActiveId(id);
       if (mode === 'travel' && ready && token && !id.startsWith(PENDING_PREFIX)) {
         void loadConversationDetail(id);
       }
     },
-    [abort, loadConversationDetail, mode, ready, token]
+    [abort, loadConversationDetail, mode, ready, stopTypewriter, token]
   );
 
   const deleteChat = useCallback(
     async (id: string) => {
       abort();
+      stopTypewriter();
       if (id.startsWith(PENDING_PREFIX)) {
         let nextList: ConversationRecord[] = [];
         setConversations((prev) => {
@@ -376,7 +466,7 @@ export function useChat(options: UseChatOptions) {
         message.error(e instanceof Error ? e.message : '删除会话失败');
       }
     },
-    [abort, mode, ready, token]
+    [abort, mode, ready, stopTypewriter, token]
   );
 
   const sendUserMessage = useCallback(
@@ -384,6 +474,7 @@ export function useChat(options: UseChatOptions) {
       const trimmed = text.trim();
       if (!trimmed || sending) return;
 
+      stopTypewriter();
       let convId = activeId;
       if (!convId) {
         convId = `${PENDING_PREFIX}${genId()}`;
@@ -464,15 +555,16 @@ export function useChat(options: UseChatOptions) {
                 (p) => {
                   const { route, text } = routeManusSsePayload(p);
                   if (route === 'skip') return;
+                  if (route === 'content') {
+                    enqueueTypewriter({ convId, messageId: assistantManus.id, delta: text });
+                    return;
+                  }
                   persist((prev) => {
                     const idx = prev.findIndex((c) => c.id === convId);
                     if (idx === -1) return prev;
                     const c = prev[idx];
                     const nextMessages = c.messages.map((m) => {
                       if (m.id !== assistantManus.id) return m;
-                      if (route === 'content') {
-                        return { ...m, content: m.content + text };
-                      }
                       return {
                         ...m,
                         manusSteps: [...(m.manusSteps ?? []), text],
@@ -483,41 +575,19 @@ export function useChat(options: UseChatOptions) {
                       messages: nextMessages,
                       updatedAt: Date.now(),
                     };
-                    return [
-                      ...prev.slice(0, idx),
-                      nextRecord,
-                      ...prev.slice(idx + 1),
-                    ];
+                    return [...prev.slice(0, idx), nextRecord, ...prev.slice(idx + 1)];
                   });
                 }
               )
             : await runStream(
                 { message: trimmed, chatId: chatIdForApi },
                 (chunk) => {
-                  persist((prev) => {
-                    const idx = prev.findIndex((c) => c.id === convId);
-                    if (idx === -1) return prev;
-                    const c = prev[idx];
-                    const nextMessages = c.messages.map((m) =>
-                      m.id === assistantMsg.id
-                        ? { ...m, content: m.content + chunk }
-                        : m
-                    );
-                    const nextRecord: ConversationRecord = {
-                      ...c,
-                      messages: nextMessages,
-                      updatedAt: Date.now(),
-                    };
-                    return [
-                      ...prev.slice(0, idx),
-                      nextRecord,
-                      ...prev.slice(idx + 1),
-                    ];
-                  });
+                  enqueueTypewriter({ convId, messageId: assistantMsg.id, delta: chunk });
                 },
                 'travel'
               );
 
+        flushTypewriter();
         const serverId = result.chatId?.trim();
         if (serverId && serverId.length > 0) {
           persist((prev) => {
@@ -570,6 +640,7 @@ export function useChat(options: UseChatOptions) {
           (isAxiosError(e) && e.code === 'ERR_CANCELED') ||
           (e instanceof Error && e.name === 'CanceledError');
         if (canceled) {
+          stopTypewriter();
           persist((prev) => {
             const idx = prev.findIndex((c) => c.id === convId);
             if (idx === -1) return prev;
@@ -595,6 +666,7 @@ export function useChat(options: UseChatOptions) {
           return;
         }
         const errText = formatChatError(e);
+        stopTypewriter();
         persist((prev) => {
           const idx = prev.findIndex((c) => c.id === convId);
           if (idx === -1) return prev;
@@ -633,18 +705,22 @@ export function useChat(options: UseChatOptions) {
           ];
         });
       } finally {
+        stopTypewriter();
         setSending(false);
       }
     },
     [
       activeId,
       conversations,
+      enqueueTypewriter,
+      flushTypewriter,
       mode,
       persist,
       ready,
       runManusStream,
       runStream,
       sending,
+      stopTypewriter,
       token,
     ]
   );

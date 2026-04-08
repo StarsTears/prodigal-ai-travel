@@ -12,12 +12,10 @@ import {
   Grid,
   Layout,
   Modal,
-  Space,
   Typography,
   message,
 } from 'antd';
 import React, { useCallback, useEffect, useState } from 'react';
-import { history } from 'umi';
 import { AuthCard } from '@/components/auth/AuthCard';
 import { MessageInput } from '@/components/chat/MessageInput';
 import { MessageList } from '@/components/chat/MessageList';
@@ -41,9 +39,6 @@ export interface ChatWorkspaceProps {
   emptyHint: string;
   /** 是否显示右侧「示例问题」面板（旅游助手专用） */
   showToolPanel: boolean;
-  /** 另一模式的跳转路径 */
-  alternateHref: string;
-  alternateLabel: string;
 }
 
 export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
@@ -51,8 +46,6 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
   title,
   emptyHint,
   showToolPanel,
-  alternateHref,
-  alternateLabel,
 }) => {
   const { token } = useAuth();
   const screens = Grid.useBreakpoint();
@@ -154,17 +147,19 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
         wrap="wrap"
         style={{ flex: 1, minWidth: 0 }}
       >
-        <Typography.Title level={5} style={{ margin: 0 }}>
+        <Typography.Title
+          level={isManusSolo ? 4 : 5}
+          style={{
+            margin: 0,
+            color: isManusSolo ? '#f8fafc' : '#e2e8f0',
+            textShadow: isManusSolo
+              ? '0 0 22px rgba(147, 197, 253, 0.4)'
+              : '0 0 18px rgba(125, 211, 252, 0.25)',
+            letterSpacing: isManusSolo ? 0.4 : 0.2,
+          }}
+        >
           {title}
         </Typography.Title>
-        <Space size="small" wrap>
-          <Button type="link" style={{ paddingInline: 0 }} onClick={() => history.push('/entry')}>
-            返回首页
-          </Button>
-          <Button type="link" style={{ paddingInline: 0 }} onClick={() => history.push(alternateHref)}>
-            {alternateLabel}
-          </Button>
-        </Space>
       </Flex>
       {isManusSolo ? (
         <UserSessionBlock
@@ -186,6 +181,8 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
         maxWidth: CHAT_MAIN_MAX,
         marginInline: 'auto',
         overflow: 'hidden',
+        position: 'relative',
+        zIndex: 1,
       }}
     >
       {headerBar}
@@ -234,7 +231,9 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
             fontSize: 12,
             marginTop: 6,
             lineHeight: 1.5,
-            color: 'rgba(0, 0, 0, 0.38)',
+            color: isManusSolo
+              ? 'rgba(226, 232, 240, 0.78)'
+              : 'rgba(226, 232, 240, 0.62)',
           }}
         >
           AI 生成内容仅供参考，请注意辨别真伪
@@ -258,6 +257,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
           }}
         >
           <Content
+            className="entry-geek-page"
             style={{
               flex: 1,
               minHeight: 0,
@@ -265,9 +265,12 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
               flexDirection: 'column',
               padding: isWide ? '12px 24px 8px' : '12px 16px 8px',
               overflow: 'hidden',
-              background: '#f5f6f8',
+              position: 'relative',
             }}
           >
+            <div className="entry-geek-grid" />
+            <div className="entry-geek-orb entry-geek-orb-left" />
+            <div className="entry-geek-orb entry-geek-orb-right" />
             {chatMain}
           </Content>
         </Layout>
@@ -290,6 +293,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
           }}
         >
           <Content
+            className="entry-geek-page"
             style={{
               flex: 1,
               minHeight: 0,
@@ -297,9 +301,12 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
               flexDirection: 'column',
               padding: '12px 16px 8px',
               overflow: 'hidden',
-              background: '#f5f6f8',
+              position: 'relative',
             }}
           >
+            <div className="entry-geek-grid" />
+            <div className="entry-geek-orb entry-geek-orb-left" />
+            <div className="entry-geek-orb entry-geek-orb-right" />
             {chatMain}
           </Content>
           <Drawer
@@ -356,11 +363,11 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
         >
           <Sider
             width={280}
-            theme="light"
+            theme="dark"
             style={{
               overflow: 'hidden',
               height: '100%',
-              borderRight: '1px solid rgba(0, 0, 0, 0.06)',
+              borderRight: '1px solid rgba(255, 255, 255, 0.08)',
             }}
           >
             <div className="chat-sider-inner">{sidebar}</div>
@@ -377,6 +384,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
             }}
           >
             <Content
+              className="entry-geek-page"
               style={{
                 flex: 1,
                 minHeight: 0,
@@ -385,9 +393,11 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                 padding: '12px 24px 8px',
                 overflow: 'hidden',
                 position: 'relative',
-                background: '#f5f6f8',
               }}
             >
+              <div className="entry-geek-grid" />
+              <div className="entry-geek-orb entry-geek-orb-left" />
+              <div className="entry-geek-orb entry-geek-orb-right" />
               {chatMain}
               {showToolPanel ? (
                 <FloatButton
@@ -403,11 +413,11 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
           {showToolPanel && !toolsCollapsed ? (
             <Sider
               width={360}
-              theme="light"
+              theme="dark"
               style={{
                 overflow: 'hidden',
                 height: '100%',
-                borderLeft: '1px solid rgba(0, 0, 0, 0.06)',
+                borderLeft: '1px solid rgba(255, 255, 255, 0.08)',
               }}
             >
               <div

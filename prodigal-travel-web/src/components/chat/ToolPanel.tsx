@@ -25,26 +25,37 @@ const SAMPLES: { label: string; prompt: string }[] = [
 
 export const ToolPanel: React.FC<ToolPanelProps> = ({onQuickPrompt}) => {
     return (
-        <Flex vertical gap="large">
+        <Flex vertical gap="large" style={{ color: 'rgba(226, 232, 240, 0.92)' }}>
             <Alert
                 type="info"
                 showIcon
                 icon={<QuestionCircleOutlined/>}
                 message="对话即工具"
+                style={{
+                    background: 'rgba(2, 132, 199, 0.14)',
+                    border: '1px solid rgba(125, 211, 252, 0.25)',
+                }}
                 description={
-                    <Text type="secondary">
+                    <Text style={{ color: 'rgba(203, 213, 225, 0.9)' }}>
                         天气、景点检索与行程规划由后端助手结合工具调用完成。请点击下方示例问题，将内容发送到对话区。
                     </Text>
                 }
             />
-            <Divider orientation="left">示例问题</Divider>
-            <Title level={5}>一键发起</Title>
+            <Divider orientation="left" style={{ borderColor: 'rgba(148, 163, 184, 0.35)' }}>
+                <span style={{ color: 'rgba(203, 213, 225, 0.95)' }}>示例问题</span>
+            </Divider>
+            <Title level={5} style={{ margin: 0, color: 'rgba(226, 232, 240, 0.96)' }}>一键发起</Title>
             <Flex vertical gap="middle">
                 {SAMPLES.map((s) => (
                     <Button
                         key={s.prompt}
                         block
                         type="default"
+                        style={{
+                            color: 'rgba(226, 232, 240, 0.95)',
+                            background: 'rgba(15, 23, 42, 0.55)',
+                            borderColor: 'rgba(148, 163, 184, 0.35)',
+                        }}
                         onClick={() => onQuickPrompt(s.prompt)}
                     >
                         {s.label}

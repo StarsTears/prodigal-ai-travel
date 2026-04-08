@@ -25,10 +25,11 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   const composerStyle: React.CSSProperties = {
     position: 'relative',
     borderRadius: 12,
-    border: `1px solid ${token.colorBorderSecondary}`,
-    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
+    border: '1px solid rgba(125, 211, 252, 0.28)',
+    boxShadow: '0 14px 28px rgba(2, 6, 23, 0.42)',
     padding: '4px 4px 4px 8px',
-    background: token.colorBgContainer,
+    background: 'rgba(2, 6, 23, 0.35)',
+    backdropFilter: 'blur(10px)',
   };
 
   const submit = useCallback(async () => {
@@ -58,6 +59,8 @@ export const MessageInput: React.FC<MessageInputProps> = ({
             padding: `6px ${TEXTAREA_PAD_RIGHT}px ${TEXTAREA_PAD_BOTTOM}px 4px`,
             fontSize: token.fontSize,
             lineHeight: 1.5,
+            background: 'transparent',
+            color: 'rgba(226, 232, 240, 0.92)',
           },
         }}
       />

@@ -45,7 +45,7 @@
       "config": {},
       "time": {
         "hooks": {},
-        "register": 1
+        "register": 2
       },
       "enableBy": "register"
     },
@@ -58,7 +58,7 @@
       "config": {},
       "time": {
         "hooks": {},
-        "register": 50
+        "register": 61
       },
       "enableBy": "register"
     },
@@ -75,7 +75,7 @@
             0
           ]
         },
-        "register": 8
+        "register": 27
       },
       "enableBy": "register"
     },
@@ -89,10 +89,10 @@
       "time": {
         "hooks": {
           "onStart": [
-            6
+            3
           ]
         },
-        "register": 6
+        "register": 16
       },
       "enableBy": "register"
     },
@@ -106,10 +106,10 @@
       "time": {
         "hooks": {
           "modifyRoutes": [
-            1
+            0
           ]
         },
-        "register": 1
+        "register": 3
       },
       "enableBy": "register"
     },
@@ -122,7 +122,7 @@
       "config": {},
       "time": {
         "hooks": {},
-        "register": 2
+        "register": 9
       },
       "enableBy": "register"
     },
@@ -136,10 +136,10 @@
       "time": {
         "hooks": {
           "modifyAppData": [
-            80
+            67
           ]
         },
-        "register": 40
+        "register": 127
       },
       "enableBy": "register"
     },
@@ -152,7 +152,7 @@
       "config": {},
       "time": {
         "hooks": {},
-        "register": 2
+        "register": 5
       },
       "enableBy": "register"
     },
@@ -169,10 +169,10 @@
             0
           ],
           "onCheck": [
-            1
+            0
           ]
         },
-        "register": 3
+        "register": 8
       },
       "enableBy": "register"
     },
@@ -189,7 +189,7 @@
             0
           ]
         },
-        "register": 2
+        "register": 5
       },
       "enableBy": "register"
     },
@@ -202,7 +202,7 @@
       "config": {},
       "time": {
         "hooks": {},
-        "register": 2
+        "register": 7
       },
       "enableBy": "config"
     },
@@ -219,7 +219,7 @@
             0
           ]
         },
-        "register": 20
+        "register": 64
       },
       "enableBy": "register"
     },
@@ -1071,7 +1071,7 @@
       "config": {},
       "time": {
         "hooks": {},
-        "register": 3
+        "register": 4
       },
       "enableBy": "config"
     },
@@ -1088,7 +1088,7 @@
             2
           ]
         },
-        "register": 4
+        "register": 7
       },
       "enableBy": "register"
     },
@@ -1101,7 +1101,7 @@
       "config": {},
       "time": {
         "hooks": {},
-        "register": 6
+        "register": 19
       },
       "enableBy": "register"
     },
@@ -1114,7 +1114,7 @@
       "config": {},
       "time": {
         "hooks": {},
-        "register": 146
+        "register": 186
       },
       "enableBy": "register"
     },
@@ -1127,7 +1127,7 @@
       "config": {},
       "time": {
         "hooks": {},
-        "register": 198
+        "register": 191
       },
       "enableBy": "config"
     },
@@ -1140,7 +1140,7 @@
       "config": {},
       "time": {
         "hooks": {},
-        "register": 44
+        "register": 52
       },
       "enableBy": "config"
     },
@@ -1170,7 +1170,7 @@
       "config": {},
       "time": {
         "hooks": {},
-        "register": 1
+        "register": 3
       },
       "enableBy": "register"
     },
@@ -1183,7 +1183,7 @@
       "config": {},
       "time": {
         "hooks": {},
-        "register": 5
+        "register": 4
       },
       "enableBy": "config"
     },
@@ -1196,7 +1196,7 @@
       "config": {},
       "time": {
         "hooks": {},
-        "register": 60
+        "register": 55
       }
     },
     "./node_modules/@umijs/preset-umi/dist/features/mpa/mpa": {
@@ -1246,7 +1246,7 @@
       "config": {},
       "time": {
         "hooks": {},
-        "register": 2
+        "register": 3
       },
       "enableBy": "config"
     },
@@ -1260,10 +1260,10 @@
       "time": {
         "hooks": {
           "modifyConfig": [
-            3
+            1
           ]
         },
-        "register": 5
+        "register": 4
       }
     },
     "./node_modules/@umijs/preset-umi/dist/features/polyfill/publicPathPolyfill": {
@@ -1275,7 +1275,7 @@
       "config": {},
       "time": {
         "hooks": {},
-        "register": 1
+        "register": 2
       },
       "enableBy": "register"
     },
@@ -1301,7 +1301,7 @@
       "config": {},
       "time": {
         "hooks": {},
-        "register": 1
+        "register": 2
       },
       "enableBy": "config"
     },
@@ -1314,7 +1314,7 @@
       "config": {},
       "time": {
         "hooks": {},
-        "register": 1
+        "register": 2
       },
       "enableBy": "config"
     },
@@ -1327,7 +1327,7 @@
       "config": {},
       "time": {
         "hooks": {},
-        "register": 3
+        "register": 2
       },
       "enableBy": "register"
     },
@@ -1340,7 +1340,7 @@
       "config": {},
       "time": {
         "hooks": {},
-        "register": 11
+        "register": 12
       },
       "enableBy": "register"
     },
@@ -1353,7 +1353,7 @@
       "config": {},
       "time": {
         "hooks": {},
-        "register": 6
+        "register": 3
       },
       "enableBy": "config"
     },
@@ -1366,7 +1366,7 @@
       "config": {},
       "time": {
         "hooks": {},
-        "register": 1
+        "register": 2
       }
     },
     "./node_modules/@umijs/preset-umi/dist/features/ssr/ssr": {
@@ -1378,7 +1378,7 @@
       "config": {},
       "time": {
         "hooks": {},
-        "register": 7
+        "register": 6
       },
       "enableBy": "config"
     },
@@ -1391,7 +1391,7 @@
       "config": {},
       "time": {
         "hooks": {},
-        "register": 8
+        "register": 6
       },
       "enableBy": "register"
     },
@@ -1417,7 +1417,7 @@
       "config": {},
       "time": {
         "hooks": {},
-        "register": 7
+        "register": 5
       },
       "enableBy": "config"
     },
@@ -1430,7 +1430,7 @@
       "config": {},
       "time": {
         "hooks": {},
-        "register": 2
+        "register": 1
       },
       "enableBy": "config"
     },
@@ -1443,7 +1443,7 @@
       "config": {},
       "time": {
         "hooks": {},
-        "register": 16
+        "register": 13
       }
     },
     "./node_modules/@umijs/preset-umi/dist/features/monorepo/redirect": {
@@ -1492,7 +1492,7 @@
       "config": {},
       "time": {
         "hooks": {},
-        "register": 7
+        "register": 3
       },
       "enableBy": "config"
     },
@@ -1505,7 +1505,7 @@
       "config": {},
       "time": {
         "hooks": {},
-        "register": 4
+        "register": 1
       },
       "enableBy": "config"
     },
@@ -1518,7 +1518,7 @@
       "config": {},
       "time": {
         "hooks": {},
-        "register": 10
+        "register": 4
       }
     },
     "./node_modules/@umijs/preset-umi/dist/features/swc/swc": {
@@ -1534,7 +1534,7 @@
             0
           ]
         },
-        "register": 5
+        "register": 2
       },
       "enableBy": "register"
     },
@@ -1547,7 +1547,7 @@
       "config": {},
       "time": {
         "hooks": {},
-        "register": 14
+        "register": 7
       }
     },
     "./node_modules/@umijs/preset-umi/dist/features/mako/mako": {
@@ -1572,7 +1572,7 @@
       "config": {},
       "time": {
         "hooks": {},
-        "register": 5
+        "register": 2
       }
     },
     "./node_modules/@umijs/preset-umi/dist/features/hmrGuardian/hmrGuardian": {
@@ -1584,7 +1584,7 @@
       "config": {},
       "time": {
         "hooks": {},
-        "register": 14
+        "register": 8
       }
     },
     "./node_modules/@umijs/preset-umi/dist/features/routePreloadOnLoad/routePreloadOnLoad": {
@@ -1596,7 +1596,7 @@
       "config": {},
       "time": {
         "hooks": {},
-        "register": 92
+        "register": 59
       }
     },
     "./node_modules/@umijs/preset-umi/dist/features/forget/forget": {
@@ -1608,7 +1608,7 @@
       "config": {},
       "time": {
         "hooks": {},
-        "register": 12
+        "register": 5
       },
       "enableBy": "config"
     },
@@ -1621,7 +1621,7 @@
       "config": {},
       "time": {
         "hooks": {},
-        "register": 13
+        "register": 7
       },
       "enableBy": "register"
     },
@@ -1634,7 +1634,7 @@
       "config": {},
       "time": {
         "hooks": {},
-        "register": 39
+        "register": 20
       },
       "enableBy": "register"
     },
@@ -1647,7 +1647,7 @@
       "config": {},
       "time": {
         "hooks": {},
-        "register": 236
+        "register": 103
       },
       "enableBy": "register"
     },
@@ -1660,7 +1660,7 @@
       "config": {},
       "time": {
         "hooks": {},
-        "register": 158
+        "register": 145
       }
     },
     "./node_modules/@umijs/preset-umi/dist/commands/help": {
@@ -1685,7 +1685,7 @@
       "config": {},
       "time": {
         "hooks": {},
-        "register": 1
+        "register": 2
       },
       "enableBy": "register"
     },
@@ -1698,7 +1698,7 @@
       "config": {},
       "time": {
         "hooks": {},
-        "register": 6
+        "register": 4
       },
       "enableBy": "register"
     },
@@ -1711,7 +1711,7 @@
       "config": {},
       "time": {
         "hooks": {},
-        "register": 11
+        "register": 2
       },
       "enableBy": "register"
     },
@@ -1724,7 +1724,7 @@
       "config": {},
       "time": {
         "hooks": {},
-        "register": 3
+        "register": 1
       },
       "enableBy": "register"
     },
@@ -1737,7 +1737,7 @@
       "config": {},
       "time": {
         "hooks": {},
-        "register": 6
+        "register": 7
       },
       "enableBy": "register"
     },
@@ -1763,7 +1763,7 @@
       "config": {},
       "time": {
         "hooks": {},
-        "register": 3
+        "register": 4
       },
       "enableBy": "register"
     },
@@ -1815,7 +1815,7 @@
       "config": {},
       "time": {
         "hooks": {},
-        "register": 2
+        "register": 3
       },
       "enableBy": "register"
     },
@@ -1841,7 +1841,7 @@
       "config": {},
       "time": {
         "hooks": {},
-        "register": 2
+        "register": 1
       },
       "enableBy": "register"
     },
@@ -1854,7 +1854,7 @@
       "config": {},
       "time": {
         "hooks": {},
-        "register": 3
+        "register": 2
       },
       "enableBy": "register"
     },
@@ -1880,7 +1880,7 @@
       "config": {},
       "time": {
         "hooks": {},
-        "register": 2
+        "register": 1
       },
       "enableBy": "register"
     },
@@ -1893,7 +1893,7 @@
       "config": {},
       "time": {
         "hooks": {},
-        "register": 4
+        "register": 2
       },
       "enableBy": "register"
     },
@@ -1906,7 +1906,7 @@
       "config": {},
       "time": {
         "hooks": {},
-        "register": 60
+        "register": 32
       },
       "enableBy": "register"
     },
@@ -1919,7 +1919,7 @@
       "config": {},
       "time": {
         "hooks": {},
-        "register": 14
+        "register": 2
       },
       "enableBy": "register"
     },
@@ -1932,7 +1932,7 @@
       "config": {},
       "time": {
         "hooks": {},
-        "register": 21
+        "register": 8
       },
       "enableBy": "register"
     },
@@ -1945,7 +1945,7 @@
       "config": {},
       "time": {
         "hooks": {},
-        "register": 4
+        "register": 2
       },
       "enableBy": "register"
     },
@@ -1959,16 +1959,16 @@
       "time": {
         "hooks": {
           "modifyConfig": [
-            11
+            4
           ],
           "modifyAppData": [
             0
           ],
           "onCheck": [
-            1
+            0
           ]
         },
-        "register": 41
+        "register": 15
       }
     }
   },
@@ -1979,6 +1979,9 @@
   },
   "userConfig": {
     "title": "AI 旅游助手",
+    "favicons": [
+      "/logo.svg"
+    ],
     "plugins": [
       "@umijs/plugins/dist/antd"
     ],
@@ -2035,6 +2038,9 @@
       "antd": "D:\\workSpace\\Prodigal\\prodigal-ai-travel\\prodigal-travel-web\\node_modules\\antd"
     },
     "title": "AI 旅游助手",
+    "favicons": [
+      "/logo.svg"
+    ],
     "plugins": [
       "@umijs/plugins/dist/antd"
     ],
@@ -2997,7 +3003,7 @@
       "parentId": "@@/global-layout",
       "file": "chat/hooks/useStreaming.ts",
       "absPath": "/chat/hooks/useStreaming",
-      "__content": "import { useCallback, useRef } from 'react';\nimport { streamTravelAnswer } from '@/services/travelChat';\nimport type { TravelChatResponse } from '@/types';\n\n/**\n * 按接口约定仅传「当前用户句」+ 可选 `chatId`；历史上下文由后端记忆顾问维护。\n */\nexport function useStreaming() {\n  const abortRef = useRef<AbortController | null>(null);\n\n  const abort = useCallback(() => {\n    abortRef.current?.abort();\n    abortRef.current = null;\n  }, []);\n\n  const runStream = useCallback(\n    async (\n      args: { message: string; chatId?: string | null },\n      onDelta: (chunk: string) => void\n    ): Promise<TravelChatResponse> => {\n      abort();\n      const controller = new AbortController();\n      abortRef.current = controller;\n      try {\n        return await streamTravelAnswer(\n          {\n            message: args.message,\n            chatId: args.chatId ?? undefined,\n            signal: controller.signal,\n          },\n          onDelta\n        );\n      } finally {\n        abortRef.current = null;\n      }\n    },\n    [abort]\n  );\n\n  return { runStream, abort };\n}\n",
+      "__content": "import { useCallback, useRef } from 'react';\nimport {\n  streamManusAnswer,\n  streamTravelAnswer,\n  type ManusSsePayload,\n} from '@/services/travelChat';\nimport type { TravelChatResponse } from '@/types';\n\nexport type StreamChatKind = 'travel' | 'manus';\n\nexport type { ManusSsePayload };\n\n/**\n * 旅游助手：MCP 文本流。\n * 超级智能体：后端多为默认 SSE `message` + 整段字符串（每步一次）；前端再按正文区分工具日志与综合回复。\n */\nexport function useStreaming() {\n  const abortRef = useRef<AbortController | null>(null);\n\n  const abort = useCallback(() => {\n    abortRef.current?.abort();\n    abortRef.current = null;\n  }, []);\n\n  const runStream = useCallback(\n    async (\n      args: { message: string; chatId?: string | null },\n      onDelta: (chunk: string) => void,\n      kind: StreamChatKind = 'travel'\n    ): Promise<TravelChatResponse> => {\n      if (kind === 'manus') {\n        throw new Error('use runManusStream for manus mode');\n      }\n      abort();\n      const controller = new AbortController();\n      abortRef.current = controller;\n      try {\n        return await streamTravelAnswer(\n          {\n            message: args.message,\n            chatId: args.chatId ?? undefined,\n            signal: controller.signal,\n          },\n          onDelta\n        );\n      } finally {\n        abortRef.current = null;\n      }\n    },\n    [abort]\n  );\n\n  const runManusStream = useCallback(\n    async (\n      args: { message: string; chatId?: string | null },\n      onPayload: (p: ManusSsePayload) => void\n    ): Promise<TravelChatResponse> => {\n      abort();\n      const controller = new AbortController();\n      abortRef.current = controller;\n      try {\n        return await streamManusAnswer(\n          {\n            message: args.message,\n            chatId: args.chatId ?? undefined,\n            signal: controller.signal,\n          },\n          onPayload\n        );\n      } finally {\n        abortRef.current = null;\n      }\n    },\n    [abort]\n  );\n\n  return { runStream, runManusStream, abort };\n}\n",
       "__isJSFile": true,
       "__absFile": "D:/workSpace/Prodigal/prodigal-ai-travel/prodigal-travel-web/src/pages/chat/hooks/useStreaming.ts"
     },
@@ -3007,9 +3013,39 @@
       "parentId": "@@/global-layout",
       "file": "chat/hooks/useChat.ts",
       "absPath": "/chat/hooks/useChat",
-      "__content": "import { isAxiosError } from 'axios';\nimport { useCallback, useEffect, useMemo, useState } from 'react';\nimport { CONVERSATIONS_STORAGE_KEY } from '@/utils/constants';\nimport type { ChatMessage, ConversationRecord } from '@/types';\nimport { useStreaming } from './useStreaming';\n\nconst genId = (): string => {\n  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {\n    return crypto.randomUUID();\n  }\n  return `id-${Date.now()}-${Math.random().toString(16).slice(2)}`;\n};\n\nconst readStore = (): ConversationRecord[] => {\n  if (typeof window === 'undefined') return [];\n  try {\n    const raw = window.localStorage.getItem(CONVERSATIONS_STORAGE_KEY);\n    if (!raw) return [];\n    const parsed: unknown = JSON.parse(raw);\n    if (!Array.isArray(parsed)) return [];\n    return parsed.filter(isConversationRecord);\n  } catch {\n    return [];\n  }\n};\n\nconst isConversationRecord = (v: unknown): v is ConversationRecord => {\n  if (typeof v !== 'object' || v === null) return false;\n  const o = v as ConversationRecord;\n  return (\n    typeof o.id === 'string' &&\n    typeof o.title === 'string' &&\n    Array.isArray(o.messages) &&\n    typeof o.updatedAt === 'number' &&\n    (o.backendChatId === undefined || typeof o.backendChatId === 'string')\n  );\n};\n\nconst writeStore = (list: ConversationRecord[]) => {\n  window.localStorage.setItem(\n    CONVERSATIONS_STORAGE_KEY,\n    JSON.stringify(list)\n  );\n};\n\nconst defaultTitleFromMessage = (text: string): string => {\n  const t = text.replace(/\\s+/g, ' ').trim();\n  if (!t) return '新对话';\n  return t.length > 24 ? `${t.slice(0, 24)}…` : t;\n};\n\nconst sortConversations = (\n  list: ConversationRecord[]\n): ConversationRecord[] =>\n  [...list].sort((a, b) => b.updatedAt - a.updatedAt);\n\nconst formatChatError = (e: unknown): string => {\n  if (isAxiosError(e)) {\n    const status = e.response?.status;\n    if (status === 504 || status === 502 || status === 503) {\n      return '网关超时或服务暂不可用（502/503/504）。请确认后端已启动，且前端 proxy 的端口与 application.yml 中 server.port 一致（默认 8088）。';\n    }\n    if (status === 404) {\n      return '接口不存在（404）。请确认后端 context-path 为 /api，且存在 POST /api/travel/chat。';\n    }\n    if (status === 401 || status === 403) {\n      return '无权限调用接口（401/403），请检查登录或请求头。';\n    }\n    if (status === 400) {\n      return '请求参数不合法（400），请确认已填写有效问题内容。';\n    }\n    const data = e.response?.data;\n    if (data && typeof data === 'object' && 'msg' in data) {\n      const m = (data as { msg?: unknown }).msg;\n      if (typeof m === 'string' && m.trim()) return m;\n    }\n    return e.message || '请求失败';\n  }\n  if (e instanceof Error) return e.message;\n  return '请求失败，请检查网络或后端服务';\n};\n\nexport function useChat() {\n  const { runStream, abort } = useStreaming();\n  const [conversations, setConversations] = useState<ConversationRecord[]>([]);\n  const [activeId, setActiveId] = useState<string | null>(null);\n  const [historySearch, setHistorySearch] = useState('');\n  const [sending, setSending] = useState(false);\n\n  useEffect(() => {\n    const list = readStore();\n    setConversations(list);\n    if (list.length > 0) {\n      const latest = sortConversations(list)[0];\n      setActiveId(latest.id);\n    }\n  }, []);\n\n  const persist = useCallback(\n    (updater: (prev: ConversationRecord[]) => ConversationRecord[]) => {\n      setConversations((prev) => {\n        const next = sortConversations(updater(prev));\n        writeStore(next);\n        return next;\n      });\n    },\n    []\n  );\n\n  const activeConversation = useMemo(() => {\n    if (!activeId) return null;\n    return conversations.find((c) => c.id === activeId) ?? null;\n  }, [activeId, conversations]);\n\n  const messages = activeConversation?.messages ?? [];\n\n  const newChat = useCallback(() => {\n    abort();\n    const id = genId();\n    const now = Date.now();\n    const record: ConversationRecord = {\n      id,\n      title: '新对话',\n      messages: [],\n      updatedAt: now,\n    };\n    persist((prev) => [record, ...prev]);\n    setActiveId(id);\n  }, [abort, persist]);\n\n  const selectChat = useCallback(\n    (id: string) => {\n      abort();\n      setActiveId(id);\n    },\n    [abort]\n  );\n\n  const deleteChat = useCallback(\n    (id: string) => {\n      abort();\n      let nextList: ConversationRecord[] = [];\n      setConversations((prev) => {\n        nextList = prev.filter((c) => c.id !== id);\n        writeStore(nextList);\n        return nextList;\n      });\n      setActiveId((cur) => {\n        if (cur !== id) return cur;\n        return sortConversations(nextList)[0]?.id ?? null;\n      });\n    },\n    [abort]\n  );\n\n  const sendUserMessage = useCallback(\n    async (text: string) => {\n      const trimmed = text.trim();\n      if (!trimmed || sending) return;\n\n      let convId = activeId;\n      if (!convId) {\n        convId = genId();\n        const record: ConversationRecord = {\n          id: convId,\n          title: defaultTitleFromMessage(trimmed),\n          messages: [],\n          updatedAt: Date.now(),\n        };\n        persist((prev) => [record, ...prev]);\n        setActiveId(convId);\n      }\n\n      const backendChatId = conversations.find((c) => c.id === convId)\n        ?.backendChatId;\n\n      const userMsg: ChatMessage = {\n        id: genId(),\n        role: 'user',\n        content: trimmed,\n        createdAt: Date.now(),\n      };\n      const assistantMsg: ChatMessage = {\n        id: genId(),\n        role: 'assistant',\n        content: '',\n        createdAt: Date.now(),\n        streaming: true,\n      };\n\n      const persistWithMessages = (\n        mut: (msgs: ChatMessage[]) => ChatMessage[],\n        extra?: Partial<ConversationRecord>\n      ) => {\n        persist((prev) => {\n          const idx = prev.findIndex((c) => c.id === convId);\n          if (idx === -1) return prev;\n          const c = prev[idx];\n          const isFirst = c.messages.length === 0;\n          const nextRecord: ConversationRecord = {\n            ...c,\n            ...extra,\n            title: isFirst ? defaultTitleFromMessage(trimmed) : c.title,\n            messages: mut(c.messages),\n            updatedAt: Date.now(),\n          };\n          return [\n            ...prev.slice(0, idx),\n            nextRecord,\n            ...prev.slice(idx + 1),\n          ];\n        });\n      };\n\n      persistWithMessages((m) => [...m, userMsg, assistantMsg]);\n\n      setSending(true);\n      try {\n        const result = await runStream(\n          { message: trimmed, chatId: backendChatId },\n          (chunk) => {\n            persist((prev) => {\n              const idx = prev.findIndex((c) => c.id === convId);\n              if (idx === -1) return prev;\n              const c = prev[idx];\n              const nextMessages = c.messages.map((m) =>\n                m.id === assistantMsg.id\n                  ? { ...m, content: m.content + chunk }\n                  : m\n              );\n              const nextRecord: ConversationRecord = {\n                ...c,\n                messages: nextMessages,\n                updatedAt: Date.now(),\n              };\n              return [\n                ...prev.slice(0, idx),\n                nextRecord,\n                ...prev.slice(idx + 1),\n              ];\n            });\n          }\n        );\n\n        persist((prev) => {\n          const idx = prev.findIndex((c) => c.id === convId);\n          if (idx === -1) return prev;\n          const c = prev[idx];\n          const nextRecord: ConversationRecord = {\n            ...c,\n            backendChatId: result.chatId,\n            messages: c.messages.map((m) =>\n              m.id === assistantMsg.id ? { ...m, streaming: false } : m\n            ),\n            updatedAt: Date.now(),\n          };\n          return [\n            ...prev.slice(0, idx),\n            nextRecord,\n            ...prev.slice(idx + 1),\n          ];\n        });\n      } catch (e) {\n        const canceled =\n          (isAxiosError(e) && e.code === 'ERR_CANCELED') ||\n          (e instanceof Error && e.name === 'CanceledError');\n        if (canceled) {\n          persist((prev) => {\n            const idx = prev.findIndex((c) => c.id === convId);\n            if (idx === -1) return prev;\n            const c = prev[idx];\n            const nextRecord: ConversationRecord = {\n              ...c,\n              messages: c.messages.filter((m) => m.id !== assistantMsg.id),\n              updatedAt: Date.now(),\n            };\n            return [\n              ...prev.slice(0, idx),\n              nextRecord,\n              ...prev.slice(idx + 1),\n            ];\n          });\n          return;\n        }\n        const errText = formatChatError(e);\n        persist((prev) => {\n          const idx = prev.findIndex((c) => c.id === convId);\n          if (idx === -1) return prev;\n          const c = prev[idx];\n          const nextMessages = c.messages.map((m) =>\n            m.id === assistantMsg.id\n              ? { ...m, content: errText, streaming: false }\n              : m\n          );\n          const nextRecord: ConversationRecord = {\n            ...c,\n            messages: nextMessages,\n            updatedAt: Date.now(),\n          };\n          return [\n            ...prev.slice(0, idx),\n            nextRecord,\n            ...prev.slice(idx + 1),\n          ];\n        });\n      } finally {\n        setSending(false);\n      }\n    },\n    [activeId, conversations, persist, runStream, sending]\n  );\n\n  const filteredConversations = useMemo(() => {\n    const q = historySearch.trim().toLowerCase();\n    if (!q) return conversations;\n    return conversations.filter(\n      (c) =>\n        c.title.toLowerCase().includes(q) ||\n        c.messages.some((m) => m.content.toLowerCase().includes(q))\n    );\n  }, [conversations, historySearch]);\n\n  return {\n    conversations: filteredConversations,\n    activeId,\n    messages,\n    historySearch,\n    setHistorySearch,\n    sending,\n    newChat,\n    selectChat,\n    deleteChat,\n    sendUserMessage,\n  };\n}\n",
+      "__content": "import { message } from 'antd';\nimport { isAxiosError } from 'axios';\nimport { useCallback, useEffect, useMemo, useRef, useState } from 'react';\nimport { history, useSearchParams } from 'umi';\nimport {\n  conversations as fetchConversations,\n  deleteConversationByChatId as deleteConversationApi,\n} from '@/api/travelAssistant';\nimport { useAuth } from '@/contexts/AuthContext';\nimport type { ChatMessage, ConversationRecord } from '@/types';\nimport { assertBaseResultOk, unwrapBaseResult } from '@/utils/apiResult';\nimport {\n  clearManusPersistedState,\n  loadManusPersistedState,\n  saveManusPersistedState,\n} from '@/utils/manusChatStorage';\nimport { summarizeManusSteps } from '@/utils/manusStepSummary';\nimport { routeManusSsePayload } from '@/utils/manusStreamRouting';\nimport { useStreaming, type StreamChatKind } from './useStreaming';\n\nconst genId = (): string => {\n  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {\n    return crypto.randomUUID();\n  }\n  return `id-${Date.now()}-${Math.random().toString(16).slice(2)}`;\n};\n\nconst PENDING_PREFIX = 'pending-';\nconst TYPEWRITER_TICK_MS = 24;\nconst TYPEWRITER_CHARS_PER_TICK = 4;\n\nconst defaultTitleFromMessage = (text: string): string => {\n  const t = text.replace(/\\s+/g, ' ').trim();\n  if (!t) return '新对话';\n  return t.length > 24 ? `${t.slice(0, 24)}…` : t;\n};\n\nconst sortConversations = (\n  list: ConversationRecord[]\n): ConversationRecord[] =>\n  [...list].sort((a, b) => b.updatedAt - a.updatedAt);\n\n/** 解析接口里的时间字段（ISO 字符串、毫秒/秒数字）。 */\nfunction parseApiTimeMs(raw: string | number | undefined | null): number | undefined {\n  if (raw == null) return undefined;\n  if (typeof raw === 'number' && Number.isFinite(raw)) {\n    return raw > 1e11 ? raw : raw * 1000;\n  }\n  const s = String(raw).trim();\n  if (!s) return undefined;\n  if (/^\\d+$/.test(s)) {\n    const n = Number(s);\n    return n > 1e11 ? n : n * 1000;\n  }\n  const t = Date.parse(s);\n  return Number.isNaN(t) ? undefined : t;\n}\n\nfunction mapApiMessage(m: API.ChatMessage): ChatMessage {\n  const r = (m.role ?? '').toLowerCase();\n  const role: ChatMessage['role'] =\n    r === 'user' ? 'user' : r === 'system' ? 'system' : 'assistant';\n  let createdAt = Date.now();\n  if (m.createTime != null) {\n    const t = new Date(String(m.createTime)).getTime();\n    if (!Number.isNaN(t)) createdAt = t;\n  }\n  return {\n    id: m.id ?? genId(),\n    role,\n    content: m.content ?? '',\n    createdAt,\n  };\n}\n\nfunction mapApiMessages(\n  list: API.ChatMessage[] | undefined\n): ChatMessage[] {\n  return (list ?? [])\n    .map((m) => mapApiMessage(m))\n    .filter((m) => m.role === 'user' || m.role === 'assistant');\n}\n\n/** 列表接口：仅元数据，messages 为空 */\nfunction voToListRecord(vo: API.ChatMessageVO, orderIndex: number): ConversationRecord {\n  const cid = vo.conversationId ?? '';\n  const updatedAt =\n    parseApiTimeMs(vo.updateTime) ?? Date.now() - orderIndex;\n  return {\n    id: cid,\n    backendChatId: cid,\n    title: (vo.title ?? '').trim() || '对话',\n    messages: [],\n    updatedAt,\n  };\n}\n\n/** 详情接口：含完整消息 */\nfunction voToDetailRecord(vo: API.ChatMessageVO): ConversationRecord {\n  const cid = vo.conversationId ?? '';\n  const msgs = mapApiMessages(vo.messages);\n  let fromMessages = 0;\n  for (const m of msgs) {\n    if (m.createdAt > fromMessages) fromMessages = m.createdAt;\n  }\n  const updatedAt =\n    parseApiTimeMs(vo.updateTime) ?? (fromMessages > 0 ? fromMessages : Date.now());\n  return {\n    id: cid,\n    backendChatId: cid,\n    title: (vo.title ?? '').trim() || '对话',\n    messages: msgs,\n    updatedAt,\n  };\n}\n\nfunction finalizeManusAssistantMessage(m: ChatMessage): ChatMessage {\n  const base = { ...m, streaming: false };\n  if (base.content?.trim()) return base;\n  const steps = base.manusSteps ?? [];\n  if (steps.length === 0) return base;\n  return { ...base, content: summarizeManusSteps(steps) };\n}\n\nconst formatChatError = (e: unknown): string => {\n  if (isAxiosError(e)) {\n    const status = e.response?.status;\n    if (status === 504 || status === 502 || status === 503) {\n      return '网关超时或服务暂不可用（502/503/504）。';\n    }\n    if (status === 404) {\n      return '接口不存在（404）。';\n    }\n    if (status === 401 || status === 403) {\n      return '无权限调用接口（401/403），请检查登录或请求头。';\n    }\n    if (status === 400) {\n      return '请求参数不合法（400），请确认已填写有效问题内容。';\n    }\n    const data = e.response?.data;\n    if (data && typeof data === 'object' && 'msg' in data) {\n      const m = (data as { msg?: unknown }).msg;\n      if (typeof m === 'string' && m.trim()) return m;\n    }\n    return e.message || '请求失败';\n  }\n  if (e instanceof Error) return e.message;\n  return '请求失败，请检查网络或后端服务';\n};\n\nexport interface UseChatOptions {\n  /** 旅游助手：SSE MCP 流式；超级智能体：`/travel/manus/chat` 分步流式 */\n  mode: StreamChatKind;\n}\n\nexport function useChat(options: UseChatOptions) {\n  const { mode } = options;\n  const { token, ready } = useAuth();\n  const [searchParams] = useSearchParams();\n  const { runStream, runManusStream, abort } = useStreaming();\n  const [conversations, setConversations] = useState<ConversationRecord[]>([]);\n  const [activeId, setActiveId] = useState<string | null>(null);\n  const [sending, setSending] = useState(false);\n  const [listLoading, setListLoading] = useState(false);\n  const activeIdRef = useRef<string | null>(null);\n  const typewriterRef = useRef<{\n    timer: number | null;\n    convId: string | null;\n    messageId: string | null;\n    buffer: string;\n  }>({ timer: null, convId: null, messageId: null, buffer: '' });\n\n  useEffect(() => {\n    activeIdRef.current = activeId;\n  }, [activeId]);\n\n  const stopTypewriter = useCallback(() => {\n    const tw = typewriterRef.current;\n    if (tw.timer != null) {\n      window.clearInterval(tw.timer);\n    }\n    typewriterRef.current = { timer: null, convId: null, messageId: null, buffer: '' };\n  }, []);\n\n  const mergeDetailIntoList = useCallback(\n    (chatId: string, rec: ConversationRecord) => {\n      setConversations((prev) => {\n        const idx = prev.findIndex((c) => c.id === chatId);\n        if (idx === -1) {\n          return sortConversations([rec, ...prev]);\n        }\n        const next = [...prev];\n        next[idx] = {\n          ...next[idx],\n          title: rec.title,\n          messages: rec.messages,\n          updatedAt: rec.updatedAt,\n        };\n        return sortConversations(next);\n      });\n    },\n    []\n  );\n\n  const loadConversationDetail = useCallback(\n    async (chatId: string) => {\n      if (mode === 'manus') return;\n      if (!ready || !token || chatId.startsWith(PENDING_PREFIX)) return;\n      try {\n        const res = await fetchConversations({ chatId });\n        const rows = unwrapBaseResult<API.ChatMessageVO[]>(res.data);\n        const vo = rows[0];\n        if (vo) {\n          mergeDetailIntoList(chatId, voToDetailRecord(vo));\n        }\n      } catch {\n        message.error('加载会话消息失败');\n      }\n    },\n    [mergeDetailIntoList, mode, ready, token]\n  );\n\n  /**\n   * 全量拉会话列表 + 当前选中会话详情。\n   * 仅用于登录后首屏；不在每条聊天消息后调用，避免重复打 MySQL、侧栏长时间 loading。\n   */\n  const refreshConversationList = useCallback(async () => {\n    if (!ready || !token) return;\n    setListLoading(true);\n    try {\n      const res = await fetchConversations({});\n      const rows = unwrapBaseResult<API.ChatMessageVO[]>(res.data);\n      const mapped = rows.map((vo, i) => voToListRecord(vo, i));\n      const currentActive = activeIdRef.current;\n      setConversations(mapped);\n      setListLoading(false);\n\n      if (mapped.length === 0) {\n        setActiveId(null);\n        return;\n      }\n      const targetId =\n        currentActive && mapped.some((c) => c.id === currentActive)\n          ? currentActive\n          : mapped[0].id;\n      setActiveId(targetId);\n      void loadConversationDetail(targetId);\n    } catch {\n      message.error('加载会话列表失败');\n      setConversations([]);\n      setActiveId(null);\n      setListLoading(false);\n    }\n  }, [loadConversationDetail, ready, token]);\n\n  const refreshListRef = useRef(refreshConversationList);\n  refreshListRef.current = refreshConversationList;\n\n  /**\n   * 旅游助手：拉 `/travel/conversations`。\n   * 超级智能体：仅用本地持久化，且与旅游助手列表完全隔离；从首页带 `?fresh=1` 进入时清空并开始新会话。\n   */\n  useEffect(() => {\n    if (!ready) {\n      return;\n    }\n    if (mode === 'manus') {\n      if (searchParams.get('fresh') === '1') {\n        setConversations([]);\n        setActiveId(null);\n        clearManusPersistedState();\n        history.replace('/chat/manus');\n        return;\n      }\n      if (!token) {\n        setConversations([]);\n        setActiveId(null);\n        setListLoading(false);\n        return;\n      }\n      setListLoading(false);\n      const { conversations: list, activeId: active } = loadManusPersistedState();\n      setConversations(list);\n      setActiveId(active);\n      return;\n    }\n    if (!token) {\n      setConversations([]);\n      setActiveId(null);\n      setListLoading(false);\n      return;\n    }\n    void refreshListRef.current();\n  }, [token, ready, mode, searchParams]);\n\n  useEffect(() => {\n    if (mode !== 'manus' || !token) return;\n    saveManusPersistedState({ conversations, activeId });\n  }, [mode, token, conversations, activeId]);\n\n  const persist = useCallback(\n    (updater: (prev: ConversationRecord[]) => ConversationRecord[]) => {\n      setConversations((prev) => sortConversations(updater(prev)));\n    },\n    []\n  );\n\n  // 逐字追加到指定 assistant 消息，模拟「打字机效果」\n  const enqueueTypewriter = useCallback(\n    (args: { convId: string; messageId: string; delta: string }) => {\n      const { convId, messageId, delta } = args;\n      if (!delta) return;\n      const tw = typewriterRef.current;\n\n      // 若目标消息变更（新会话/新 assistant 消息），直接切换并清空旧缓冲\n      if (tw.convId !== convId || tw.messageId !== messageId) {\n        stopTypewriter();\n        typewriterRef.current = { timer: null, convId, messageId, buffer: delta };\n      } else {\n        tw.buffer += delta;\n      }\n\n      const startTimer = () => {\n        const cur = typewriterRef.current;\n        if (cur.timer != null) return;\n        cur.timer = window.setInterval(() => {\n          const s = typewriterRef.current;\n          if (!s.convId || !s.messageId) return;\n          if (!s.buffer) {\n            stopTypewriter();\n            return;\n          }\n          const take = s.buffer.slice(0, TYPEWRITER_CHARS_PER_TICK);\n          s.buffer = s.buffer.slice(TYPEWRITER_CHARS_PER_TICK);\n          persist((prev) => {\n            const idx = prev.findIndex((c) => c.id === s.convId);\n            if (idx === -1) return prev;\n            const c = prev[idx];\n            const nextMessages = c.messages.map((m) =>\n              m.id === s.messageId ? { ...m, content: m.content + take } : m\n            );\n            const nextRecord: ConversationRecord = {\n              ...c,\n              messages: nextMessages,\n              updatedAt: Date.now(),\n            };\n            return [...prev.slice(0, idx), nextRecord, ...prev.slice(idx + 1)];\n          });\n        }, TYPEWRITER_TICK_MS);\n      };\n\n      startTimer();\n    },\n    [persist, stopTypewriter]\n  );\n\n  const flushTypewriter = useCallback(() => {\n    const tw = typewriterRef.current;\n    if (!tw.convId || !tw.messageId || !tw.buffer) return;\n    const rest = tw.buffer;\n    tw.buffer = '';\n    persist((prev) => {\n      const idx = prev.findIndex((c) => c.id === tw.convId);\n      if (idx === -1) return prev;\n      const c = prev[idx];\n      const nextMessages = c.messages.map((m) =>\n        m.id === tw.messageId ? { ...m, content: m.content + rest } : m\n      );\n      const nextRecord: ConversationRecord = {\n        ...c,\n        messages: nextMessages,\n        updatedAt: Date.now(),\n      };\n      return [...prev.slice(0, idx), nextRecord, ...prev.slice(idx + 1)];\n    });\n    stopTypewriter();\n  }, [persist, stopTypewriter]);\n\n  const activeConversation = useMemo(() => {\n    if (!activeId) return null;\n    return conversations.find((c) => c.id === activeId) ?? null;\n  }, [activeId, conversations]);\n\n  const messages = activeConversation?.messages ?? [];\n\n  const newChat = useCallback(() => {\n    abort();\n    stopTypewriter();\n    const id = `${PENDING_PREFIX}${genId()}`;\n    const now = Date.now();\n    const record: ConversationRecord = {\n      id,\n      title: '新对话',\n      messages: [],\n      updatedAt: now,\n    };\n    persist((prev) => [record, ...prev]);\n    setActiveId(id);\n  }, [abort, persist]);\n\n  const selectChat = useCallback(\n    (id: string) => {\n      abort();\n      stopTypewriter();\n      setActiveId(id);\n      if (mode === 'travel' && ready && token && !id.startsWith(PENDING_PREFIX)) {\n        void loadConversationDetail(id);\n      }\n    },\n    [abort, loadConversationDetail, mode, ready, stopTypewriter, token]\n  );\n\n  const deleteChat = useCallback(\n    async (id: string) => {\n      abort();\n      stopTypewriter();\n      if (id.startsWith(PENDING_PREFIX)) {\n        let nextList: ConversationRecord[] = [];\n        setConversations((prev) => {\n          nextList = prev.filter((c) => c.id !== id);\n          return nextList;\n        });\n        setActiveId((cur) => {\n          if (cur !== id) return cur;\n          return sortConversations(nextList)[0]?.id ?? null;\n        });\n        return;\n      }\n      if (!ready || !token) {\n        let nextList: ConversationRecord[] = [];\n        setConversations((prev) => {\n          nextList = prev.filter((c) => c.id !== id);\n          return nextList;\n        });\n        setActiveId((cur) => {\n          if (cur !== id) return cur;\n          return sortConversations(nextList)[0]?.id ?? null;\n        });\n        return;\n      }\n      if (mode === 'manus') {\n        let nextList: ConversationRecord[] = [];\n        setConversations((prev) => {\n          nextList = prev.filter((c) => c.id !== id);\n          return nextList;\n        });\n        setActiveId((cur) => {\n          if (cur !== id) return cur;\n          return sortConversations(nextList)[0]?.id ?? null;\n        });\n        return;\n      }\n      try {\n        const res = await deleteConversationApi(id);\n        assertBaseResultOk(res.data);\n        let nextList: ConversationRecord[] = [];\n        setConversations((prev) => {\n          nextList = prev.filter((c) => c.id !== id);\n          return nextList;\n        });\n        setActiveId((cur) => {\n          if (cur !== id) return cur;\n          return sortConversations(nextList)[0]?.id ?? null;\n        });\n      } catch (e) {\n        message.error(e instanceof Error ? e.message : '删除会话失败');\n      }\n    },\n    [abort, mode, ready, stopTypewriter, token]\n  );\n\n  const sendUserMessage = useCallback(\n    async (text: string) => {\n      const trimmed = text.trim();\n      if (!trimmed || sending) return;\n\n      stopTypewriter();\n      let convId = activeId;\n      if (!convId) {\n        convId = `${PENDING_PREFIX}${genId()}`;\n        const record: ConversationRecord = {\n          id: convId,\n          title: defaultTitleFromMessage(trimmed),\n          messages: [],\n          updatedAt: Date.now(),\n        };\n        persist((prev) => [record, ...prev]);\n        setActiveId(convId);\n      }\n\n      const conv = conversations.find((c) => c.id === convId);\n      const chatIdForApi =\n        conv?.backendChatId ??\n        (convId.startsWith(PENDING_PREFIX) ? undefined : convId);\n\n      const userMsg: ChatMessage = {\n        id: genId(),\n        role: 'user',\n        content: trimmed,\n        createdAt: Date.now(),\n      };\n      const assistantMsg: ChatMessage = {\n        id: genId(),\n        role: 'assistant',\n        content: '',\n        createdAt: Date.now(),\n        streaming: true,\n      };\n\n      const persistWithMessages = (\n        mut: (msgs: ChatMessage[]) => ChatMessage[],\n        extra?: Partial<ConversationRecord>\n      ) => {\n        persist((prev) => {\n          const idx = prev.findIndex((c) => c.id === convId);\n          if (idx === -1) return prev;\n          const c = prev[idx];\n          const isFirst = c.messages.length === 0;\n          const nextRecord: ConversationRecord = {\n            ...c,\n            ...extra,\n            title: isFirst ? defaultTitleFromMessage(trimmed) : c.title,\n            messages: mut(c.messages),\n            updatedAt: Date.now(),\n          };\n          return [\n            ...prev.slice(0, idx),\n            nextRecord,\n            ...prev.slice(idx + 1),\n          ];\n        });\n      };\n\n      const assistantManus: ChatMessage = {\n        id: genId(),\n        role: 'assistant',\n        content: '',\n        createdAt: Date.now(),\n        streaming: true,\n        manusSteps: [],\n      };\n\n      if (mode === 'manus') {\n        persistWithMessages((m) => [...m, userMsg, assistantManus]);\n      } else {\n        persistWithMessages((m) => [...m, userMsg, assistantMsg]);\n      }\n\n      setSending(true);\n      try {\n        const result =\n          mode === 'manus'\n            ? await runManusStream(\n                { message: trimmed, chatId: chatIdForApi },\n                (p) => {\n                  const { route, text } = routeManusSsePayload(p);\n                  if (route === 'skip') return;\n                  if (route === 'content') {\n                    enqueueTypewriter({ convId, messageId: assistantManus.id, delta: text });\n                    return;\n                  }\n                  persist((prev) => {\n                    const idx = prev.findIndex((c) => c.id === convId);\n                    if (idx === -1) return prev;\n                    const c = prev[idx];\n                    const nextMessages = c.messages.map((m) => {\n                      if (m.id !== assistantManus.id) return m;\n                      return {\n                        ...m,\n                        manusSteps: [...(m.manusSteps ?? []), text],\n                      };\n                    });\n                    const nextRecord: ConversationRecord = {\n                      ...c,\n                      messages: nextMessages,\n                      updatedAt: Date.now(),\n                    };\n                    return [...prev.slice(0, idx), nextRecord, ...prev.slice(idx + 1)];\n                  });\n                }\n              )\n            : await runStream(\n                { message: trimmed, chatId: chatIdForApi },\n                (chunk) => {\n                  enqueueTypewriter({ convId, messageId: assistantMsg.id, delta: chunk });\n                },\n                'travel'\n              );\n\n        flushTypewriter();\n        const serverId = result.chatId?.trim();\n        if (serverId && serverId.length > 0) {\n          persist((prev) => {\n            const idx = prev.findIndex((c) => c.id === convId);\n            if (idx === -1) return prev;\n            const c = prev[idx];\n            const nextRecord: ConversationRecord = {\n              ...c,\n              id: serverId,\n              backendChatId: serverId,\n              messages: c.messages.map((m) =>\n                mode === 'manus' && m.id === assistantManus.id\n                  ? finalizeManusAssistantMessage(m)\n                  : { ...m, streaming: false }\n              ),\n              updatedAt: Date.now(),\n            };\n            const rest = prev.filter((x, i) => i !== idx && x.id !== serverId);\n            return sortConversations([nextRecord, ...rest]);\n          });\n          if (convId !== serverId) {\n            setActiveId(serverId);\n          }\n        } else {\n          persist((prev) => {\n            const idx = prev.findIndex((c) => c.id === convId);\n            if (idx === -1) return prev;\n            const c = prev[idx];\n            const aid = mode === 'manus' ? assistantManus.id : assistantMsg.id;\n            const nextRecord: ConversationRecord = {\n              ...c,\n              messages: c.messages.map((m) =>\n                m.id === aid\n                  ? mode === 'manus'\n                    ? finalizeManusAssistantMessage(m)\n                    : { ...m, streaming: false }\n                  : m\n              ),\n              updatedAt: Date.now(),\n            };\n            return [\n              ...prev.slice(0, idx),\n              nextRecord,\n              ...prev.slice(idx + 1),\n            ];\n          });\n        }\n      } catch (e) {\n        const canceled =\n          (isAxiosError(e) && e.code === 'ERR_CANCELED') ||\n          (e instanceof Error && e.name === 'CanceledError');\n        if (canceled) {\n          stopTypewriter();\n          persist((prev) => {\n            const idx = prev.findIndex((c) => c.id === convId);\n            if (idx === -1) return prev;\n            const c = prev[idx];\n            let nextMessages: ChatMessage[];\n            if (mode === 'manus') {\n              const ui = c.messages.findIndex((m) => m.id === userMsg.id);\n              nextMessages = ui >= 0 ? c.messages.slice(0, ui + 1) : c.messages;\n            } else {\n              nextMessages = c.messages.filter((m) => m.id !== assistantMsg.id);\n            }\n            const nextRecord: ConversationRecord = {\n              ...c,\n              messages: nextMessages,\n              updatedAt: Date.now(),\n            };\n            return [\n              ...prev.slice(0, idx),\n              nextRecord,\n              ...prev.slice(idx + 1),\n            ];\n          });\n          return;\n        }\n        const errText = formatChatError(e);\n        stopTypewriter();\n        persist((prev) => {\n          const idx = prev.findIndex((c) => c.id === convId);\n          if (idx === -1) return prev;\n          const c = prev[idx];\n          if (mode === 'manus') {\n            const nextMessages = c.messages.map((m) =>\n              m.id === assistantManus.id\n                ? { ...m, content: errText, streaming: false }\n                : m\n            );\n            const nextRecord: ConversationRecord = {\n              ...c,\n              messages: nextMessages,\n              updatedAt: Date.now(),\n            };\n            return [\n              ...prev.slice(0, idx),\n              nextRecord,\n              ...prev.slice(idx + 1),\n            ];\n          }\n          const nextMessages = c.messages.map((m) =>\n            m.id === assistantMsg.id\n              ? { ...m, content: errText, streaming: false }\n              : m\n          );\n          const nextRecord: ConversationRecord = {\n            ...c,\n            messages: nextMessages,\n            updatedAt: Date.now(),\n          };\n          return [\n            ...prev.slice(0, idx),\n            nextRecord,\n            ...prev.slice(idx + 1),\n          ];\n        });\n      } finally {\n        stopTypewriter();\n        setSending(false);\n      }\n    },\n    [\n      activeId,\n      conversations,\n      enqueueTypewriter,\n      flushTypewriter,\n      mode,\n      persist,\n      ready,\n      runManusStream,\n      runStream,\n      sending,\n      stopTypewriter,\n      token,\n    ]\n  );\n\n  return {\n    conversations,\n    activeId,\n    messages,\n    sending,\n    listLoading,\n    newChat,\n    selectChat,\n    deleteChat,\n    sendUserMessage,\n  };\n}\n",
       "__isJSFile": true,
       "__absFile": "D:/workSpace/Prodigal/prodigal-ai-travel/prodigal-travel-web/src/pages/chat/hooks/useChat.ts"
+    },
+    "chat/travel/index": {
+      "path": "chat/travel",
+      "id": "chat/travel/index",
+      "parentId": "@@/global-layout",
+      "file": "chat/travel/index.tsx",
+      "absPath": "/chat/travel",
+      "__content": "import React from 'react';\nimport { ChatWorkspace } from '@/components/chat/ChatWorkspace';\n\nconst TravelChatPage: React.FC = () => (\n  <ChatWorkspace\n    mode=\"travel\"\n    title=\"AI 旅游助手\"\n    emptyHint=\"你好！我是 AI 旅游助手。请用「对话列表」「示例问题」管理会话与发起咨询（窄屏在输入区上方，宽屏在两侧）。\"\n    showToolPanel\n    alternateHref=\"/chat/manus\"\n    alternateLabel=\"超级智能体\"\n  />\n);\n\nexport default TravelChatPage;\n",
+      "__isJSFile": true,
+      "__absFile": "D:/workSpace/Prodigal/prodigal-ai-travel/prodigal-travel-web/src/pages/chat/travel/index.tsx"
+    },
+    "chat/manus/index": {
+      "path": "chat/manus",
+      "id": "chat/manus/index",
+      "parentId": "@@/global-layout",
+      "file": "chat/manus/index.tsx",
+      "absPath": "/chat/manus",
+      "__content": "import React from 'react';\nimport { ChatWorkspace } from '@/components/chat/ChatWorkspace';\n\nconst ManusChatPage: React.FC = () => (\n  <ChatWorkspace\n    mode=\"manus\"\n    title=\"超级智能体\"\n    emptyHint=\"服务端按 Agent 循环逐步推送（工具结果为步骤日志，模型最终说明为综合回复）。登录后即可提问；会话列表仅保存在本机，与旅游助手后端会话无关。\"\n    showToolPanel={false}\n    alternateHref=\"/chat/travel\"\n    alternateLabel=\"AI 旅游助手\"\n  />\n);\n\nexport default ManusChatPage;\n",
+      "__isJSFile": true,
+      "__absFile": "D:/workSpace/Prodigal/prodigal-ai-travel/prodigal-travel-web/src/pages/chat/manus/index.tsx"
+    },
+    "entry/index": {
+      "path": "entry",
+      "id": "entry/index",
+      "parentId": "@@/global-layout",
+      "file": "entry/index.tsx",
+      "absPath": "/entry",
+      "__content": "import {\n  CompassOutlined,\n  RocketOutlined,\n  ThunderboltOutlined,\n} from '@ant-design/icons';\nimport { Button, Card, Flex, Typography } from 'antd';\nimport React from 'react';\nimport { history } from 'umi';\nimport {\n  type ChatMode,\n  persistChatMode,\n} from '@/utils/chatMode';\n\nconst { Title, Paragraph, Text } = Typography;\n\nconst cardBodyStyle: React.CSSProperties = {\n  display: 'flex',\n  flexDirection: 'column',\n  height: '100%',\n  minHeight: 220,\n};\n\nconst EntryPage: React.FC = () => {\n  const go = (mode: ChatMode) => {\n    persistChatMode(mode);\n    history.push(\n      mode === 'manus' ? '/chat/manus?fresh=1' : '/chat/travel'\n    );\n  };\n\n  return (\n    <Flex\n      vertical\n      align=\"center\"\n      justify=\"center\"\n      gap={32}\n      style={{\n        flex: 1,\n        minHeight: 0,\n        padding: '32px 20px 48px',\n        background:\n          'linear-gradient(165deg, #f0f5ff 0%, #f5f6f8 45%, #fafafa 100%)',\n        overflow: 'auto',\n      }}\n    >\n      <Flex vertical align=\"center\" gap={8} style={{ maxWidth: 520 }}>\n        <ThunderboltOutlined style={{ fontSize: 40, color: '#1677ff' }} />\n        <Title level={2} style={{ margin: 0, textAlign: 'center' }}>\n          Prodigal AI\n        </Title>\n        <Text type=\"secondary\" style={{ textAlign: 'center', fontSize: 15 }}>\n          未登录也可先选择体验方式；发送消息前需要登录。\n        </Text>\n      </Flex>\n\n      <Flex\n        gap={24}\n        wrap=\"wrap\"\n        justify=\"center\"\n        style={{ maxWidth: 880, width: '100%' }}\n      >\n        <Card\n          hoverable\n          style={{\n            flex: '1 1 300px',\n            maxWidth: 400,\n            borderRadius: 12,\n            borderColor: 'rgba(22, 119, 255, 0.25)',\n          }}\n          styles={{ body: cardBodyStyle }}\n        >\n          <Flex align=\"center\" gap={12} style={{ marginBottom: 12 }}>\n            <CompassOutlined\n              style={{ fontSize: 28, color: '#1677ff' }}\n            />\n            <Title level={4} style={{ margin: 0 }}>\n              AI 旅游助手\n            </Title>\n          </Flex>\n          <Paragraph type=\"secondary\" style={{ flex: 1 }}>\n            国内行程、景点、天气与 MCP 工具结合，支持会话历史与流式回复，适合规划与咨询出行。\n          </Paragraph>\n          <Button\n            type=\"primary\"\n            size=\"large\"\n            block\n            icon={<CompassOutlined />}\n            onClick={() => go('travel')}\n          >\n            进入旅游助手\n          </Button>\n        </Card>\n\n        <Card\n          hoverable\n          style={{\n            flex: '1 1 300px',\n            maxWidth: 400,\n            borderRadius: 12,\n            borderColor: 'rgba(114, 46, 209, 0.28)',\n          }}\n          styles={{ body: cardBodyStyle }}\n        >\n          <Flex align=\"center\" gap={12} style={{ marginBottom: 12 }}>\n            <RocketOutlined style={{ fontSize: 28, color: '#722ed1' }} />\n            <Title level={4} style={{ margin: 0 }}>\n              超级智能体\n            </Title>\n          </Flex>\n          <Paragraph type=\"secondary\" style={{ flex: 1 }}>\n            多步推理与工具调用，流式推送每一步「思考与执行」过程，适合复杂任务与自动化编排。\n          </Paragraph>\n          <Button\n            size=\"large\"\n            block\n            style={{\n              background: 'linear-gradient(90deg, #722ed1 0%, #9254de 100%)',\n              color: '#fff',\n              border: 'none',\n            }}\n            icon={<RocketOutlined />}\n            onClick={() => go('manus')}\n          >\n            进入超级智能体\n          </Button>\n        </Card>\n      </Flex>\n    </Flex>\n  );\n};\n\nexport default EntryPage;\n",
+      "__isJSFile": true,
+      "__absFile": "D:/workSpace/Prodigal/prodigal-ai-travel/prodigal-travel-web/src/pages/entry/index.tsx"
     },
     "chat/index": {
       "path": "chat",
@@ -3017,7 +3053,7 @@
       "parentId": "@@/global-layout",
       "file": "chat/index.tsx",
       "absPath": "/chat",
-      "__content": "import {\n  AppstoreOutlined,\n  MenuFoldOutlined,\n  MenuOutlined,\n  MenuUnfoldOutlined,\n} from '@ant-design/icons';\nimport {\n  Button,\n  Drawer,\n  Flex,\n  FloatButton,\n  Grid,\n  Layout,\n} from 'antd';\nimport React, { useState } from 'react';\nimport { MessageInput } from '@/components/chat/MessageInput';\nimport { MessageList } from '@/components/chat/MessageList';\nimport { Sidebar } from '@/components/chat/Sidebar';\nimport { ToolPanel } from '@/components/chat/ToolPanel';\nimport { useChat } from './hooks/useChat';\n\nconst { Sider, Content } = Layout;\n\nconst ChatPage: React.FC = () => {\n  const screens = Grid.useBreakpoint();\n  const isWide = screens.lg === true;\n\n  const [toolsCollapsed, setToolsCollapsed] = useState(false);\n  const [historyDrawerOpen, setHistoryDrawerOpen] = useState(false);\n  const [toolsDrawerOpen, setToolsDrawerOpen] = useState(false);\n\n  const {\n    conversations,\n    activeId,\n    messages,\n    historySearch,\n    setHistorySearch,\n    sending,\n    newChat,\n    selectChat,\n    deleteChat,\n    sendUserMessage,\n  } = useChat();\n\n  const send = (text: string) => void sendUserMessage(text);\n\n  const sidebar = (\n    <Sidebar\n      conversations={conversations}\n      activeId={activeId}\n      search={historySearch}\n      onSearchChange={setHistorySearch}\n      onNew={newChat}\n      onSelect={(id) => {\n        selectChat(id);\n        setHistoryDrawerOpen(false);\n      }}\n      onDelete={deleteChat}\n    />\n  );\n\n  const toolPanel = (\n    <ToolPanel\n      onQuickPrompt={(t) => {\n        void sendUserMessage(t);\n        setToolsDrawerOpen(false);\n      }}\n    />\n  );\n\n  /** 中间栏：仅消息列表区域滚动，输入框固定在底部不参与滚动 */\n  const chatMain = (\n    <Flex\n      vertical\n      gap=\"middle\"\n      style={{\n        flex: 1,\n        minHeight: 0,\n        width: '100%',\n        overflow: 'hidden',\n      }}\n    >\n      {!isWide ? (\n        <Flex\n          justify=\"space-between\"\n          align=\"center\"\n          gap=\"small\"\n          wrap=\"wrap\"\n          style={{ flexShrink: 0 }}\n        >\n          <Button\n            type=\"default\"\n            icon={<MenuOutlined />}\n            onClick={() => setHistoryDrawerOpen(true)}\n          >\n            对话列表\n          </Button>\n          <Button\n            type=\"default\"\n            icon={<AppstoreOutlined />}\n            onClick={() => setToolsDrawerOpen(true)}\n          >\n            示例问题\n          </Button>\n        </Flex>\n      ) : null}\n      <div\n        style={{\n          flex: 1,\n          minHeight: 0,\n          overflow: 'auto',\n        }}\n      >\n        <MessageList messages={messages} />\n      </div>\n      <div style={{ flexShrink: 0 }}>\n        <MessageInput disabled={sending} onSend={send} />\n      </div>\n    </Flex>\n  );\n\n  if (!isWide) {\n    return (\n      <Layout\n        style={{\n          flex: 1,\n          minHeight: 0,\n          height: '100%',\n          display: 'flex',\n          flexDirection: 'column',\n          overflow: 'hidden',\n        }}\n      >\n        <Content\n          style={{\n            flex: 1,\n            minHeight: 0,\n            display: 'flex',\n            flexDirection: 'column',\n            padding: 16,\n            overflow: 'hidden',\n          }}\n        >\n          {chatMain}\n        </Content>\n        <Drawer\n          title=\"历史对话\"\n          placement=\"left\"\n          width={280}\n          open={historyDrawerOpen}\n          onClose={() => setHistoryDrawerOpen(false)}\n          destroyOnClose={false}\n        >\n          {sidebar}\n        </Drawer>\n        <Drawer\n          title=\"示例与说明\"\n          placement=\"right\"\n          width={Math.min(\n            360,\n            typeof window !== 'undefined' ? window.innerWidth - 24 : 360\n          )}\n          open={toolsDrawerOpen}\n          onClose={() => setToolsDrawerOpen(false)}\n          destroyOnClose={false}\n        >\n          {toolPanel}\n        </Drawer>\n      </Layout>\n    );\n  }\n\n  /**\n   * 桌面端：横向 Layout 只包含「左 Sider | 中间栏 | 右 Sider」三个子节点。\n   * FloatButton 放在中间 Content 内，避免成为第 4 个 flex 子项导致主栏被挤没、输入框消失。\n   */\n  return (\n    <Layout\n      hasSider\n      style={{\n        flex: 1,\n        minHeight: 0,\n        height: '100%',\n        overflow: 'hidden',\n      }}\n    >\n      <Sider\n        width={280}\n        theme=\"light\"\n        style={{ overflow: 'auto', height: '100%' }}\n      >\n        {sidebar}\n      </Sider>\n      <Layout\n        style={{\n          flex: 1,\n          minWidth: 0,\n          minHeight: 0,\n          height: '100%',\n          display: 'flex',\n          flexDirection: 'column',\n          overflow: 'hidden',\n        }}\n      >\n        <Content\n          style={{\n            flex: 1,\n            minHeight: 0,\n            display: 'flex',\n            flexDirection: 'column',\n            padding: 16,\n            overflow: 'hidden',\n            position: 'relative',\n          }}\n        >\n          {chatMain}\n          <FloatButton\n            icon={\n              toolsCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />\n            }\n            type=\"default\"\n            style={{ bottom: 96, right: 24 }}\n            onClick={() => setToolsCollapsed((c) => !c)}\n            tooltip={toolsCollapsed ? '展开工具栏' : '收起工具栏'}\n          />\n        </Content>\n      </Layout>\n      {!toolsCollapsed ? (\n        <Sider\n          width={360}\n          theme=\"light\"\n          style={{ overflow: 'auto', height: '100%' }}\n        >\n          <ToolPanel onQuickPrompt={send} />\n        </Sider>\n      ) : null}\n    </Layout>\n  );\n};\n\nexport default ChatPage;\n",
+      "__content": "import React from 'react';\nimport { Navigate } from 'umi';\n\n/** 旧地址 /chat 统一到首页选择入口 */\nconst ChatRedirect: React.FC = () => <Navigate to=\"/entry\" replace />;\n\nexport default ChatRedirect;\n",
       "__isJSFile": true,
       "__absFile": "D:/workSpace/Prodigal/prodigal-ai-travel/prodigal-travel-web/src/pages/chat/index.tsx"
     },
@@ -3027,7 +3063,7 @@
       "parentId": "@@/global-layout",
       "file": "index.tsx",
       "absPath": "/",
-      "__content": "import React from 'react';\nimport { Navigate } from 'umi';\n\nconst HomePage: React.FC = () => <Navigate to=\"/chat\" replace />;\n\nexport default HomePage;\n",
+      "__content": "import React from 'react';\nimport { Navigate } from 'umi';\n\nconst HomePage: React.FC = () => <Navigate to=\"/entry\" replace />;\n\nexport default HomePage;\n",
       "__isJSFile": true,
       "__absFile": "D:/workSpace/Prodigal/prodigal-ai-travel/prodigal-travel-web/src/pages/index.tsx"
     },
@@ -3040,7 +3076,43 @@
       "__absFile": "D:/workSpace/Prodigal/prodigal-ai-travel/prodigal-travel-web/src/layouts/index.tsx"
     }
   },
-  "apiRoutes": {},
+  "apiRoutes": {
+    "healthController": {
+      "path": "healthController",
+      "id": "healthController",
+      "file": "healthController.ts",
+      "absPath": "/healthController",
+      "__content": "// @ts-ignore\n/* eslint-disable */\nimport { request } from \"@/request\";\n\n/** 此处后端没有提供注释 POST /health/check */\nexport async function check(options?: { [key: string]: any }) {\n  return request<string>(`/api/health/check`, {\n    method: \"POST\",\n    ...(options || {}),\n  });\n}\n"
+    },
+    "travelAssistant": {
+      "path": "travelAssistant",
+      "id": "travelAssistant",
+      "file": "travelAssistant.ts",
+      "absPath": "/travelAssistant",
+      "__content": "// @ts-ignore\n/* eslint-disable */\nimport { request } from \"@/request\";\n\n/** 旅游助手对话 需登录：请求头 Authorization: Bearer {token}。可传 departureCity、tripDays、tripFocus；结合 RAG 与工具调用。 POST /travel/chat */\nexport async function chat(\n  body: API.ChatRequest,\n  options?: { [key: string]: any }\n) {\n  return request<API.BaseResultTravelChatResponse>(`/api/travel/chat`, {\n    method: \"POST\",\n    headers: {\n      \"Content-Type\": \"application/json\",\n    },\n    data: body,\n    ...(options || {}),\n  });\n}\n\n/** 旅游助手对话sseEmitter 需登录：请求头 Authorization: Bearer {token}。可传 departureCity、tripDays、tripFocus；结合 RAG 与工具调用。 POST /travel/chat/sse_emitter */\nexport async function chatSseEmitter(\n  body: API.ChatRequest,\n  options?: { [key: string]: any }\n) {\n  return request<API.SseEmitter>(`/api/travel/chat/sse_emitter`, {\n    method: \"POST\",\n    headers: {\n      \"Content-Type\": \"application/json\",\n    },\n    data: body,\n    ...(options || {}),\n  });\n}\n\n/** 历史会话 不传 chatId 时返回当前用户全部会话（仅元数据）；传 chatId 时返回该会话及全部消息。 GET /travel/conversations */\nexport async function conversations(\n  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)\n  params: API.conversationsParams,\n  options?: { [key: string]: any }\n) {\n  return request<API.BaseResultListChatMessageVO>(`/api/travel/conversations`, {\n    method: \"GET\",\n    params: {\n      ...params,\n    },\n    ...(options || {}),\n  });\n}\n\n/** 删除会话 删除指定会话及其消息；需登录 DELETE /travel/conversations */\nexport async function deleteConversation(\n  params: API.deleteConversationParams,\n  options?: { [key: string]: any }\n) {\n  const chatId = params?.chatId?.trim();\n  if (!chatId) {\n    return Promise.reject(new Error(\"缺少会话 ID（chatId）\"));\n  }\n  return request<API.BaseResultVoid>(`/api/travel/conversations`, {\n    method: \"DELETE\",\n    params: { chatId },\n    ...(options || {}),\n  });\n}\n\n/** 同 `deleteConversation`，单 chatId 参数写法。 */\nexport async function deleteConversationByChatId(\n  chatId: string,\n  options?: { [key: string]: any }\n) {\n  return deleteConversation({ chatId }, options);\n}\n\n/** 流式调用超级智能体 需登录：请求头 Authorization: Bearer {token}。 POST /travel/manus/chat */\nexport async function chatManus(\n  body: API.ChatRequest,\n  options?: { [key: string]: any }\n) {\n  return request<API.SseEmitter>(`/api/travel/manus/chat`, {\n    method: \"POST\",\n    headers: {\n      \"Content-Type\": \"application/json\",\n    },\n    data: body,\n    ...(options || {}),\n  });\n}\n"
+    },
+    "typings.d": {
+      "path": "typings/d",
+      "id": "typings.d",
+      "file": "typings.d.ts",
+      "absPath": "/typings/d",
+      "__content": "declare namespace API {\n  type BaseResultListChatMessageVO = {\n    code?: number;\n    status?: boolean;\n    msg?: string;\n    data?: ChatMessageVO[];\n  };\n\n  type BaseResultLoginResponse = {\n    code?: number;\n    status?: boolean;\n    msg?: string;\n    data?: LoginResponse;\n  };\n\n  type BaseResultString = {\n    code?: number;\n    status?: boolean;\n    msg?: string;\n    data?: string;\n  };\n\n  type BaseResultTravelChatResponse = {\n    code?: number;\n    status?: boolean;\n    msg?: string;\n    data?: TravelChatResponse;\n  };\n\n  type BaseResultVoid = {\n    code?: number;\n    status?: boolean;\n    msg?: string;\n    data?: Record<string, any>;\n  };\n\n  type ChatMessage = {\n    id?: string;\n    conversationId?: string;\n    userId?: number;\n    role?: string;\n    content?: string;\n    createTime?: string;\n  };\n\n  type ChatMessageVO = {\n    conversationId?: string;\n    title?: string;\n    messages?: ChatMessage[];\n    updateTime?: string;\n  };\n\n  type ChatRequest = {\n    /** 用户问题或需求描述 */\n    message: string;\n    /** 对话id */\n    chatId?: string;\n  };\n\n  type conversationsParams = {\n    chatId?: string;\n  };\n\n  type deleteConversationParams = {\n    chatId: string;\n  };\n\n  type LoginByCodeRequest = {\n    email: string;\n    /** 邮箱收到的 6 位数字验证码 */\n    code: string;\n  };\n\n  type LoginRequest = {\n    /** 账号：用户名，或完整邮箱 */\n    account: string;\n    password: string;\n  };\n\n  type LoginResponse = {\n    /** JWT，前端可存 localStorage；需要鉴权的接口可带 Authorization: Bearer */\n    token?: string;\n    /** 用户主键；聊天等接口从 JWT 解析，无需再传 X-User-Id */\n    userId?: number;\n    username?: string;\n    nickname?: string;\n    email?: string;\n  };\n\n  type RegisterRequest = {\n    email: string;\n    username: string;\n    password: string;\n    /** 可选，默认同用户名 */\n    nickname?: string;\n  };\n\n  type SendRegisterCodeRequest = {\n    email: string;\n  };\n\n  type SseEmitter = {\n    timeout?: number;\n  };\n\n  type TravelChatResponse = {\n    /** 会话Id */\n    chatId?: string;\n    /** 模型回答 */\n    answer?: string;\n  };\n}\n"
+    },
+    "index": {
+      "path": "/",
+      "id": "index",
+      "file": "index.ts",
+      "absPath": "/",
+      "__content": "// @ts-ignore\n/* eslint-disable */\n// API 更新时间：\n// API 唯一标识：\nimport * as auth from \"./auth\";\nimport * as healthController from \"./healthController\";\nimport * as travelAssistant from \"./travelAssistant\";\nexport default {\n  travelAssistant,\n  healthController,\n  auth,\n};\n"
+    },
+    "auth": {
+      "path": "auth",
+      "id": "auth",
+      "file": "auth.ts",
+      "absPath": "/auth",
+      "__content": "// @ts-ignore\n/* eslint-disable */\nimport { request } from \"@/request\";\n\n/** 注销账号 逻辑删除当前用户，并吊销其在服务端登记的全部 JWT；需携带有效 Bearer token POST /auth/deregister */\nexport async function deregister(options?: { [key: string]: any }) {\n  return request<API.BaseResultVoid>(`/api/auth/deregister`, {\n    method: \"POST\",\n    ...(options || {}),\n  });\n}\n\n/** 登录（账号/邮箱 + 密码） POST /auth/login */\nexport async function login(\n  body: API.LoginRequest,\n  options?: { [key: string]: any }\n) {\n  return request<API.BaseResultLoginResponse>(`/api/auth/login`, {\n    method: \"POST\",\n    headers: {\n      \"Content-Type\": \"application/json\",\n    },\n    data: body,\n    ...(options || {}),\n  });\n}\n\n/** 登录（邮箱 + 验证码） 邮箱必须先注册；验证码通过「发送登录验证码」获取 POST /auth/login/by-code */\nexport async function loginByCode(\n  body: API.LoginByCodeRequest,\n  options?: { [key: string]: any }\n) {\n  return request<API.BaseResultLoginResponse>(`/api/auth/login/by-code`, {\n    method: \"POST\",\n    headers: {\n      \"Content-Type\": \"application/json\",\n    },\n    data: body,\n    ...(options || {}),\n  });\n}\n\n/** 退出登录 从服务端移除当前 JWT 白名单记录；请同时清除前端本地 token POST /auth/logout */\nexport async function logout(options?: { [key: string]: any }) {\n  return request<API.BaseResultVoid>(`/api/auth/logout`, {\n    method: \"POST\",\n    ...(options || {}),\n  });\n}\n\n/** 注册 校验邮箱验证码后创建账号 POST /auth/register */\nexport async function register(\n  body: API.RegisterRequest,\n  options?: { [key: string]: any }\n) {\n  return request<API.BaseResultString>(`/api/auth/register`, {\n    method: \"POST\",\n    headers: {\n      \"Content-Type\": \"application/json\",\n    },\n    data: body,\n    ...(options || {}),\n  });\n}\n\n/** 发送验证码 向邮箱发送 6 位数字验证码，同一邮箱有发送间隔限制 POST /auth/send-code */\nexport async function sendEmailCode(\n  body: API.SendRegisterCodeRequest,\n  options?: { [key: string]: any }\n) {\n  return request<API.BaseResultString>(`/api/auth/send-code`, {\n    method: \"POST\",\n    headers: {\n      \"Content-Type\": \"application/json\",\n    },\n    data: body,\n    ...(options || {}),\n  });\n}\n"
+    }
+  },
   "hasSrcDir": true,
   "npmClient": "npm",
   "umi": {
@@ -3076,12 +3148,14 @@
   "globalJS": [],
   "overridesCSS": [],
   "bundler": "webpack",
+  "git": {
+    "originUrl": "https://github.com/StarsTears/prodigal-ai-travel.git"
+  },
   "framework": "react",
   "typescript": {
     "tsVersion": "5.9.3",
     "tslibVersion": "2.8.1"
   },
-  "faviconFiles": [],
   "antd": {
     "pkgPath": "D:\\workSpace\\Prodigal\\prodigal-ai-travel\\prodigal-travel-web\\node_modules\\antd",
     "version": "5.29.3"

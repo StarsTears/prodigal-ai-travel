@@ -47,3 +47,101 @@ body {
 .prodigal-sidebar-conv-scroll::-webkit-scrollbar-track {
   background: transparent;
 }
+
+/* Entry geek style */
+.entry-geek-page {
+  background:
+    radial-gradient(1200px 480px at 20% -10%, rgba(14, 165, 233, 0.22), transparent 55%),
+    radial-gradient(900px 420px at 80% -5%, rgba(139, 92, 246, 0.25), transparent 50%),
+    linear-gradient(160deg, #040712 0%, #070b1f 45%, #0f1224 100%);
+}
+
+.entry-geek-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(125, 211, 252, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(125, 211, 252, 0.07) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(circle at 50% 35%, #000 20%, transparent 85%);
+  z-index: 0;
+}
+
+.entry-geek-orb {
+  position: absolute;
+  width: 320px;
+  height: 320px;
+  filter: blur(40px);
+  opacity: 0.45;
+  border-radius: 50%;
+  animation: geek-float 8s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.entry-geek-orb-left {
+  background: rgba(56, 189, 248, 0.6);
+  left: -80px;
+  top: 8%;
+}
+
+.entry-geek-orb-right {
+  background: rgba(147, 51, 234, 0.58);
+  right: -80px;
+  top: 18%;
+  animation-delay: -3s;
+}
+
+.entry-geek-card {
+  position: relative;
+  background: rgba(15, 23, 42, 0.72) !important;
+  border: 1px solid rgba(148, 163, 184, 0.24) !important;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 20px 40px rgba(2, 6, 23, 0.45);
+  z-index: 1;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.entry-geek-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 26px 48px rgba(15, 23, 42, 0.62);
+}
+
+.entry-geek-card-blue {
+  border-color: rgba(56, 189, 248, 0.35) !important;
+}
+
+.entry-geek-card-purple {
+  border-color: rgba(167, 139, 250, 0.36) !important;
+}
+
+.entry-geek-btn {
+  border: none !important;
+  color: #fff !important;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.28);
+}
+
+.entry-geek-btn-blue {
+  background: linear-gradient(90deg, #0284c7 0%, #2563eb 100%) !important;
+}
+
+.entry-geek-btn-purple {
+  background: linear-gradient(90deg, #7c3aed 0%, #db2777 100%) !important;
+}
+
+.entry-geek-btn:hover {
+  filter: brightness(1.08);
+}
+
+@keyframes geek-float {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-18px) scale(1.04);
+  }
+}

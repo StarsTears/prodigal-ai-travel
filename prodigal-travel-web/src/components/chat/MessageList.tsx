@@ -30,6 +30,12 @@ const { Text } = Typography;
 
 const BUBBLE_MAX = 560;
 
+function preserveSingleNewlinesForMarkdown(md: string): string {
+  // Markdown 里「单个换行」默认会被当成空格；这里把它转成 hard break（两个空格 + \n）
+  // 注意：这是展示层面的格式化，不改变后端原始内容。
+  return md.replace(/\r\n/g, '\n').replace(/\n/g, '  \n');
+}
+
 function markdownImageStyle(borderRadius: number): React.CSSProperties {
   return {
     maxWidth: '100%',
@@ -96,10 +102,18 @@ export const MessageList: React.FC<MessageListProps> = ({
   }, [messages]);
 
   if (messages.length === 0) {
+    const manusEmptyTextStyle: React.CSSProperties =
+      bubbleVariant === 'manus'
+        ? {
+            fontSize: 15,
+            lineHeight: 1.8,
+            color: 'rgba(226, 232, 240, 0.9)',
+          }
+        : {};
     return (
       <Empty
         description={
-          <Text type="secondary">
+          <Text type="secondary" style={manusEmptyTextStyle}>
             {emptyHint ??
               '你好！我是 AI 旅游助手。请用「对话列表」「示例问题」管理会话与发起咨询（窄屏在输入区上方，宽屏在两侧）。'}
           </Text>
@@ -108,13 +122,20 @@ export const MessageList: React.FC<MessageListProps> = ({
     );
   }
 
-  const manusBubbleStyle: React.CSSProperties =
+  const assistantBaseStyle: React.CSSProperties = {
+    borderColor: 'rgba(56, 189, 248, 0.28)',
+    background: 'rgba(2, 6, 23, 0.16)',
+    color: 'rgba(226, 232, 240, 0.92)',
+  };
+
+  const assistantBubbleStyle: React.CSSProperties =
     bubbleVariant === 'manus'
       ? {
-          borderColor: 'rgba(114, 46, 209, 0.35)',
-          background: 'rgba(114, 46, 209, 0.04)',
+          borderColor: 'rgba(167, 139, 250, 0.35)',
+          background: 'rgba(114, 46, 209, 0.05)',
+          color: 'rgba(226, 232, 240, 0.92)',
         }
-      : {};
+      : assistantBaseStyle;
 
   return (
     <List
@@ -161,7 +182,7 @@ export const MessageList: React.FC<MessageListProps> = ({
                 style={{
                   maxWidth: `min(88%, ${BUBBLE_MAX}px)`,
                   flexShrink: 0,
-                  ...(!isUser ? manusBubbleStyle : {}),
+                  ...(!isUser ? assistantBubbleStyle : {}),
                 }}
                 styles={{
                   body: isUser
@@ -169,7 +190,10 @@ export const MessageList: React.FC<MessageListProps> = ({
                         padding: '10px 14px',
                         background: token.colorPrimaryBg,
                       }
-                    : { padding: '10px 14px' },
+                    : {
+                        padding: '10px 14px',
+                        background: 'transparent',
+                      },
                 }}
               >
                 {!isUser ? (
@@ -207,7 +231,7 @@ export const MessageList: React.FC<MessageListProps> = ({
                         ]}
                       />
                     ) : null}
-                    {showManusPanel ? (
+                    {showManusPanel && manusReplyMd ? (
                       <Text type="secondary" style={{ fontSize: 12 }}>
                         综合回复
                       </Text>
@@ -218,18 +242,11 @@ export const MessageList: React.FC<MessageListProps> = ({
                         rehypePlugins={[rehypeSanitize]}
                         components={markdownComponents}
                       >
-                        {manusReplyMd}
+                        {preserveSingleNewlinesForMarkdown(manusReplyMd)}
                       </ReactMarkdown>
                     ) : null}
                     {m.streaming && !m.content?.trim() && !manusSummaryFallback ? (
                       <Spin size="small" />
-                    ) : null}
-                    {!m.streaming &&
-                    !manusReplyMd &&
-                    showManusPanel ? (
-                      <Text type="secondary" style={{ fontSize: 13 }}>
-                        暂无综合回复；请展开上方「思考与执行过程」查看详情。
-                      </Text>
                     ) : null}
                   </Flex>
                 ) : (
