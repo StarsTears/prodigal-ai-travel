@@ -2,10 +2,10 @@ package com.prodigal.travel.rag;
 
 import com.prodigal.travel.constants.TravelConstant;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.client.advisor.RetrievalAugmentationAdvisor;
 import org.springframework.ai.chat.client.advisor.api.Advisor;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.prompt.PromptTemplate;
+import org.springframework.ai.rag.advisor.RetrievalAugmentationAdvisor;
 import org.springframework.ai.rag.generation.augmentation.ContextualQueryAugmenter;
 import org.springframework.ai.rag.preretrieval.query.expansion.MultiQueryExpander;
 import org.springframework.ai.rag.preretrieval.query.expansion.QueryExpander;

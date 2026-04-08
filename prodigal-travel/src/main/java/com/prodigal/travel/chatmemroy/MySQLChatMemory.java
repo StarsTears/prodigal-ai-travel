@@ -76,12 +76,12 @@ public class MySQLChatMemory implements ChatMemory {
     }
 
     @Override
-    public List<Message> get(String conversationId, int lastN) {
-        if (!StringUtils.hasText(conversationId) || lastN <= 0) {
+    public List<Message> get(String conversationId) {
+        if (!StringUtils.hasText(conversationId)) {
             return List.of();
         }
         ParsedConversation parsed = ParsedConversation.parse(conversationId);
-        List<ChatMessage> rows = chatMessageService.findChatMessage(parsed.chatUuid(), parsed.userId(), lastN);
+        List<ChatMessage> rows = chatMessageService.findChatMessage(parsed.chatUuid(), parsed.userId(),20);
         Collections.reverse(rows);
         List<Message> out = new ArrayList<>(rows.size());
         for (ChatMessage row : rows) {

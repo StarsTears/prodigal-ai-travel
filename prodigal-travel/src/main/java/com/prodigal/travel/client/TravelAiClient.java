@@ -7,21 +7,21 @@ import com.prodigal.travel.rag.QueryRewriter;
 import com.prodigal.travel.rag.TravelRagCustomAdvisorFactory;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
-import org.springframework.ai.chat.memory.InMemoryChatMemory;
+//import org.springframework.ai.chat.memory.InMemoryChatMemory;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.ToolCallbackProvider;
 import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
 
-import static org.springframework.ai.chat.client.advisor.AbstractChatMemoryAdvisor.CHAT_MEMORY_CONVERSATION_ID_KEY;
-import static org.springframework.ai.chat.client.advisor.AbstractChatMemoryAdvisor.CHAT_MEMORY_RETRIEVE_SIZE_KEY;
 
 /**
  * 旅游助手专用 {@link ChatClient}、向量库与本地工具注册。
@@ -32,8 +32,11 @@ import static org.springframework.ai.chat.client.advisor.AbstractChatMemoryAdvis
 @Component
 public class TravelAiClient {
     private final ChatClient chatClient;
-    @Resource
-    private VectorStore pgVectorStore;
+    /**
+     * 由 {@link com.prodigal.travel.rag.PgVectorStoreConfig} 提供；未启用 PostgreSQL/pgvector 时不注册 Bean，此处可选注入以免拖垮整应用。
+     */
+    @Autowired
+    private ObjectProvider<VectorStore> pgVectorStore;
     @Resource
     private QueryRewriter queryRewriter;
     @Resource
@@ -64,7 +67,7 @@ public class TravelAiClient {
         this.dashscopeChatModel = dashscopeChatModel;
         chatClient = ChatClient.builder(dashscopeChatModel)
                 .defaultSystem(TravelConstant.SYSTEM_PROMPT)
-                .defaultAdvisors(new MessageChatMemoryAdvisor(chatMemory))
+                .defaultAdvisors(MessageChatMemoryAdvisor.builder(chatMemory).build())
                 .build();
     }
 
@@ -79,11 +82,11 @@ public class TravelAiClient {
         ChatResponse chatResponse = chatClient.prompt()
                 .user(message)
                 //对话Id、关联对话数
-                .advisors(spec -> spec.param(CHAT_MEMORY_CONVERSATION_ID_KEY, chatId)
-                        .param(CHAT_MEMORY_RETRIEVE_SIZE_KEY, 20))
+                .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId)
+                        .param("TOP_K", 20))
                 //开启日志
                 .advisors(new LoggerAdvisor())
-                .tools(allTools)
+                .toolCallbacks(allTools)
                 .call()
                 .chatResponse();
         return chatResponse.getResult().getOutput().getText();
@@ -100,6 +103,11 @@ public class TravelAiClient {
      * @return
      */
     public String doChatWithRag(String message, String chatId) {
+        VectorStore store = pgVectorStore.getIfAvailable();
+        if (store == null) {
+            throw new IllegalStateException(
+                    "VectorStore 未配置：请取消注释 PgVectorStoreConfig 的 @Configuration，并配置 PostgreSQL（pgvector）数据源。");
+        }
         //重写查询
         String rewriterMessage = queryRewriter.doRewriteQuery(message);
 
@@ -110,8 +118,8 @@ public class TravelAiClient {
 //                .build();
 
         ChatResponse chatResponse = chatClient.prompt()
-                .advisors(spec -> spec.param(CHAT_MEMORY_CONVERSATION_ID_KEY, chatId) //对话id
-                        .param(CHAT_MEMORY_RETRIEVE_SIZE_KEY, 10) //关联会话的条数
+                .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId) //对话id
+                        .param("TOP_K", 10) //关联会话的条数
                 )
                 .user(rewriterMessage)
                 //开启日志
@@ -119,9 +127,9 @@ public class TravelAiClient {
                 //基于 pgVector知识库回答
 //                .advisors(questionAnswerAdvisor)
                 //检索增强顾问
-                .advisors(TravelRagCustomAdvisorFactory.createRetrievalAugmentationAdvisor(pgVectorStore,dashscopeChatModel))
+                .advisors(TravelRagCustomAdvisorFactory.createRetrievalAugmentationAdvisor(store, dashscopeChatModel))
                 //添加工具
-                .tools(allTools)
+                .toolCallbacks(allTools)
                 .call()
                 .chatResponse();
         return chatResponse.getResult().getOutput().getText();
@@ -136,12 +144,12 @@ public class TravelAiClient {
     public String doChatWithTool(String message, String chatId) {
         ChatResponse chatResponse = chatClient.prompt()
                 .user(message)
-                .advisors(spec -> spec.param(CHAT_MEMORY_CONVERSATION_ID_KEY, chatId) //对话id
-                        .param(CHAT_MEMORY_RETRIEVE_SIZE_KEY, 10) //关联会话的条数
+                .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId) //对话id
+                        .param("TOP_K", 10) //关联会话的条数
                 )
                 //开启日志
                 .advisors(new LoggerAdvisor())
-                .tools(allTools)
+                .toolCallbacks(allTools)
                 .call()
                 .chatResponse();
         return chatResponse.getResult().getOutput().getText();
@@ -158,15 +166,15 @@ public class TravelAiClient {
     public String doChatWithMCP(String message, String chatId) {
         ChatResponse chatResponse = chatClient.prompt()
                 .user(message)
-                .advisors(spec -> spec.param(CHAT_MEMORY_CONVERSATION_ID_KEY, chatId) //对话id
-                        .param(CHAT_MEMORY_RETRIEVE_SIZE_KEY, 10) //关联会话的条数
+                .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId) //对话id
+                        .param("TOP_K", 10) //关联会话的条数
                 )
                 //开启日志
                 .advisors(new LoggerAdvisor())
                 //MCP 的工具
-                .tools(toolCallbackProvider)
+                .toolCallbacks(toolCallbackProvider)
                 //工具调用
-                .tools(allTools)
+                .toolCallbacks(allTools)
                 .call()
                 .chatResponse();
         return chatResponse.getResult().getOutput().getText();
@@ -181,15 +189,15 @@ public class TravelAiClient {
     public Flux<String> doChatWithMCPSSE(String message, String chatId) {
         return chatClient.prompt()
                 .user(message)
-                .advisors(spec -> spec.param(CHAT_MEMORY_CONVERSATION_ID_KEY, chatId) //对话id
-                        .param(CHAT_MEMORY_RETRIEVE_SIZE_KEY, 10) //关联会话的条数
+                .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId) //对话id
+                        .param("TOP_K", 10) //关联会话的条数
                 )
                 //开启日志
                 .advisors(new LoggerAdvisor())
                 //MCP 的工具
-                .tools(toolCallbackProvider)
+                .toolCallbacks(toolCallbackProvider)
                 //工具调用
-                .tools(allTools)
+                .toolCallbacks(allTools)
                 .stream()
                 .content();
     }

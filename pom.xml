@@ -25,8 +25,11 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
-        <spring-ai-alibaba.version>1.0.0-M6.1</spring-ai-alibaba.version>
-        <spring-ai.version>1.0.0-M6</spring-ai.version>
+        <spring-ai-alibaba.version>1.1.2.0</spring-ai-alibaba.version>
+        <spring-ai-bom.version>1.1.2</spring-ai-bom.version>
+        <spring-ai-alibaba-extensions-bom.version>1.1.2.1</spring-ai-alibaba-extensions-bom.version>
+
+<!--        <spring-ai.version>1.0.0-M6</spring-ai.version>-->
         <pgvector.version>1.0.0-M7</pgvector.version>
         <kryo.version>5.6.2</kryo.version>
         <spring-ai-mcp.version>1.0.0-M6</spring-ai-mcp.version>
@@ -42,19 +45,42 @@
 
     <dependencyManagement>
         <dependencies>
-            <!-- spring alibaba ai -->
+<!--            &lt;!&ndash; spring alibaba ai &ndash;&gt;-->
+<!--            <dependency>-->
+<!--                <groupId>com.alibaba.cloud.ai</groupId>-->
+<!--                <artifactId>spring-ai-alibaba-starter</artifactId>-->
+<!--                <version>${spring-ai-alibaba.version}</version>-->
+<!--            </dependency>-->
+
             <dependency>
                 <groupId>com.alibaba.cloud.ai</groupId>
-                <artifactId>spring-ai-alibaba-starter</artifactId>
+                <artifactId>spring-ai-alibaba-bom</artifactId>
                 <version>${spring-ai-alibaba.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
             </dependency>
-
-            <!--markdown 读取-->
             <dependency>
                 <groupId>org.springframework.ai</groupId>
-                <artifactId>spring-ai-markdown-document-reader</artifactId>
-                <version>${spring-ai.version}</version>
+                <artifactId>spring-ai-bom</artifactId>
+                <version>${spring-ai-bom.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
             </dependency>
+            <dependency>
+                <groupId>com.alibaba.cloud.ai</groupId>
+                <artifactId>spring-ai-alibaba-extensions-bom</artifactId>
+                <version>${spring-ai-alibaba-extensions-bom.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+
+            <!--markdown 读取-->
+<!--            <dependency>-->
+<!--                <groupId>org.springframework.ai</groupId>-->
+<!--                <artifactId>spring-ai-markdown-document-reader</artifactId>-->
+<!--                <version>${spring-ai.version}</version>-->
+<!--            </dependency>-->
 
             <!-- RAG：PostgreSQL + pgvector（阿里云 RDS/PolarDB PostgreSQL Serverless 等，需已启用 vector 扩展） -->
             <!--自动整合 PGVector -->
@@ -72,11 +98,11 @@
             </dependency>
 
             <!-- Spring AI MCP 客户端-->
-            <dependency>
-                <groupId>org.springframework.ai</groupId>
-                <artifactId>spring-ai-mcp-client-spring-boot-starter</artifactId>
-                <version>${spring-ai-mcp.version}</version>
-            </dependency>
+<!--            <dependency>-->
+<!--                <groupId>org.springframework.ai</groupId>-->
+<!--                <artifactId>spring-ai-mcp-client-spring-boot-starter</artifactId>-->
+<!--                <version>${spring-ai-mcp.version}</version>-->
+<!--            </dependency>-->
 
             <!-- Spring AI MCP 服务端-->
 <!--            <dependency>-->

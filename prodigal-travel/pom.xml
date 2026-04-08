@@ -39,9 +39,16 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- Spring AI Alibaba Agent Framework -->
         <dependency>
             <groupId>com.alibaba.cloud.ai</groupId>
-            <artifactId>spring-ai-alibaba-starter</artifactId>
+            <artifactId>spring-ai-alibaba-agent-framework</artifactId>
+        </dependency>
+
+        <!-- DashScope ChatModel 支持（如果使用其他模型，请跳转 Spring AI 文档选择对应的 starter） -->
+        <dependency>
+            <groupId>com.alibaba.cloud.ai</groupId>
+            <artifactId>spring-ai-alibaba-starter-dashscope</artifactId>
         </dependency>
 
         <!--markdown 读取-->
@@ -54,7 +61,7 @@
         <!--自动整合 PGVector -->
         <dependency>
             <groupId>org.springframework.ai</groupId>
-            <artifactId>spring-ai-starter-vector-store-pgvector</artifactId>
+            <artifactId>spring-ai-pgvector-store</artifactId>
         </dependency>
 
         <dependency>
@@ -65,8 +72,15 @@
         <!-- Spring AI MCP 客户端-->
         <dependency>
             <groupId>org.springframework.ai</groupId>
-            <artifactId>spring-ai-mcp-client-spring-boot-starter</artifactId>
+            <artifactId>spring-ai-starter-mcp-client</artifactId>
         </dependency>
+
+        <!--使用 QuestionAnswerAdvisor 需添加该依赖-->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-advisors-vector-store</artifactId>
+        </dependency>
+
 
         <!-- 使用 MySQL 持久化存储会话记忆-->
         <dependency>

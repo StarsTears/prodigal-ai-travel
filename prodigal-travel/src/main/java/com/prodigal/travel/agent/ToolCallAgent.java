@@ -2,7 +2,6 @@ package com.prodigal.travel.agent;
 
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
-import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatOptions;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
@@ -13,6 +12,7 @@ import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.chat.prompt.Prompt;
+import org.springframework.ai.model.tool.DefaultToolCallingChatOptions;
 import org.springframework.ai.model.tool.ToolCallingManager;
 import org.springframework.ai.model.tool.ToolExecutionResult;
 import org.springframework.ai.tool.ToolCallback;
@@ -48,8 +48,11 @@ public class ToolCallAgent extends ReActAgent {
         this.availableTools = availableTools;
         this.toolCallingManager = ToolCallingManager.builder().build();
         //禁用 Spring ai 内置的工具调用，自己维护选项和上下文信息
-        this.chatOptions = DashScopeChatOptions.builder()
-                .withProxyToolCalls(true)
+//        this.chatOptions = DashScopeChatOptions.builder()
+//                .withProxyToolCalls(true)
+//                .build();
+        this.chatOptions = DefaultToolCallingChatOptions.builder()
+                .internalToolExecutionEnabled(false)
                 .build();
     }
 
@@ -66,7 +69,7 @@ public class ToolCallAgent extends ReActAgent {
         try {
             ChatResponse chatResponse = getChatClient().prompt(prompt)
                     .system(getSystemPrompt())
-                    .tools(availableTools)
+                    .toolCallbacks(availableTools)
                     .call()
                     .chatResponse();
             //记录响应

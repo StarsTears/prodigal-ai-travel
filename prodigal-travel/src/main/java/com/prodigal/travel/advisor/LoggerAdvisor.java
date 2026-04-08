@@ -2,15 +2,17 @@ package com.prodigal.travel.advisor;
 
 import lombok.extern.slf4j.Slf4j;
 
+import org.springframework.ai.chat.client.ChatClientMessageAggregator;
+import org.springframework.ai.chat.client.ChatClientRequest;
+import org.springframework.ai.chat.client.ChatClientResponse;
 import org.springframework.ai.chat.client.advisor.api.*;
-import org.springframework.ai.chat.model.MessageAggregator;
 import reactor.core.publisher.Flux;
 
 /**
  * 日志增强顾问，基于 Spring AI 1.0.0 Advisors API。
  */
 @Slf4j
-public class LoggerAdvisor implements CallAroundAdvisor, StreamAroundAdvisor {
+public class LoggerAdvisor implements CallAdvisor, StreamAdvisor {
 
     @Override
     public String getName() {
@@ -23,26 +25,29 @@ public class LoggerAdvisor implements CallAroundAdvisor, StreamAroundAdvisor {
     }
 
     @Override
-    public AdvisedResponse aroundCall(AdvisedRequest advisedRequest, CallAroundAdvisorChain chain) {
-        advisedRequest = this.before(advisedRequest);
-        AdvisedResponse responses = chain.nextAroundCall(advisedRequest);
-        this.observeAfter(responses);
-        return responses;
+    public ChatClientResponse adviseCall(ChatClientRequest chatClientRequest, CallAdvisorChain callAdvisorChain) {
+        chatClientRequest = this.before(chatClientRequest);
+        ChatClientResponse chatClientResponse = callAdvisorChain.nextCall(chatClientRequest);
+        observeAfter(chatClientResponse);
+        return chatClientResponse;
     }
 
     @Override
-    public Flux<AdvisedResponse> aroundStream(AdvisedRequest advisedRequest, StreamAroundAdvisorChain chain) {
-        advisedRequest = this.before(advisedRequest);
-        Flux<AdvisedResponse> responses = chain.nextAroundStream(advisedRequest);
-        return (new MessageAggregator()).aggregateAdvisedResponse(responses, this::observeAfter);
+    public Flux<ChatClientResponse> adviseStream(ChatClientRequest chatClientRequest, StreamAdvisorChain streamAdvisorChain) {
+        chatClientRequest = this.before(chatClientRequest);
+        Flux<ChatClientResponse> responses = streamAdvisorChain.nextStream(chatClientRequest);
+        return (new ChatClientMessageAggregator()).aggregateChatClientResponse(responses, this::observeAfter);
     }
 
-    private AdvisedRequest before(AdvisedRequest request) {
-        log.info("AI Request: {}", request.userText());
+
+    private ChatClientRequest before(ChatClientRequest request) {
+        log.info("AI Request: {}", request.prompt().getUserMessage().getText());
         return request;
     }
 
-    private void observeAfter(AdvisedResponse response) {
-        log.info("AI Response: {}", response.response().getResult().getOutput().getText());
+    private void observeAfter(ChatClientResponse response) {
+        log.info("AI Response: {}", response.chatResponse().getResult().getOutput().getText());
     }
+
+
 }

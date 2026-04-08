@@ -18,7 +18,7 @@ class TravelAiClientTest {
     void doChat() {
         String chatId = UUID.fastUUID().toString();
         //第一轮
-        String content = travelAiClient.doChat("你好！我是 Itlang", chatId);
+        String content = travelAiClient.doChat("你好！我是 lang", chatId);
         log.info(content);
         assertNotNull(content);
         //第二轮
@@ -47,7 +47,7 @@ class TravelAiClientTest {
         String content = travelAiClient.doChatWithTool("当前时间是多少？厦门近几日的天气如何?", chatId);
         assertNotNull(content);
         //第二轮 ,2812632023@qq.com
-        content = travelAiClient.doChatWithTool("将内容发送给 邮箱", chatId);
+        content = travelAiClient.doChatWithTool("将内容发送给 198116203@qq.com", chatId);
         assertNotNull(content);
     }
 

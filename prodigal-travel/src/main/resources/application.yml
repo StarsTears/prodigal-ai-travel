@@ -20,6 +20,8 @@ spring:
         options:
           model: qwen-plus
           temperature: 0.7
+          # 部分模型（如 Qwen3 / 部分 MiniMax 接入）要求 enable_thinking 必须为 true，否则 HTTP 400
+          enable-thinking: true
       # RAG 向量入库需要 Embedding（与 chat 共用 api-key）
       embedding:
         options:
