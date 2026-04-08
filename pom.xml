@@ -33,6 +33,7 @@
 
         <mybatis-plus.version>3.5.7</mybatis-plus.version>
         <jwt.version>4.4.0</jwt.version>
+        <caffeine.version>3.1.8</caffeine.version>
         <hutool.version>5.8.37</hutool.version>
         <knife4j.version>4.4.0</knife4j.version>
         <poi.version>5.3.0</poi.version>
@@ -91,12 +92,12 @@
                 <version>${mybatis-plus.version}</version>
             </dependency>
 
-            <!--jwt 认证-->
-<!--            <dependency>-->
-<!--                <groupId>com.auth0</groupId>-->
-<!--                <artifactId>java-jwt</artifactId>-->
-<!--                <version>${jwt.version}</version>-->
-<!--            </dependency>-->
+            <!--本地缓存-->
+            <dependency>
+                <groupId>com.github.ben-manes.caffeine</groupId>
+                <artifactId>caffeine</artifactId>
+                <version>${caffeine.version}</version>
+            </dependency>
 
             <!--hutool-->
             <dependency>

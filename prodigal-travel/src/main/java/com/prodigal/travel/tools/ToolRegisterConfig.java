@@ -20,7 +20,7 @@ import org.springframework.mail.javamail.JavaMailSender;
 public class ToolRegisterConfig {
     @Value("${prodigal.search-api.api-key}")
     private String searchApiKey;
-    @Value("${prodigal.amap.api-key:}")
+    @Value("${prodigal.amap.api-key}")
     private String amapApiKey;
     @Resource
     private MailConfig mailConfig;
