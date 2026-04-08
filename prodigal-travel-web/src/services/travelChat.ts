@@ -13,6 +13,10 @@ export interface StreamCallOptions {
 
 type StreamKind = 'travel' | 'manus';
 
+export type ManusSsePayload =
+  | { kind: 'delta'; text: string }
+  | { kind: 'step'; text: string };
+
 function buildApiUrl(path: string): string {
   return `${API_BASE || ''}${path}`;
 }
@@ -40,6 +44,52 @@ function parseEventPayload(raw: string): string {
     }
   }
   return text;
+}
+
+/** 解析已完整的 SSE 事件块（以空行分隔），返回未消费完的尾部 buffer */
+function parseCompleteSseBlocks(buffer: string): {
+  consumed: Array<{ eventName: string; data: string }>;
+  rest: string;
+} {
+  const consumed: Array<{ eventName: string; data: string }> = [];
+  // Spring / 反向代理常见 CRLF；只认 \n\n 会导致整段流无法拆包，onPayload 从不触发、界面一直转圈
+  let rest = buffer.replace(/\r\n/g, '\n');
+  while (true) {
+    const sep = rest.indexOf('\n\n');
+    if (sep < 0) break;
+    const block = rest.slice(0, sep);
+    rest = rest.slice(sep + 2);
+    let eventName = 'message';
+    const dataLines: string[] = [];
+    for (const rawLine of block.split('\n')) {
+      const line = rawLine.replace(/\r$/, '');
+      if (!line) continue;
+      if (line.startsWith('event:')) {
+        eventName = line.slice(6).trim();
+      } else if (line.startsWith('data:')) {
+        const v = line.slice(5);
+        dataLines.push(v.startsWith(' ') ? v.slice(1) : v);
+      }
+    }
+    const data = dataLines.join('\n');
+    if (data !== '' && data !== '[DONE]') {
+      consumed.push({ eventName, data });
+    }
+  }
+  return { consumed, rest };
+}
+
+function mapManusEvent(eventName: string, data: string): ManusSsePayload | null {
+  const text = parseEventPayload(data);
+  if (!text) return null;
+  if (eventName === 'delta') {
+    return { kind: 'delta', text };
+  }
+  if (eventName === 'step') {
+    return { kind: 'step', text };
+  }
+  // Spring `SseEmitter.send(String)` 等：无 event 名时视为 message，由前端 `routeManusSsePayload` 再分类
+  return { kind: 'step', text };
 }
 
 async function streamByFetch(
@@ -76,29 +126,89 @@ async function streamByFetch(
     const { done, value } = await reader.read();
     if (done) break;
     buffer += decoder.decode(value, { stream: true });
-    let sep = buffer.indexOf('\n\n');
-    while (sep >= 0) {
-      const eventBlock = buffer.slice(0, sep);
-      buffer = buffer.slice(sep + 2);
-      const dataLines = eventBlock
-        .split('\n')
-        .map((line) => line.trim())
-        .filter((line) => line.startsWith('data:'))
-        .map((line) => line.slice(5).trim());
-      if (dataLines.length > 0) {
-        const chunk = parseEventPayload(dataLines.join('\n'));
-        if (chunk) {
-          answer += chunk;
-          onDelta(chunk);
-        }
-      }
-      sep = buffer.indexOf('\n\n');
+    const { consumed, rest } = parseCompleteSseBlocks(buffer);
+    buffer = rest;
+    for (const { eventName, data } of consumed) {
+      const chunk = parseEventPayload(data);
+      if (!chunk) continue;
+      answer += chunk;
+      onDelta(chunk);
     }
+  }
+  const { consumed: tailEvents, rest: tailRest } = parseCompleteSseBlocks(buffer + '\n\n');
+  buffer = tailRest;
+  for (const { eventName, data } of tailEvents) {
+    const chunk = parseEventPayload(data);
+    if (!chunk) continue;
+    answer += chunk;
+    onDelta(chunk);
   }
   const tail = parseEventPayload(buffer.replace(/^data:\s*/gm, '').trim());
   if (tail) {
     answer += tail;
     onDelta(tail);
+  }
+  return { chatId, answer };
+}
+
+async function streamManusByFetch(
+  options: StreamCallOptions,
+  onPayload: (p: ManusSsePayload) => void
+): Promise<TravelChatResponse> {
+  const chatId = resolveChatId(options);
+  const token = getStoredToken();
+  const res = await fetch(buildApiUrl(MANUS_CHAT_SSE_PATH), {
+    method: 'POST',
+    headers: {
+      Accept: 'text/event-stream',
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ message: options.message, chatId }),
+    signal: options.signal,
+  });
+  if (!res.ok) {
+    const errText = await res.text().catch(() => '');
+    throw new Error(errText || `请求失败 (${res.status})`);
+  }
+  if (!res.body) {
+    throw new Error('流式响应体为空');
+  }
+
+  const decoder = new TextDecoder();
+  const reader = res.body.getReader();
+  let buffer = '';
+  let answer = '';
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const { consumed, rest } = parseCompleteSseBlocks(buffer);
+    buffer = rest;
+    for (const { eventName, data } of consumed) {
+      const mapped = mapManusEvent(eventName, data);
+      if (!mapped) continue;
+      answer += mapped.text;
+      onPayload(mapped);
+    }
+  }
+  // 与 streamByFetch 一致：用空行冲刷「最后一个未以 \n\n 结尾」的事件，否则后端已 complete 前端仍拿不到数据
+  const { consumed: tailEvents, rest: tailBuf } = parseCompleteSseBlocks(`${buffer}\n\n`);
+  buffer = tailBuf;
+  for (const { eventName, data } of tailEvents) {
+    const mapped = mapManusEvent(eventName, data);
+    if (!mapped) continue;
+    answer += mapped.text;
+    onPayload(mapped);
+  }
+  // 仍非标准 SSE 的裸文本（极少数容器行为）
+  const orphan = buffer.replace(/\r\n/g, '\n').trim();
+  if (orphan) {
+    const mapped = mapManusEvent('message', orphan);
+    if (mapped) {
+      answer += mapped.text;
+      onPayload(mapped);
+    }
   }
   return { chatId, answer };
 }
@@ -112,7 +222,7 @@ export async function streamTravelAnswer(
 
 export async function streamManusAnswer(
   options: StreamCallOptions,
-  onDelta: (chunk: string) => void
+  onPayload: (p: ManusSsePayload) => void
 ): Promise<TravelChatResponse> {
-  return streamByFetch('manus', options, onDelta);
+  return streamManusByFetch(options, onPayload);
 }

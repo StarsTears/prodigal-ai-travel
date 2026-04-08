@@ -1,9 +1,18 @@
 import { useCallback, useRef } from 'react';
-import { streamTravelAnswer } from '@/services/travelChat';
+import {
+  streamManusAnswer,
+  streamTravelAnswer,
+  type ManusSsePayload,
+} from '@/services/travelChat';
 import type { TravelChatResponse } from '@/types';
 
+export type StreamChatKind = 'travel' | 'manus';
+
+export type { ManusSsePayload };
+
 /**
- * 按接口约定仅传「当前用户句」+ 可选 `chatId`；历史上下文由后端记忆顾问维护。
+ * 旅游助手：MCP 文本流。
+ * 超级智能体：后端多为默认 SSE `message` + 整段字符串（每步一次）；前端再按正文区分工具日志与综合回复。
  */
 export function useStreaming() {
   const abortRef = useRef<AbortController | null>(null);
@@ -16,8 +25,12 @@ export function useStreaming() {
   const runStream = useCallback(
     async (
       args: { message: string; chatId?: string | null },
-      onDelta: (chunk: string) => void
+      onDelta: (chunk: string) => void,
+      kind: StreamChatKind = 'travel'
     ): Promise<TravelChatResponse> => {
+      if (kind === 'manus') {
+        throw new Error('use runManusStream for manus mode');
+      }
       abort();
       const controller = new AbortController();
       abortRef.current = controller;
@@ -37,5 +50,29 @@ export function useStreaming() {
     [abort]
   );
 
-  return { runStream, abort };
+  const runManusStream = useCallback(
+    async (
+      args: { message: string; chatId?: string | null },
+      onPayload: (p: ManusSsePayload) => void
+    ): Promise<TravelChatResponse> => {
+      abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
+      try {
+        return await streamManusAnswer(
+          {
+            message: args.message,
+            chatId: args.chatId ?? undefined,
+            signal: controller.signal,
+          },
+          onPayload
+        );
+      } finally {
+        abortRef.current = null;
+      }
+    },
+    [abort]
+  );
+
+  return { runStream, runManusStream, abort };
 }

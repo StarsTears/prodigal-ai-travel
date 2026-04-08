@@ -38,7 +38,7 @@ public class TravelAssistantController {
     private final TravelAiClient travelAiClient;
     private final ChatConversationService chatConversationService;
 
-    private ToolCallback[] allTools;
+    private final ToolCallback[] allTools;
 
     private final ChatModel dashscopeChatModel;
 

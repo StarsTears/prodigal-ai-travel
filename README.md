@@ -4,7 +4,7 @@
 
 ---
 界面如图所示
-
+![img.png](img/img_2.png)
 <p align="center">
   <img src="img/img.png" alt="界面截图 1" width="48%" />
   &nbsp;&nbsp;

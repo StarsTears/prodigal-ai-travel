@@ -1,6 +1,7 @@
 import { message } from 'antd';
 import { isAxiosError } from 'axios';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { history, useSearchParams } from 'umi';
 import {
   conversations as fetchConversations,
   deleteConversationByChatId as deleteConversationApi,
@@ -8,7 +9,14 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import type { ChatMessage, ConversationRecord } from '@/types';
 import { assertBaseResultOk, unwrapBaseResult } from '@/utils/apiResult';
-import { useStreaming } from './useStreaming';
+import {
+  clearManusPersistedState,
+  loadManusPersistedState,
+  saveManusPersistedState,
+} from '@/utils/manusChatStorage';
+import { summarizeManusSteps } from '@/utils/manusStepSummary';
+import { routeManusSsePayload } from '@/utils/manusStreamRouting';
+import { useStreaming, type StreamChatKind } from './useStreaming';
 
 const genId = (): string => {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -104,6 +112,14 @@ function voToDetailRecord(vo: API.ChatMessageVO): ConversationRecord {
   };
 }
 
+function finalizeManusAssistantMessage(m: ChatMessage): ChatMessage {
+  const base = { ...m, streaming: false };
+  if (base.content?.trim()) return base;
+  const steps = base.manusSteps ?? [];
+  if (steps.length === 0) return base;
+  return { ...base, content: summarizeManusSteps(steps) };
+}
+
 const formatChatError = (e: unknown): string => {
   if (isAxiosError(e)) {
     const status = e.response?.status;
@@ -130,9 +146,16 @@ const formatChatError = (e: unknown): string => {
   return '请求失败，请检查网络或后端服务';
 };
 
-export function useChat() {
+export interface UseChatOptions {
+  /** 旅游助手：SSE MCP 流式；超级智能体：`/travel/manus/chat` 分步流式 */
+  mode: StreamChatKind;
+}
+
+export function useChat(options: UseChatOptions) {
+  const { mode } = options;
   const { token, ready } = useAuth();
-  const { runStream, abort } = useStreaming();
+  const [searchParams] = useSearchParams();
+  const { runStream, runManusStream, abort } = useStreaming();
   const [conversations, setConversations] = useState<ConversationRecord[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
@@ -165,6 +188,7 @@ export function useChat() {
 
   const loadConversationDetail = useCallback(
     async (chatId: string) => {
+      if (mode === 'manus') return;
       if (!ready || !token || chatId.startsWith(PENDING_PREFIX)) return;
       try {
         const res = await fetchConversations({ chatId });
@@ -177,7 +201,7 @@ export function useChat() {
         message.error('加载会话消息失败');
       }
     },
-    [mergeDetailIntoList, ready, token]
+    [mergeDetailIntoList, mode, ready, token]
   );
 
   /**
@@ -217,11 +241,31 @@ export function useChat() {
   refreshListRef.current = refreshConversationList;
 
   /**
-   * 须等 `ready`（本地 token 与用户态已恢复完毕）且存在 token 才拉会话历史，
-   * 避免首屏未登录或 hydration 完成前就请求 `/travel/conversations`。
+   * 旅游助手：拉 `/travel/conversations`。
+   * 超级智能体：仅用本地持久化，且与旅游助手列表完全隔离；从首页带 `?fresh=1` 进入时清空并开始新会话。
    */
   useEffect(() => {
     if (!ready) {
+      return;
+    }
+    if (mode === 'manus') {
+      if (searchParams.get('fresh') === '1') {
+        setConversations([]);
+        setActiveId(null);
+        clearManusPersistedState();
+        history.replace('/chat/manus');
+        return;
+      }
+      if (!token) {
+        setConversations([]);
+        setActiveId(null);
+        setListLoading(false);
+        return;
+      }
+      setListLoading(false);
+      const { conversations: list, activeId: active } = loadManusPersistedState();
+      setConversations(list);
+      setActiveId(active);
       return;
     }
     if (!token) {
@@ -231,7 +275,12 @@ export function useChat() {
       return;
     }
     void refreshListRef.current();
-  }, [token, ready]);
+  }, [token, ready, mode, searchParams]);
+
+  useEffect(() => {
+    if (mode !== 'manus' || !token) return;
+    saveManusPersistedState({ conversations, activeId });
+  }, [mode, token, conversations, activeId]);
 
   const persist = useCallback(
     (updater: (prev: ConversationRecord[]) => ConversationRecord[]) => {
@@ -265,11 +314,11 @@ export function useChat() {
     (id: string) => {
       abort();
       setActiveId(id);
-      if (ready && token && !id.startsWith(PENDING_PREFIX)) {
+      if (mode === 'travel' && ready && token && !id.startsWith(PENDING_PREFIX)) {
         void loadConversationDetail(id);
       }
     },
-    [abort, loadConversationDetail, ready, token]
+    [abort, loadConversationDetail, mode, ready, token]
   );
 
   const deleteChat = useCallback(
@@ -299,6 +348,18 @@ export function useChat() {
         });
         return;
       }
+      if (mode === 'manus') {
+        let nextList: ConversationRecord[] = [];
+        setConversations((prev) => {
+          nextList = prev.filter((c) => c.id !== id);
+          return nextList;
+        });
+        setActiveId((cur) => {
+          if (cur !== id) return cur;
+          return sortConversations(nextList)[0]?.id ?? null;
+        });
+        return;
+      }
       try {
         const res = await deleteConversationApi(id);
         assertBaseResultOk(res.data);
@@ -315,7 +376,7 @@ export function useChat() {
         message.error(e instanceof Error ? e.message : '删除会话失败');
       }
     },
-    [abort, ready, token]
+    [abort, mode, ready, token]
   );
 
   const sendUserMessage = useCallback(
@@ -379,35 +440,83 @@ export function useChat() {
         });
       };
 
-      persistWithMessages((m) => [...m, userMsg, assistantMsg]);
+      const assistantManus: ChatMessage = {
+        id: genId(),
+        role: 'assistant',
+        content: '',
+        createdAt: Date.now(),
+        streaming: true,
+        manusSteps: [],
+      };
+
+      if (mode === 'manus') {
+        persistWithMessages((m) => [...m, userMsg, assistantManus]);
+      } else {
+        persistWithMessages((m) => [...m, userMsg, assistantMsg]);
+      }
 
       setSending(true);
       try {
-        const result = await runStream(
-          { message: trimmed, chatId: chatIdForApi },
-          (chunk) => {
-            persist((prev) => {
-              const idx = prev.findIndex((c) => c.id === convId);
-              if (idx === -1) return prev;
-              const c = prev[idx];
-              const nextMessages = c.messages.map((m) =>
-                m.id === assistantMsg.id
-                  ? { ...m, content: m.content + chunk }
-                  : m
+        const result =
+          mode === 'manus'
+            ? await runManusStream(
+                { message: trimmed, chatId: chatIdForApi },
+                (p) => {
+                  const { route, text } = routeManusSsePayload(p);
+                  if (route === 'skip') return;
+                  persist((prev) => {
+                    const idx = prev.findIndex((c) => c.id === convId);
+                    if (idx === -1) return prev;
+                    const c = prev[idx];
+                    const nextMessages = c.messages.map((m) => {
+                      if (m.id !== assistantManus.id) return m;
+                      if (route === 'content') {
+                        return { ...m, content: m.content + text };
+                      }
+                      return {
+                        ...m,
+                        manusSteps: [...(m.manusSteps ?? []), text],
+                      };
+                    });
+                    const nextRecord: ConversationRecord = {
+                      ...c,
+                      messages: nextMessages,
+                      updatedAt: Date.now(),
+                    };
+                    return [
+                      ...prev.slice(0, idx),
+                      nextRecord,
+                      ...prev.slice(idx + 1),
+                    ];
+                  });
+                }
+              )
+            : await runStream(
+                { message: trimmed, chatId: chatIdForApi },
+                (chunk) => {
+                  persist((prev) => {
+                    const idx = prev.findIndex((c) => c.id === convId);
+                    if (idx === -1) return prev;
+                    const c = prev[idx];
+                    const nextMessages = c.messages.map((m) =>
+                      m.id === assistantMsg.id
+                        ? { ...m, content: m.content + chunk }
+                        : m
+                    );
+                    const nextRecord: ConversationRecord = {
+                      ...c,
+                      messages: nextMessages,
+                      updatedAt: Date.now(),
+                    };
+                    return [
+                      ...prev.slice(0, idx),
+                      nextRecord,
+                      ...prev.slice(idx + 1),
+                    ];
+                  });
+                },
+                'travel'
               );
-              const nextRecord: ConversationRecord = {
-                ...c,
-                messages: nextMessages,
-                updatedAt: Date.now(),
-              };
-              return [
-                ...prev.slice(0, idx),
-                nextRecord,
-                ...prev.slice(idx + 1),
-              ];
-            });
-          }
-        );
 
         const serverId = result.chatId?.trim();
         if (serverId && serverId.length > 0) {
@@ -420,7 +529,9 @@ export function useChat() {
               id: serverId,
               backendChatId: serverId,
               messages: c.messages.map((m) =>
-                m.id === assistantMsg.id ? { ...m, streaming: false } : m
+                mode === 'manus' && m.id === assistantManus.id
+                  ? finalizeManusAssistantMessage(m)
+                  : { ...m, streaming: false }
               ),
               updatedAt: Date.now(),
             };
@@ -435,10 +546,15 @@ export function useChat() {
             const idx = prev.findIndex((c) => c.id === convId);
             if (idx === -1) return prev;
             const c = prev[idx];
+            const aid = mode === 'manus' ? assistantManus.id : assistantMsg.id;
             const nextRecord: ConversationRecord = {
               ...c,
               messages: c.messages.map((m) =>
-                m.id === assistantMsg.id ? { ...m, streaming: false } : m
+                m.id === aid
+                  ? mode === 'manus'
+                    ? finalizeManusAssistantMessage(m)
+                    : { ...m, streaming: false }
+                  : m
               ),
               updatedAt: Date.now(),
             };
@@ -458,9 +574,16 @@ export function useChat() {
             const idx = prev.findIndex((c) => c.id === convId);
             if (idx === -1) return prev;
             const c = prev[idx];
+            let nextMessages: ChatMessage[];
+            if (mode === 'manus') {
+              const ui = c.messages.findIndex((m) => m.id === userMsg.id);
+              nextMessages = ui >= 0 ? c.messages.slice(0, ui + 1) : c.messages;
+            } else {
+              nextMessages = c.messages.filter((m) => m.id !== assistantMsg.id);
+            }
             const nextRecord: ConversationRecord = {
               ...c,
-              messages: c.messages.filter((m) => m.id !== assistantMsg.id),
+              messages: nextMessages,
               updatedAt: Date.now(),
             };
             return [
@@ -476,6 +599,23 @@ export function useChat() {
           const idx = prev.findIndex((c) => c.id === convId);
           if (idx === -1) return prev;
           const c = prev[idx];
+          if (mode === 'manus') {
+            const nextMessages = c.messages.map((m) =>
+              m.id === assistantManus.id
+                ? { ...m, content: errText, streaming: false }
+                : m
+            );
+            const nextRecord: ConversationRecord = {
+              ...c,
+              messages: nextMessages,
+              updatedAt: Date.now(),
+            };
+            return [
+              ...prev.slice(0, idx),
+              nextRecord,
+              ...prev.slice(idx + 1),
+            ];
+          }
           const nextMessages = c.messages.map((m) =>
             m.id === assistantMsg.id
               ? { ...m, content: errText, streaming: false }
@@ -496,7 +636,17 @@ export function useChat() {
         setSending(false);
       }
     },
-    [activeId, conversations, persist, ready, runStream, sending, token]
+    [
+      activeId,
+      conversations,
+      mode,
+      persist,
+      ready,
+      runManusStream,
+      runStream,
+      sending,
+      token,
+    ]
   );
 
   return {

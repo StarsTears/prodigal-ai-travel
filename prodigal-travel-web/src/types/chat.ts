@@ -6,6 +6,8 @@ export interface ChatMessage {
   content: string;
   createdAt: number;
   streaming?: boolean;
+  /** 超级智能体：后端 step 事件，用于折叠「思考与执行过程」分步卡片 */
+  manusSteps?: string[];
 }
 
 export interface ConversationRecord {

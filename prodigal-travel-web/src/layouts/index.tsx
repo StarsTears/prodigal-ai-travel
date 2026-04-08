@@ -6,7 +6,11 @@ import { AppHeader } from '@/components/AppHeader';
 const { Content } = Layout;
 
 function isChatRoute(pathname: string): boolean {
-  return pathname === '/' || pathname === '/chat' || pathname.startsWith('/chat/');
+  return (
+    pathname === '/' ||
+    pathname === '/entry' ||
+    pathname.startsWith('/chat')
+  );
 }
 
 /**

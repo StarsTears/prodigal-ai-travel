@@ -2,6 +2,7 @@ import { UserOutlined, RobotOutlined } from '@ant-design/icons';
 import {
   Avatar,
   Card,
+  Collapse,
   Empty,
   Flex,
   List,
@@ -15,10 +16,14 @@ import type { Components } from 'react-markdown';
 import rehypeSanitize from 'rehype-sanitize';
 import remarkGfm from 'remark-gfm';
 import type { ChatMessage } from '@/types';
+import type { StreamChatKind } from '@/pages/chat/hooks/useStreaming';
 import { isImageUrl } from '@/utils/imageUrl';
+import { summarizeManusSteps } from '@/utils/manusStepSummary';
 
 export interface MessageListProps {
   messages: ChatMessage[];
+  bubbleVariant?: StreamChatKind;
+  emptyHint?: string;
 }
 
 const { Text } = Typography;
@@ -35,7 +40,11 @@ function markdownImageStyle(borderRadius: number): React.CSSProperties {
   };
 }
 
-export const MessageList: React.FC<MessageListProps> = ({ messages }) => {
+export const MessageList: React.FC<MessageListProps> = ({
+  messages,
+  bubbleVariant = 'travel',
+  emptyHint,
+}) => {
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const { token } = theme.useToken();
 
@@ -91,12 +100,21 @@ export const MessageList: React.FC<MessageListProps> = ({ messages }) => {
       <Empty
         description={
           <Text type="secondary">
-            你好！我是 AI 旅游助手。请用「对话列表」「示例问题」管理会话与发起咨询（窄屏在输入区上方，宽屏在两侧）。
+            {emptyHint ??
+              '你好！我是 AI 旅游助手。请用「对话列表」「示例问题」管理会话与发起咨询（窄屏在输入区上方，宽屏在两侧）。'}
           </Text>
         }
       />
     );
   }
+
+  const manusBubbleStyle: React.CSSProperties =
+    bubbleVariant === 'manus'
+      ? {
+          borderColor: 'rgba(114, 46, 209, 0.35)',
+          background: 'rgba(114, 46, 209, 0.04)',
+        }
+      : {};
 
   return (
     <List
@@ -105,6 +123,20 @@ export const MessageList: React.FC<MessageListProps> = ({ messages }) => {
       dataSource={messages}
       renderItem={(m) => {
         const isUser = m.role === 'user';
+        const showManusPanel =
+          bubbleVariant === 'manus' &&
+          m.manusSteps &&
+          m.manusSteps.length > 0;
+        const manusSummaryFallback =
+          bubbleVariant === 'manus' &&
+          !isUser &&
+          !m.streaming &&
+          !m.content?.trim() &&
+          showManusPanel
+            ? summarizeManusSteps(m.manusSteps!)
+            : '';
+        const manusReplyMd =
+          (m.content?.trim() && m.content) || manusSummaryFallback || '';
         return (
           <List.Item
             key={m.id}
@@ -129,6 +161,7 @@ export const MessageList: React.FC<MessageListProps> = ({ messages }) => {
                 style={{
                   maxWidth: `min(88%, ${BUBBLE_MAX}px)`,
                   flexShrink: 0,
+                  ...(!isUser ? manusBubbleStyle : {}),
                 }}
                 styles={{
                   body: isUser
@@ -141,14 +174,63 @@ export const MessageList: React.FC<MessageListProps> = ({ messages }) => {
               >
                 {!isUser ? (
                   <Flex vertical gap="small">
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm]}
-                      rehypePlugins={[rehypeSanitize]}
-                      components={markdownComponents}
-                    >
-                      {m.content || (m.streaming ? ' ' : '')}
-                    </ReactMarkdown>
-                    {m.streaming && !m.content ? <Spin size="small" /> : null}
+                    {showManusPanel ? (
+                      <Collapse
+                        key={`${m.id}-think`}
+                        size="small"
+                        defaultActiveKey={m.streaming ? (['think'] as string[]) : []}
+                        items={[
+                          {
+                            key: 'think',
+                            label: `思考与执行过程（${m.manusSteps!.length} 步）`,
+                            children: (
+                              <Flex vertical gap={8}>
+                                {m.manusSteps!.map((step, i) => (
+                                  <Card key={i} size="small" type="inner">
+                                    <Text type="secondary" style={{ fontSize: 12 }}>
+                                      步骤 {i + 1}
+                                    </Text>
+                                    <Typography.Paragraph
+                                      style={{
+                                        marginBottom: 0,
+                                        whiteSpace: 'pre-wrap',
+                                        wordBreak: 'break-word',
+                                      }}
+                                    >
+                                      {step}
+                                    </Typography.Paragraph>
+                                  </Card>
+                                ))}
+                              </Flex>
+                            ),
+                          },
+                        ]}
+                      />
+                    ) : null}
+                    {showManusPanel ? (
+                      <Text type="secondary" style={{ fontSize: 12 }}>
+                        综合回复
+                      </Text>
+                    ) : null}
+                    {manusReplyMd ? (
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        rehypePlugins={[rehypeSanitize]}
+                        components={markdownComponents}
+                      >
+                        {manusReplyMd}
+                      </ReactMarkdown>
+                    ) : null}
+                    {m.streaming && !m.content?.trim() && !manusSummaryFallback ? (
+                      <Spin size="small" />
+                    ) : null}
+                    {!m.streaming &&
+                    !manusReplyMd &&
+                    showManusPanel ? (
+                      <Text type="secondary" style={{ fontSize: 13 }}>
+                        暂无综合回复；请展开上方「思考与执行过程」查看详情。
+                      </Text>
+                    ) : null}
                   </Flex>
                 ) : (
                   <Text style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
