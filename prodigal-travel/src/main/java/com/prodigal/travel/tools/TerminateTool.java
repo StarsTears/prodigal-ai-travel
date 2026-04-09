@@ -10,8 +10,8 @@ import org.springframework.ai.tool.annotation.Tool;
  * @since 2026/4/6
  */
 public class TerminateTool {
-    @Tool(description = "Terminate the interaction when the request is met OR if the assistant cannot proceed further with the task." +
-            "When you have finished all the tasks, call this tool to end the work.")
+    @Tool(description = "End the agent turn when the user's request is fully satisfied (including after a single tool already returned the answer), " +
+            "or when you cannot proceed. Prefer answering in plain text without tools when possible; use this tool to stop the step loop after you are done.")
     public String doTerminate(String conversationId) {
         return "terminate the task!!";
     }

@@ -1,4 +1,5 @@
 # Prodigal AI Travel
+线上体验地址：http://159.75.74.182/
 
 面向国内旅游场景的 AI 对话系统，包含：
 
@@ -6,11 +7,11 @@
 - `超级智能体`：多步 Agent 执行过程流式展示 + 综合回复
 - 前后端一体化部署：Spring Boot API + Umi/React Web
 
-![home](img/img_home.png)
+![home](img/img.png)
 <p align="center">
-  <img src="img/img_01.png" alt="UI-1" width="48%" />
+  <img src="img/img_1.png" alt="UI-1" width="48%" />
   &nbsp;&nbsp;
-  <img src="img/img_02.png" alt="UI-2" width="48%" />
+  <img src="img/img_2.png" alt="UI-2" width="48%" />
 </p>
 
 ---

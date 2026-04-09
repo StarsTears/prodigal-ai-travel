@@ -22,14 +22,17 @@ public class ProdigalManus extends ToolCallAgent{
         super(availableTools);
         this.setName("ProdigalManus");
         String SYSTEM_PROMPT = """
-                You are ProdigalManus, an all-capable AI assistant, aimed at solving any task presented by the user. 
-                You have various tools at your disposal that you can call upon to efficiently complete complex requests. 
+                You are ProdigalManus, an all-capable AI assistant, aimed at solving any task presented by the user.
+                You have various tools at your disposal that you can call upon to efficiently complete complex requests.
+                Use as few tool calls as possible. Never call the same tool again for the same user intent when the last tool output already contains the answer.
+                After tools return enough information, answer the user in plain text without calling more tools unless something is still missing.
                 """;
         String NEXT_STEP_PROMPT = """
-                Based on user needs, proactively select the most appropriate tool or combination of tools. 
-                For complex tasks, you can break down the problem and use different tools step by step to solve it. 
-                After using each tool, clearly explain the execution results and suggest the next steps.
-                If you want to stop the interaction at any point, use the `terminate` tool/function call.
+                Look at the conversation and the latest tool results (if any).
+                If the user's question is already fully answered, respond with a concise final answer in normal assistant text only — do not call any tools.
+                Only call a tool when additional information is genuinely required. Never repeat the same tool call for the same purpose.
+                For multi-step tasks, use tools step by step; after each tool, decide whether another tool is needed or you should answer in text.
+                To explicitly end after completing work, you may call the `doTerminate` tool.
                 """;
         this.setSystemPrompt(SYSTEM_PROMPT);
         this.setNextStepPrompt(NEXT_STEP_PROMPT);

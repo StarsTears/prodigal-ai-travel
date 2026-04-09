@@ -140,8 +140,6 @@ public abstract class BaseAgent {
             this.state = AgentState.RUNNING;
             //记录上下文
             messageList.add(new UserMessage(userPrompt));
-            //结果列表
-            List<String> resultList = new ArrayList<>();
             try {
                 //执行循环（agent loop）
                 while (this.currentStep < this.maxStep && this.state != AgentState.FINISHED) {
