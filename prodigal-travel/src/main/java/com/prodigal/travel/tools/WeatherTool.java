@@ -12,6 +12,8 @@ import cn.hutool.poi.excel.ExcelUtil;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.core.io.ClassPathResource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.InputStream;
@@ -28,6 +30,7 @@ import java.util.Set;
  * @description 天气查询工具类
  */
 public class WeatherTool {
+    private static final Logger log = LoggerFactory.getLogger(WeatherTool.class);
 
     private static final String AD_CODE_FILE = "travel/AMap_adcode_citycode.xlsx";
     private static final String AMAP_WEATHER_URL = "https://restapi.amap.com/v3/weather/weatherInfo";
@@ -191,29 +194,64 @@ public class WeatherTool {
      */
     private File resolveAdCodeFile() {
         File tmpCopy = FileUtil.file(FileUtil.getTmpDirPath(), "prodigal-amap-adcode-citycode.xlsx");
+        log.info("Resolve adcode file start. classpathResource={}, tmpCopy={}, tmpDir={}",
+                AD_CODE_FILE, tmpCopy.getAbsolutePath(), FileUtil.getTmpDirPath());
+
+        // Spring Boot nested jar 环境优先使用 ClassLoader.getResourceAsStream，兼容性最好。
+        try (InputStream in = WeatherTool.class.getClassLoader().getResourceAsStream(AD_CODE_FILE)) {
+            if (in != null) {
+                File copied = FileUtil.writeFromStream(in, tmpCopy);
+                log.info("Resolved adcode file by ClassLoader resource stream, copiedTo={}", copied.getAbsolutePath());
+                return copied;
+            }
+            log.info("ClassLoader resource stream is null. resource={}", AD_CODE_FILE);
+        } catch (Exception e) {
+            log.warn("Failed to copy adcode file from ClassLoader resource stream. resource={}, tmpCopy={}",
+                    AD_CODE_FILE, tmpCopy.getAbsolutePath(), e);
+        }
+
         ClassPathResource cp = new ClassPathResource(AD_CODE_FILE);
+        log.info("Spring ClassPathResource exists? resource={}, exists={}", AD_CODE_FILE, cp.exists());
+        try {
+            java.net.URL url = WeatherTool.class.getClassLoader().getResource(AD_CODE_FILE);
+            log.info("ClassLoader.getResource result. resource={}, url={}", AD_CODE_FILE, url);
+        } catch (Exception e) {
+            log.warn("ClassLoader.getResource threw exception. resource={}", AD_CODE_FILE, e);
+        }
         if (cp.exists()) {
             try (InputStream in = cp.getInputStream()) {
-                return FileUtil.writeFromStream(in, tmpCopy);
-            } catch (Exception ignored) {
-                // fall through
+                File copied = FileUtil.writeFromStream(in, tmpCopy);
+                log.info("Resolved adcode file by ClassPathResource, copiedTo={}", copied.getAbsolutePath());
+                return copied;
+            } catch (Exception e) {
+                log.warn("Failed to copy adcode file from ClassPathResource to tmp file. resource={}, tmpCopy={}",
+                        AD_CODE_FILE, tmpCopy.getAbsolutePath(), e);
             }
         }
         try (InputStream in = ResourceUtil.getStream("classpath:" + AD_CODE_FILE)) {
-            return FileUtil.writeFromStream(in, tmpCopy);
-        } catch (Exception ignored) {
-            // fall through
+            File copied = FileUtil.writeFromStream(in, tmpCopy);
+            log.info("Resolved adcode file by ResourceUtil classpath stream, copiedTo={}", copied.getAbsolutePath());
+            return copied;
+        } catch (Exception e) {
+            log.warn("Failed to copy adcode file from ResourceUtil classpath stream. resource={}, tmpCopy={}",
+                    AD_CODE_FILE, tmpCopy.getAbsolutePath(), e);
         }
         try (InputStream in = ResourceUtil.getStream(AD_CODE_FILE)) {
-            return FileUtil.writeFromStream(in, tmpCopy);
-        } catch (Exception ignored) {
-            // fall through
+            File copied = FileUtil.writeFromStream(in, tmpCopy);
+            log.info("Resolved adcode file by ResourceUtil plain stream, copiedTo={}", copied.getAbsolutePath());
+            return copied;
+        } catch (Exception e) {
+            log.warn("Failed to copy adcode file from ResourceUtil plain stream. resource={}, tmpCopy={}",
+                    AD_CODE_FILE, tmpCopy.getAbsolutePath(), e);
         }
 
         File projectRootFile = FileUtil.file(AD_CODE_FILE);
         if (projectRootFile.exists()) {
+            log.info("Resolved adcode file from project root path={}", projectRootFile.getAbsolutePath());
             return projectRootFile;
         }
+        log.error("Failed to resolve adcode file from all strategies. resource={}, tmpCopy={}, projectRootCandidate={}",
+                AD_CODE_FILE, tmpCopy.getAbsolutePath(), projectRootFile.getAbsolutePath());
         return null;
     }
 
