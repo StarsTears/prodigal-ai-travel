@@ -270,7 +270,7 @@ export const UserSessionBlock: React.FC<UserSessionBlockProps> = ({
         cancelText="取消"
         onOk={saveSettings}
         onCancel={() => setSettingsOpen(false)}
-        destroyOnClose
+        destroyOnHidden
       >
         <Flex vertical gap="middle" style={{ marginTop: 8 }}>
           {isLoggedIn && user?.email ? (

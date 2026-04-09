@@ -65,7 +65,7 @@ export async function register(
 
 /** 发送验证码 向邮箱发送 6 位数字验证码，同一邮箱有发送间隔限制 POST /auth/send-code */
 export async function sendEmailCode(
-  body: API.SendRegisterCodeRequest,
+  body: API.SendCodeRequest,
   options?: { [key: string]: any }
 ) {
   return request<API.BaseResultString>(`/api/auth/send-code`, {

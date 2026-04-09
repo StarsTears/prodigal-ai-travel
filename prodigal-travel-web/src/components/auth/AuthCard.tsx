@@ -43,35 +43,84 @@ export interface AuthCardProps {
   embedded?: boolean;
 }
 
-/**
- * 登录 / 注册表单卡片：可单独用于弹窗或全屏页。
- */
-export const AuthCard: React.FC<AuthCardProps> = ({
-  onLoginSuccess,
-  subtitle = '登录后开始对话',
-  embedded = false,
-}) => {
-  const {
-    loginWithPassword,
-    loginWithEmailCode,
-    registerAccount,
-    sendLoginCode,
-  } = useAuth();
-
-  const { token: themeToken } = theme.useToken();
-  const [tab, setTab] = useState<'login' | 'register'>('login');
-  const [loginMode, setLoginMode] = useState<'password' | 'code'>('password');
+/** 密码登录：useForm 仅在本组件内与 Form 同时挂载，避免 Ant Design「未连接 Form」警告 */
+const LoginPasswordForm: React.FC<{
+  onLoginSuccess?: () => void;
+  prefillAccount?: string | null;
+}> = ({ onLoginSuccess, prefillAccount }) => {
+  const { loginWithPassword } = useAuth();
+  const [form] = Form.useForm<{ account: string; password: string }>();
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (prefillAccount?.trim()) {
+      form.setFieldsValue({ account: prefillAccount.trim() });
+    }
+  }, [prefillAccount, form]);
+
+  const onFinish = async (v: { account: string; password: string }) => {
+    setLoading(true);
+    try {
+      await loginWithPassword(v.account, v.password);
+      onLoginSuccess?.();
+    } catch (e) {
+      form.setFields([{ name: 'password', errors: [formatRequestError(e)] }]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Form
+      form={form}
+      layout="vertical"
+      requiredMark={false}
+      onFinish={onFinish}
+      size="large"
+    >
+      <Form.Item
+        name="account"
+        rules={[{ required: true, message: '请输入用户名或邮箱' }]}
+      >
+        <Input
+          prefix={<UserOutlined />}
+          placeholder="用户名或邮箱"
+          autoComplete="username"
+        />
+      </Form.Item>
+      <Form.Item
+        name="password"
+        rules={[{ required: true, message: '请输入密码' }]}
+      >
+        <Input.Password
+          prefix={<LockOutlined />}
+          placeholder="密码"
+          autoComplete="current-password"
+        />
+      </Form.Item>
+      <Button type="primary" htmlType="submit" block size="large" loading={loading}>
+        登录
+      </Button>
+    </Form>
+  );
+};
+
+/** 验证码登录：表单实例与发送逻辑同层，保证 validateFields 始终作用于已挂载的 Form */
+const LoginCodeForm: React.FC<{
+  onLoginSuccess?: () => void;
+  prefillEmail?: string | null;
+}> = ({ onLoginSuccess, prefillEmail }) => {
+  const { sendLoginCode, loginWithEmailCode } = useAuth();
+  const [form] = Form.useForm<{ email: string; code: string }>();
+  const [loading, setLoading] = useState(false);
+  const [sendCodeLoading, setSendCodeLoading] = useState(false);
   const [sendLeft, setSendLeft] = useState(0);
 
-  const [pwdForm] = Form.useForm<{ account: string; password: string }>();
-  const [codeForm] = Form.useForm<{ email: string; code: string }>();
-  const [regForm] = Form.useForm<{
-    email: string;
-    username: string;
-    password: string;
-    password2: string;
-  }>();
+  useEffect(() => {
+    if (prefillEmail?.trim()) {
+      form.setFieldsValue({ email: prefillEmail.trim() });
+    }
+  }, [prefillEmail, form]);
 
   useEffect(() => {
     if (sendLeft <= 0) return;
@@ -82,59 +131,119 @@ export const AuthCard: React.FC<AuthCardProps> = ({
   }, [sendLeft]);
 
   const onSendCode = useCallback(async () => {
-    const email = codeForm.getFieldValue('email') as string | undefined;
-    if (!email?.trim()) {
-      codeForm.setFields([{ name: 'email', errors: ['请输入邮箱'] }]);
+    if (sendLeft > 0 || sendCodeLoading) return;
+    let email: string;
+    try {
+      const v = await form.validateFields(['email']);
+      email = String(v.email ?? '').trim();
+    } catch {
       return;
     }
-    setLoading(true);
+    if (!email) return;
+
+    setSendCodeLoading(true);
     try {
       await sendLoginCode(email);
       message.success('验证码已发送');
       setSendLeft(SEND_INTERVAL_SEC);
     } catch (e) {
-      codeForm.setFields([
-        { name: 'email', errors: [formatRequestError(e)] },
-      ]);
+      form.setFields([{ name: 'email', errors: [formatRequestError(e)] }]);
     } finally {
-      setLoading(false);
+      setSendCodeLoading(false);
     }
-  }, [codeForm, sendLoginCode]);
+  }, [form, sendCodeLoading, sendLeft, sendLoginCode]);
 
-  const onPwdLogin = async (v: { account: string; password: string }) => {
-    setLoading(true);
-    try {
-      await loginWithPassword(v.account, v.password);
-      onLoginSuccess?.();
-    } catch (e) {
-      pwdForm.setFields([
-        { name: 'password', errors: [formatRequestError(e)] },
-      ]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const onCodeLogin = async (v: { email: string; code: string }) => {
+  const onFinish = async (v: { email: string; code: string }) => {
     setLoading(true);
     try {
       await loginWithEmailCode(v.email, v.code);
       onLoginSuccess?.();
     } catch (e) {
-      codeForm.setFields([{ name: 'code', errors: [formatRequestError(e)] }]);
+      form.setFields([{ name: 'code', errors: [formatRequestError(e)] }]);
     } finally {
       setLoading(false);
     }
   };
 
-  const onRegister = async (v: {
+  return (
+    <Form
+      form={form}
+      layout="vertical"
+      requiredMark={false}
+      onFinish={onFinish}
+      size="large"
+    >
+      <Form.Item
+        name="email"
+        rules={[
+          { required: true, message: '请输入邮箱' },
+          { type: 'email', message: '邮箱格式不正确' },
+        ]}
+      >
+        <Input
+          prefix={<MailOutlined />}
+          placeholder="已注册邮箱"
+          autoComplete="email"
+        />
+      </Form.Item>
+      <Form.Item label={null} style={{ marginBottom: 8 }}>
+        <Flex gap={8}>
+          <Form.Item
+            name="code"
+            noStyle
+            rules={[{ required: true, message: '请输入验证码' }]}
+          >
+            <Input
+              placeholder="6 位验证码"
+              maxLength={6}
+              style={{ flex: 1 }}
+            />
+          </Form.Item>
+          <Button
+            type="default"
+            htmlType="button"
+            onClick={() => void onSendCode()}
+            disabled={sendLeft > 0 || sendCodeLoading || loading}
+            loading={sendCodeLoading}
+            style={{ flexShrink: 0 }}
+          >
+            {sendLeft > 0 ? `${sendLeft}s 后可重发` : '发送验证码'}
+          </Button>
+        </Flex>
+      </Form.Item>
+      <Text
+        type="secondary"
+        style={{ fontSize: 12, display: 'block', marginBottom: 12 }}
+      >
+        验证码仅对已注册邮箱发送；新用户请先完成注册。
+      </Text>
+      <Button type="primary" htmlType="submit" block size="large" loading={loading}>
+        登录
+      </Button>
+    </Form>
+  );
+};
+
+const RegisterForm: React.FC<{
+  onRegistered: (email: string) => void;
+}> = ({ onRegistered }) => {
+  const { registerAccount } = useAuth();
+  const [form] = Form.useForm<{
+    email: string;
+    username: string;
+    password: string;
+    password2: string;
+  }>();
+  const [loading, setLoading] = useState(false);
+
+  const onFinish = async (v: {
     email: string;
     username: string;
     password: string;
     password2: string;
   }) => {
     if (v.password !== v.password2) {
-      regForm.setFields([{ name: 'password2', errors: ['两次密码不一致'] }]);
+      form.setFields([{ name: 'password2', errors: ['两次密码不一致'] }]);
       return;
     }
     setLoading(true);
@@ -145,18 +254,94 @@ export const AuthCard: React.FC<AuthCardProps> = ({
         password: v.password,
       });
       message.success('注册成功，请登录');
-      setTab('login');
-      pwdForm.setFieldsValue({ account: v.email });
-      codeForm.setFieldsValue({ email: v.email });
-      regForm.resetFields();
+      form.resetFields();
+      onRegistered(v.email.trim());
     } catch (e) {
-      regForm.setFields([
-        { name: 'email', errors: [formatRequestError(e)] },
-      ]);
+      form.setFields([{ name: 'email', errors: [formatRequestError(e)] }]);
     } finally {
       setLoading(false);
     }
   };
+
+  return (
+    <Form
+      form={form}
+      layout="vertical"
+      requiredMark={false}
+      onFinish={onFinish}
+      size="large"
+    >
+      <Form.Item
+        name="email"
+        rules={[
+          { required: true, message: '请输入邮箱' },
+          { type: 'email', message: '邮箱格式不正确' },
+        ]}
+      >
+        <Input
+          prefix={<MailOutlined />}
+          placeholder="邮箱"
+          autoComplete="email"
+        />
+      </Form.Item>
+      <Form.Item
+        name="username"
+        rules={[
+          { required: true, message: '请输入用户名' },
+          {
+            pattern: /^[a-zA-Z0-9_]{3,64}$/,
+            message: '3–64 位字母、数字或下划线',
+          },
+        ]}
+      >
+        <Input
+          prefix={<UserOutlined />}
+          placeholder="用户名"
+          autoComplete="username"
+        />
+      </Form.Item>
+      <Form.Item
+        name="password"
+        rules={[
+          { required: true, message: '请输入密码' },
+          { min: 6, message: '至少 6 位' },
+        ]}
+      >
+        <Input.Password
+          prefix={<LockOutlined />}
+          placeholder="密码（至少 6 位）"
+          autoComplete="new-password"
+        />
+      </Form.Item>
+      <Form.Item
+        name="password2"
+        rules={[{ required: true, message: '请再次输入密码' }]}
+      >
+        <Input.Password
+          prefix={<LockOutlined />}
+          placeholder="确认密码"
+          autoComplete="new-password"
+        />
+      </Form.Item>
+      <Button type="primary" htmlType="submit" block size="large" loading={loading}>
+        注册
+      </Button>
+    </Form>
+  );
+};
+
+/**
+ * 登录 / 注册表单卡片：可单独用于弹窗或全屏页。
+ */
+export const AuthCard: React.FC<AuthCardProps> = ({
+  onLoginSuccess,
+  subtitle = '登录后开始对话',
+  embedded = false,
+}) => {
+  const { token: themeToken } = theme.useToken();
+  const [tab, setTab] = useState<'login' | 'register'>('login');
+  const [loginMode, setLoginMode] = useState<'password' | 'code'>('password');
+  const [postRegisterEmail, setPostRegisterEmail] = useState<string | null>(null);
 
   return (
     <Card
@@ -210,102 +395,15 @@ export const AuthCard: React.FC<AuthCardProps> = ({
                   ]}
                 />
                 {loginMode === 'password' ? (
-                  <Form
-                    form={pwdForm}
-                    layout="vertical"
-                    requiredMark={false}
-                    onFinish={onPwdLogin}
-                    size="large"
-                  >
-                    <Form.Item
-                      name="account"
-                      rules={[{ required: true, message: '请输入用户名或邮箱' }]}
-                    >
-                      <Input
-                        prefix={<UserOutlined />}
-                        placeholder="用户名或邮箱"
-                        autoComplete="username"
-                      />
-                    </Form.Item>
-                    <Form.Item
-                      name="password"
-                      rules={[{ required: true, message: '请输入密码' }]}
-                    >
-                      <Input.Password
-                        prefix={<LockOutlined />}
-                        placeholder="密码"
-                        autoComplete="current-password"
-                      />
-                    </Form.Item>
-                    <Button
-                      type="primary"
-                      htmlType="submit"
-                      block
-                      size="large"
-                      loading={loading}
-                    >
-                      登录
-                    </Button>
-                  </Form>
+                  <LoginPasswordForm
+                    onLoginSuccess={onLoginSuccess}
+                    prefillAccount={postRegisterEmail}
+                  />
                 ) : (
-                  <Form
-                    form={codeForm}
-                    layout="vertical"
-                    requiredMark={false}
-                    onFinish={onCodeLogin}
-                    size="large"
-                  >
-                    <Form.Item
-                      name="email"
-                      rules={[
-                        { required: true, message: '请输入邮箱' },
-                        { type: 'email', message: '邮箱格式不正确' },
-                      ]}
-                    >
-                      <Input
-                        prefix={<MailOutlined />}
-                        placeholder="已注册邮箱"
-                        autoComplete="email"
-                      />
-                    </Form.Item>
-                    <Form.Item label={null} style={{ marginBottom: 8 }}>
-                      <Flex gap={8}>
-                        <Form.Item
-                          name="code"
-                          noStyle
-                          rules={[{ required: true, message: '请输入验证码' }]}
-                        >
-                          <Input
-                            placeholder="6 位验证码"
-                            maxLength={6}
-                            style={{ flex: 1 }}
-                          />
-                        </Form.Item>
-                        <Button
-                          onClick={() => void onSendCode()}
-                          disabled={sendLeft > 0 || loading}
-                          style={{ flexShrink: 0 }}
-                        >
-                          {sendLeft > 0 ? `${sendLeft}s` : '发送验证码'}
-                        </Button>
-                      </Flex>
-                    </Form.Item>
-                    <Text
-                      type="secondary"
-                      style={{ fontSize: 12, display: 'block', marginBottom: 12 }}
-                    >
-                      验证码仅对已注册邮箱发送；新用户请先完成注册。
-                    </Text>
-                    <Button
-                      type="primary"
-                      htmlType="submit"
-                      block
-                      size="large"
-                      loading={loading}
-                    >
-                      登录
-                    </Button>
-                  </Form>
+                  <LoginCodeForm
+                    onLoginSuccess={onLoginSuccess}
+                    prefillEmail={postRegisterEmail}
+                  />
                 )}
               </Flex>
             ),
@@ -314,75 +412,12 @@ export const AuthCard: React.FC<AuthCardProps> = ({
             key: 'register',
             label: '注册',
             children: (
-              <Form
-                form={regForm}
-                layout="vertical"
-                requiredMark={false}
-                onFinish={onRegister}
-                size="large"
-              >
-                <Form.Item
-                  name="email"
-                  rules={[
-                    { required: true, message: '请输入邮箱' },
-                    { type: 'email', message: '邮箱格式不正确' },
-                  ]}
-                >
-                  <Input
-                    prefix={<MailOutlined />}
-                    placeholder="邮箱"
-                    autoComplete="email"
-                  />
-                </Form.Item>
-                <Form.Item
-                  name="username"
-                  rules={[
-                    { required: true, message: '请输入用户名' },
-                    {
-                      pattern: /^[a-zA-Z0-9_]{3,64}$/,
-                      message: '3–64 位字母、数字或下划线',
-                    },
-                  ]}
-                >
-                  <Input
-                    prefix={<UserOutlined />}
-                    placeholder="用户名"
-                    autoComplete="username"
-                  />
-                </Form.Item>
-                <Form.Item
-                  name="password"
-                  rules={[
-                    { required: true, message: '请输入密码' },
-                    { min: 6, message: '至少 6 位' },
-                  ]}
-                >
-                  <Input.Password
-                    prefix={<LockOutlined />}
-                    placeholder="密码（至少 6 位）"
-                    autoComplete="new-password"
-                  />
-                </Form.Item>
-                <Form.Item
-                  name="password2"
-                  rules={[{ required: true, message: '请再次输入密码' }]}
-                >
-                  <Input.Password
-                    prefix={<LockOutlined />}
-                    placeholder="确认密码"
-                    autoComplete="new-password"
-                  />
-                </Form.Item>
-                <Button
-                  type="primary"
-                  htmlType="submit"
-                  block
-                  size="large"
-                  loading={loading}
-                >
-                  注册
-                </Button>
-              </Form>
+              <RegisterForm
+                onRegistered={(email) => {
+                  setPostRegisterEmail(email);
+                  setTab('login');
+                }}
+              />
             ),
           },
         ]}

@@ -186,7 +186,7 @@ export const MessageList: React.FC<MessageListProps> = ({
               {!isUser ? <Avatar icon={<RobotOutlined />} /> : null}
               <Card
                 size="small"
-                bordered={!isUser}
+                variant={isUser ? 'borderless' : 'outlined'}
                 style={{
                   maxWidth: `min(88%, ${BUBBLE_MAX}px)`,
                   flexShrink: 0,

@@ -127,7 +127,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const sendLoginCode = useCallback(async (email: string) => {
     const res = await apiSendEmailCode({ email: email.trim() });
-    unwrapBaseResult<string>(res.data);
+    assertBaseResultOk(res.data);
   }, []);
 
   const logout = useCallback(async () => {

@@ -95,7 +95,7 @@ declare namespace API {
     nickname?: string;
   };
 
-  type SendRegisterCodeRequest = {
+  type SendCodeRequest = {
     email: string;
   };
 

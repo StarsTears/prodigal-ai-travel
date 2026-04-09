@@ -95,7 +95,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
       onCancel={() => setAuthModalOpen(false)}
       footer={null}
       width={440}
-      destroyOnClose
+      destroyOnHidden
       centered
       styles={{ content: { paddingTop: 20 } }}
     >
@@ -315,7 +315,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
             width={280}
             open={historyDrawerOpen}
             onClose={() => setHistoryDrawerOpen(false)}
-            destroyOnClose={false}
+            destroyOnHidden={false}
             styles={{ body: { padding: 0, height: '100%' } }}
           >
             <div className="chat-sider-inner">{sidebar}</div>
@@ -327,7 +327,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
               width={Math.min(360, typeof window !== 'undefined' ? window.innerWidth - 24 : 360)}
               open={toolsDrawerOpen}
               onClose={() => setToolsDrawerOpen(false)}
-              destroyOnClose={false}
+              destroyOnHidden={false}
             >
               {toolPanel}
             </Drawer>
