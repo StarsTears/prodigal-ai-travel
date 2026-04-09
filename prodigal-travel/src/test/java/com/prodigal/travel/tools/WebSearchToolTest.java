@@ -16,7 +16,7 @@ class WebSearchToolTest {
     @Test
     void searchWeb() {
         WebSearchTool webSearchTool = new WebSearchTool(apiKey);
-        String result = webSearchTool.searchWeb("四月的谎言怎么样？");
+        String result = webSearchTool.searchWeb("铜仁旅游景点推荐");
         log.info(result);
     }
 }

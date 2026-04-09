@@ -8,6 +8,7 @@ import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 
 import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -22,6 +23,7 @@ import java.util.stream.Collectors;
 public class WebSearchTool {
     // SearchAPI 的搜索接口地址
     private static final String SEARCH_API_URL = "https://www.searchapi.io/api/v1/search";
+    private static final int MAX_RESULTS = 5;
     private final String apiKey;
 
     public WebSearchTool(String apiKey) {
@@ -37,18 +39,34 @@ public class WebSearchTool {
         paramMap.put("engine", "baidu");
         try {
             String response = HttpUtil.get(SEARCH_API_URL, paramMap);
-            // 取出返回结果的前 5 条
             JSONObject jsonObject = JSONUtil.parseObj(response);
-            // 提取 organic_results 部分
+
             JSONArray organicResults = jsonObject.getJSONArray("organic_results");
-            if (organicResults == null){
+            if (organicResults == null) {
                 organicResults = jsonObject.getJSONArray("people_also_search_for");
-                if (organicResults == null){
-                    organicResults = jsonObject.getJSONArray("knowledge_graph");
-                }
             }
 
-            List<Object> objects = organicResults.subList(0, 5);
+            if (organicResults == null || organicResults.isEmpty()) {
+                JSONObject knowledgeGraph = jsonObject.getJSONObject("knowledge_graph");
+                if (knowledgeGraph != null && !knowledgeGraph.isEmpty()) {
+                    List<String> entries = new ArrayList<>();
+                    String title = knowledgeGraph.getStr("title");
+                    if (title != null && !title.isBlank()) {
+                        entries.add("title: " + title);
+                    }
+                    String description = knowledgeGraph.getStr("description");
+                    if (description != null && !description.isBlank()) {
+                        entries.add("description: " + description);
+                    }
+                    if (!entries.isEmpty()) {
+                        return String.join(", ", entries);
+                    }
+                }
+                return "No search results found for query: " + query;
+            }
+
+            int endIndex = Math.min(organicResults.size(), MAX_RESULTS);
+            List<Object> objects = organicResults.subList(0, endIndex);
             // 拼接搜索结果为字符串
             String result = objects.stream().map(obj -> {
                 JSONObject tmpJSONObject = (JSONObject) obj;
@@ -56,7 +74,7 @@ public class WebSearchTool {
             }).collect(Collectors.joining(","));
             return result;
         } catch (Exception e) {
-            return "Error searching Bing: " + e.getMessage();
+            return "Error searching web: " + e.getMessage();
         }
     }
 
