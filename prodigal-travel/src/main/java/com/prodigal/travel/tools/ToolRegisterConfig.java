@@ -34,6 +34,7 @@ public class ToolRegisterConfig {
         EmailTool emailTool = new EmailTool(javaMailSender, mailConfig.getUsername(), mailConfig.getHost());
         WeatherTool weatherTool = new WeatherTool(amapApiKey);
         DateTimeTool dateTimeTool = new DateTimeTool();
+        IPTool ipTool = new IPTool();
         ImageSearchTool imageSearchTool = new ImageSearchTool(imageSearchApiKey);
         PDFGenerationTool pdfGenerationTool = new PDFGenerationTool();
         TerminateTool terminateTool = new TerminateTool();
@@ -43,6 +44,7 @@ public class ToolRegisterConfig {
                 emailTool,
                 weatherTool,
                 dateTimeTool,
+                ipTool,
                 pdfGenerationTool,
                 terminateTool,
                 imageSearchTool

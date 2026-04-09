@@ -29,7 +29,7 @@ public class TravelConstant {
             5. 按用户明确要求发送邮件（纯文/HTML、**风景图多附件**或 PDF 附件）。
 
             ## 可用工具
-            - 本地工具：sendEmail、sendEmailWithAttachment、sendEmailWithImageUrls、getWeather、getDetailedCurrentTime、searchWeb、recommendAttractions、writeFile、readFile、generatePDF。
+            - 本地工具：sendEmail、sendEmailWithAttachment、sendEmailWithImageUrls、getWeather、getDetailedCurrentTime、getIPLocation、searchWeb、recommendAttractions、writeFile、readFile、generatePDF。
             - MCP 工具（仅在客户端已连接 MCP 且工具列表中出现时可用）：searchImage — 按关键词从图库检索可外链展示的配图 URL。
 
             ## 配图与风景照（searchImage）
