@@ -1,4 +1,8 @@
-import { UserOutlined, RobotOutlined } from '@ant-design/icons';
+import {
+  CaretRightOutlined,
+  RobotOutlined,
+  UserOutlined,
+} from '@ant-design/icons';
 import {
   Avatar,
   Card,
@@ -18,7 +22,10 @@ import remarkGfm from 'remark-gfm';
 import type { ChatMessage } from '@/types';
 import type { StreamChatKind } from '@/pages/chat/hooks/useStreaming';
 import { isImageUrl } from '@/utils/imageUrl';
-import { summarizeManusSteps } from '@/utils/manusStepSummary';
+import {
+  filterManusStepsForCollapse,
+  summarizeManusSteps,
+} from '@/utils/manusStepSummary';
 
 export interface MessageListProps {
   messages: ChatMessage[];
@@ -142,17 +149,20 @@ export const MessageList: React.FC<MessageListProps> = ({
       dataSource={messages}
       renderItem={(m) => {
         const isUser = m.role === 'user';
+        const manusStepsDisplay =
+          bubbleVariant === 'manus' && m.manusSteps?.length
+            ? filterManusStepsForCollapse(m.manusSteps)
+            : [];
         const showManusPanel =
-          bubbleVariant === 'manus' &&
-          m.manusSteps &&
-          m.manusSteps.length > 0;
+          bubbleVariant === 'manus' && manusStepsDisplay.length > 0;
         const manusSummaryFallback =
           bubbleVariant === 'manus' &&
           !isUser &&
           !m.streaming &&
           !m.content?.trim() &&
-          showManusPanel
-            ? summarizeManusSteps(m.manusSteps!)
+          m.manusSteps &&
+          m.manusSteps.length > 0
+            ? summarizeManusSteps(m.manusSteps)
             : '';
         const manusReplyMd =
           (m.content?.trim() && m.content) || manusSummaryFallback || '';
@@ -201,13 +211,23 @@ export const MessageList: React.FC<MessageListProps> = ({
                         key={`${m.id}-think`}
                         size="small"
                         defaultActiveKey={m.streaming ? (['think'] as string[]) : []}
+                        rootClassName="manus-think-collapse"
+                        expandIcon={({ isActive }) => (
+                          <CaretRightOutlined
+                            rotate={isActive ? 90 : 0}
+                            style={{
+                              color: 'rgba(226, 232, 240, 0.92)',
+                              fontSize: 12,
+                            }}
+                          />
+                        )}
                         items={[
                           {
                             key: 'think',
-                            label: `思考与执行过程（${m.manusSteps!.length} 步）`,
+                            label: `思考与执行过程（${manusStepsDisplay.length} 步）`,
                             children: (
                               <Flex vertical gap={8}>
-                                {m.manusSteps!.map((step, i) => (
+                                {manusStepsDisplay.map((step, i) => (
                                   <Card key={i} size="small" type="inner">
                                     <Text type="secondary" style={{ fontSize: 12 }}>
                                       步骤 {i + 1}

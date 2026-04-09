@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.regex.Pattern;
 
 /**
  * @author Lang
@@ -41,6 +42,28 @@ public abstract class BaseAgent {
 
     //Memory 自主维护会话上下文信息
     private List<Message> messageList = new ArrayList<>();
+
+    /**
+     * 将单步结果推送到 SSE；若含 {@link ManusStreamMarkers#TOOL_LOG_SEPARATOR} 则拆成两条事件（正文 + 工具日志）。
+     */
+    protected void sendStepToSse(SseEmitter sseEmitter, String result) throws IOException {
+        if (result == null) {
+            return;
+        }
+        if (result.contains(ManusStreamMarkers.TOOL_LOG_SEPARATOR)) {
+            String[] parts = result.split(Pattern.quote(ManusStreamMarkers.TOOL_LOG_SEPARATOR), 2);
+            String head = parts.length > 0 ? parts[0].trim() : "";
+            String tail = parts.length > 1 ? parts[1].trim() : "";
+            if (StrUtil.isNotBlank(head)) {
+                sseEmitter.send(head);
+            }
+            if (StrUtil.isNotBlank(tail)) {
+                sseEmitter.send(tail);
+            }
+            return;
+        }
+        sseEmitter.send(result);
+    }
 
     /**
      * 运行代理
@@ -127,8 +150,7 @@ public abstract class BaseAgent {
                     String result = this.step();
                     log.info("Step {} result: {}", this.currentStep, result);
 //                    resultList.add(result);
-                    //发送每一步的结果
-                    sseEmitter.send(result);
+                    sendStepToSse(sseEmitter, result);
                 }
                 if (this.currentStep >= this.maxStep) {
                     this.state = AgentState.FINISHED;

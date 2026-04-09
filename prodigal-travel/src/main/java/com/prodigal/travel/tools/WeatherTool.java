@@ -11,6 +11,7 @@ import cn.hutool.poi.excel.ExcelReader;
 import cn.hutool.poi.excel.ExcelUtil;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
+import org.springframework.core.io.ClassPathResource;
 
 import java.io.File;
 import java.io.InputStream;
@@ -183,11 +184,30 @@ public class WeatherTool {
         }
     }
 
+    /**
+     * 从 classpath（如 {@code src/main/resources/travel/}）或项目根目录解析高德城市编码表。
+     * 注意：临时文件不能使用 {@code travel/xxx.xlsx} 这种带子目录的路径，否则在多数系统上
+     * {@code java.io.tmpdir/travel} 不存在会导致写入失败，异常被吞掉后会误判为「文件未找到」。
+     */
     private File resolveAdCodeFile() {
-        try (InputStream in = ResourceUtil.getStream(AD_CODE_FILE)) {
-            return FileUtil.writeFromStream(in, FileUtil.file(FileUtil.getTmpDirPath(), AD_CODE_FILE));
+        File tmpCopy = FileUtil.file(FileUtil.getTmpDirPath(), "prodigal-amap-adcode-citycode.xlsx");
+        ClassPathResource cp = new ClassPathResource(AD_CODE_FILE);
+        if (cp.exists()) {
+            try (InputStream in = cp.getInputStream()) {
+                return FileUtil.writeFromStream(in, tmpCopy);
+            } catch (Exception ignored) {
+                // fall through
+            }
+        }
+        try (InputStream in = ResourceUtil.getStream("classpath:" + AD_CODE_FILE)) {
+            return FileUtil.writeFromStream(in, tmpCopy);
         } catch (Exception ignored) {
-            // fall through and continue lookup in project root
+            // fall through
+        }
+        try (InputStream in = ResourceUtil.getStream(AD_CODE_FILE)) {
+            return FileUtil.writeFromStream(in, tmpCopy);
+        } catch (Exception ignored) {
+            // fall through
         }
 
         File projectRootFile = FileUtil.file(AD_CODE_FILE);
@@ -208,7 +228,7 @@ public class WeatherTool {
             return "";
         }
         String normalized = city.trim();
-        if (normalized.endsWith("市")) {
+        if (normalized.endsWith("市")|| normalized.endsWith("区")|| normalized.endsWith("县")) {
             normalized = normalized.substring(0, normalized.length() - 1);
         }
         return normalized;

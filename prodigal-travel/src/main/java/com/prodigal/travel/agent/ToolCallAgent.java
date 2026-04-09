@@ -121,4 +121,35 @@ public class ToolCallAgent extends ReActAgent {
         log.info("{} act: {}",getName(),result);
         return result;
     }
+
+    /**
+     * 将模型在本步的可见回复一并交给前端：原先仅 {@link #act()} 的 tool 日志会丢失 think 中的正文（例如仅调用 doTerminate 时）。
+     */
+    @Override
+    public String step() {
+        try {
+            boolean shouldAct = this.think();
+            String thinkText = "";
+            if (this.toolChatResponse != null && this.toolChatResponse.getResult() != null) {
+                AssistantMessage am = this.toolChatResponse.getResult().getOutput();
+                if (am != null) {
+                    thinkText = StrUtil.trimToEmpty(am.getText());
+                }
+            }
+            if (!shouldAct) {
+                if (StrUtil.isNotBlank(thinkText)) {
+                    return thinkText;
+                }
+                return "Think complete!No need to act";
+            }
+            String actResult = this.act();
+            if (StrUtil.isNotBlank(thinkText)) {
+                return thinkText + ManusStreamMarkers.TOOL_LOG_SEPARATOR + actResult;
+            }
+            return actResult;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "Error running agent-Step executing failed: " + e.getMessage();
+        }
+    }
 }

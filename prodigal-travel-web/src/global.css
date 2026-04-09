@@ -145,3 +145,27 @@ body {
     transform: translateY(-18px) scale(1.04);
   }
 }
+
+/* 超级智能体：思考与执行过程 — 折叠标题在深色气泡内保持可读 */
+.manus-think-collapse.ant-collapse {
+  background: transparent;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.manus-think-collapse .ant-collapse-item {
+  border-bottom: none;
+}
+.manus-think-collapse .ant-collapse-header {
+  color: rgba(226, 232, 240, 0.95) !important;
+  background: rgba(15, 23, 42, 0.55) !important;
+}
+.manus-think-collapse .ant-collapse-header-text {
+  color: inherit !important;
+}
+.manus-think-collapse .ant-collapse-expand-icon {
+  color: rgba(226, 232, 240, 0.92) !important;
+}
+.manus-think-collapse .ant-collapse-content-box {
+  background: rgba(248, 250, 252, 0.98);
+}
