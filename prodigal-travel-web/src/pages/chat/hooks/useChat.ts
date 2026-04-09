@@ -114,12 +114,31 @@ function voToDetailRecord(vo: API.ChatMessageVO): ConversationRecord {
   };
 }
 
+function normalizeEscapedManusContent(text: string): string {
+  const t = text.trim();
+  if (!t) return '';
+  return t
+    .replace(/\\r\\n/g, '\n')
+    .replace(/\\n/g, '\n')
+    .replace(/\\t/g, '  ')
+    .replace(/\\"/g, '"');
+}
+
 function finalizeManusAssistantMessage(m: ChatMessage): ChatMessage {
   const base = { ...m, streaming: false };
-  if (base.content?.trim()) return base;
   const steps = base.manusSteps ?? [];
-  if (steps.length === 0) return base;
-  return { ...base, content: summarizeManusSteps(steps) };
+  const summary = steps.length > 0 ? summarizeManusSteps(steps).trim() : '';
+  // 统一按「旅游助手式 Markdown」输出：只要有可用步骤摘要，就优先展示摘要。
+  if (summary) {
+    return { ...base, content: summary };
+  }
+  const content = (base.content ?? '').trim();
+  if (!content) return base;
+  const normalized = normalizeEscapedManusContent(content);
+  if (normalized && normalized !== content) {
+    return { ...base, content: normalized };
+  }
+  return base;
 }
 
 const formatChatError = (e: unknown): string => {
