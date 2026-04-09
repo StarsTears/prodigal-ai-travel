@@ -6,6 +6,7 @@ import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatOptions;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.ToolResponseMessage;
@@ -16,6 +17,7 @@ import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.model.tool.ToolCallingManager;
 import org.springframework.ai.model.tool.ToolExecutionResult;
 import org.springframework.ai.tool.ToolCallback;
+import org.springframework.ai.tool.ToolCallbackProvider;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -33,6 +35,8 @@ import java.util.stream.Collectors;
 public class ToolCallAgent extends ReActAgent {
     //可用工具
     private ToolCallback[] availableTools;
+    //MCP 可用工具
+    private ToolCallbackProvider toolCallbackProvider;
 
     //工具调用的响应结果
     private ChatResponse toolChatResponse;
@@ -44,8 +48,13 @@ public class ToolCallAgent extends ReActAgent {
 
 
     public ToolCallAgent(ToolCallback[] availableTools) {
+        this(availableTools, null);
+    }
+
+    public ToolCallAgent(ToolCallback[] availableTools, ToolCallbackProvider toolCallbackProvider) {
         super();
         this.availableTools = availableTools;
+        this.toolCallbackProvider = toolCallbackProvider;
         this.toolCallingManager = ToolCallingManager.builder().build();
         // DashScope：部分模型要求 enable_thinking 必须为 true；仅用 DefaultToolCallingChatOptions 时请求体不带该字段会 400。
         this.chatOptions = DashScopeChatOptions.builder()
@@ -66,11 +75,13 @@ public class ToolCallAgent extends ReActAgent {
         List<Message> messageList = getMessageList();
         Prompt prompt = new Prompt(messageList, this.chatOptions);
         try {
-            ChatResponse chatResponse = getChatClient().prompt(prompt)
+            ChatClient.ChatClientRequestSpec promptCall = getChatClient().prompt(prompt)
                     .system(getSystemPrompt())
-                    .toolCallbacks(availableTools)
-                    .call()
-                    .chatResponse();
+                    .toolCallbacks(availableTools);
+            if (toolCallbackProvider != null) {
+                promptCall = promptCall.toolCallbacks(toolCallbackProvider);
+            }
+            ChatResponse chatResponse = promptCall.call().chatResponse();
             //记录响应
             this.toolChatResponse = chatResponse;
             //获取所需的工具

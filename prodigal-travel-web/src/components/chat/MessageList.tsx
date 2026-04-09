@@ -189,7 +189,9 @@ export const MessageList: React.FC<MessageListProps> = ({
                 variant={isUser ? 'borderless' : 'outlined'}
                 style={{
                   maxWidth: `min(88%, ${BUBBLE_MAX}px)`,
+                  minWidth: 0,
                   flexShrink: 0,
+                  overflow: 'hidden',
                   ...(!isUser ? assistantBubbleStyle : {}),
                 }}
                 styles={{
@@ -237,6 +239,7 @@ export const MessageList: React.FC<MessageListProps> = ({
                                         marginBottom: 0,
                                         whiteSpace: 'pre-wrap',
                                         wordBreak: 'break-word',
+                                        overflowWrap: 'anywhere',
                                       }}
                                     >
                                       {step}
@@ -250,18 +253,28 @@ export const MessageList: React.FC<MessageListProps> = ({
                       />
                     ) : null}
                     {showManusPanel && manusReplyMd ? (
-                      <Text type="secondary" style={{ fontSize: 12 }}>
+                      <Text
+                        style={{
+                          fontSize: 12,
+                          color: 'rgba(191, 219, 254, 0.98)',
+                          fontWeight: 600,
+                          letterSpacing: 0.2,
+                          textShadow: '0 0 10px rgba(30, 64, 175, 0.35)',
+                        }}
+                      >
                         综合回复
                       </Text>
                     ) : null}
                     {manusReplyMd ? (
-                      <ReactMarkdown
-                        remarkPlugins={[remarkGfm]}
-                        rehypePlugins={[rehypeSanitize]}
-                        components={markdownComponents}
-                      >
-                        {preserveSingleNewlinesForMarkdown(manusReplyMd)}
-                      </ReactMarkdown>
+                      <div className={bubbleVariant === 'manus' ? 'chat-markdown chat-markdown-manus' : 'chat-markdown'}>
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm]}
+                          rehypePlugins={[rehypeSanitize]}
+                          components={markdownComponents}
+                        >
+                          {preserveSingleNewlinesForMarkdown(manusReplyMd)}
+                        </ReactMarkdown>
+                      </div>
                     ) : null}
                     {m.streaming && !m.content?.trim() && !manusSummaryFallback ? (
                       <Spin size="small" />

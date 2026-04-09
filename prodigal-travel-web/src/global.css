@@ -169,3 +169,59 @@ body {
 .manus-think-collapse .ant-collapse-content-box {
   background: rgba(248, 250, 252, 0.98);
 }
+
+/* 聊天气泡 Markdown：长链接/长 token 不撑破消息框 */
+.chat-markdown {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.chat-markdown p,
+.chat-markdown li,
+.chat-markdown blockquote,
+.chat-markdown td,
+.chat-markdown th {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.chat-markdown a {
+  color: #60a5fa;
+  text-decoration: underline;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+.chat-markdown pre,
+.chat-markdown code {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.chat-markdown table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+/* 超级智能体正文：提升深色背景下可读性 */
+.chat-markdown-manus {
+  color: rgba(241, 245, 249, 0.98);
+  line-height: 1.8;
+  text-shadow: 0 1px 8px rgba(2, 6, 23, 0.45);
+}
+.chat-markdown-manus p,
+.chat-markdown-manus li,
+.chat-markdown-manus strong,
+.chat-markdown-manus em,
+.chat-markdown-manus blockquote {
+  color: inherit;
+}
+.chat-markdown-manus a {
+  color: #93c5fd;
+  text-decoration-thickness: 1.5px;
+}
+.chat-markdown-manus code {
+  color: #e2e8f0;
+  background: rgba(15, 23, 42, 0.5);
+  border-radius: 4px;
+  padding: 0 4px;
+}

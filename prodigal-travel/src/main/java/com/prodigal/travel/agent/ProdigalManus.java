@@ -7,6 +7,7 @@ import org.springframework.ai.chat.memory.InMemoryChatMemoryRepository;
 import org.springframework.ai.chat.memory.MessageWindowChatMemory;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.tool.ToolCallback;
+import org.springframework.ai.tool.ToolCallbackProvider;
 import org.springframework.stereotype.Component;
 
 /**
@@ -18,8 +19,9 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class ProdigalManus extends ToolCallAgent{
-    public ProdigalManus(ToolCallback[] availableTools, ChatModel dashScopeChatModel) {
-        super(availableTools);
+    public ProdigalManus(ToolCallback[] availableTools, ToolCallbackProvider toolCallbackProvider,
+                         ChatModel dashScopeChatModel) {
+        super(availableTools, toolCallbackProvider);
         this.setName("ProdigalManus");
         String SYSTEM_PROMPT = """
                 You are ProdigalManus, an all-capable AI assistant, aimed at solving any task presented by the user.

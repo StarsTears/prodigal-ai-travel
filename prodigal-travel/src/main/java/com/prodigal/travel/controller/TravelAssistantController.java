@@ -20,6 +20,8 @@ import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.tool.ToolCallback;
+import org.springframework.ai.tool.ToolCallbackProvider;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -39,6 +41,7 @@ public class TravelAssistantController {
     private final ChatConversationService chatConversationService;
 
     private final ToolCallback[] allTools;
+    private final ObjectProvider<ToolCallbackProvider> toolCallbackProvider;
 
     private final ChatModel dashscopeChatModel;
 
@@ -112,7 +115,11 @@ public class TravelAssistantController {
     public SseEmitter chatManus(
             @RequestAttribute(LoginUserConstant.REQUEST_ATTR_USER_ID) Long loginUserId,
             @RequestBody ChatRequest request) {
-        ProdigalManus manus = new ProdigalManus(allTools, dashscopeChatModel);
+        ProdigalManus manus = new ProdigalManus(
+                allTools,
+                toolCallbackProvider.getIfAvailable(),
+                dashscopeChatModel
+        );
         return manus.runStream(request.getMessage());
     }
     @Operation(
