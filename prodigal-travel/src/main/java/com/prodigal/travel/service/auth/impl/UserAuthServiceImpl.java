@@ -2,6 +2,7 @@ package com.prodigal.travel.service.auth.impl;
 
 import cn.hutool.core.util.RandomUtil;
 import com.prodigal.travel.config.properties.AuthRegisterProperties;
+import com.prodigal.travel.constants.CacheKeyConstant;
 import com.prodigal.travel.exception.BusinessException;
 import com.prodigal.travel.exception.ResponseStatus;
 import com.prodigal.travel.controller.vo.LoginResponse;
@@ -26,8 +27,6 @@ import java.util.Locale;
 @Service
 public class UserAuthServiceImpl implements UserAuthService {
 
-    private static final String EMAIL_CODE_KEY_PREFIX = "prodigal:auth:email-code:";
-    private static final String EMAIL_THROTTLE_KEY_PREFIX = "prodigal:auth:email-throttle:";
 
     private final MailService mailService;
     private final UserService userService;
@@ -58,13 +57,13 @@ public class UserAuthServiceImpl implements UserAuthService {
             throw new BusinessException(ResponseStatus.USER_NOT_FOUND, "该邮箱未注册，请先完成注册");
         }
 
-        String throttleKey = EMAIL_THROTTLE_KEY_PREFIX + normalized;
+        String throttleKey = CacheKeyConstant.EMAIL_THROTTLE_KEY_PREFIX + normalized;
         if (Boolean.TRUE.equals(redis.hasKey(throttleKey))) {
             throw new BusinessException(ResponseStatus.EMAIL_SEND_TOO_FREQUENT);
         }
 
         String code = RandomUtil.randomNumbers(6);
-        String codeKey = EMAIL_CODE_KEY_PREFIX + normalized;
+        String codeKey = CacheKeyConstant.EMAIL_CODE_KEY_PREFIX + normalized;
         Duration codeTtl = Duration.ofMinutes(authRegisterProperties.getCodeTtlMinutes());
         Duration throttleTtl = Duration.ofSeconds(authRegisterProperties.getSendIntervalSeconds());
         redis.opsForValue().set(codeKey, code, codeTtl);
@@ -89,7 +88,7 @@ public class UserAuthServiceImpl implements UserAuthService {
     @Override
     public LoginResponse loginByEmailCode(String email, String code) {
         String normalizedEmail = normalizeEmail(email);
-        String codeKey = EMAIL_CODE_KEY_PREFIX + normalizedEmail;
+        String codeKey = CacheKeyConstant.EMAIL_CODE_KEY_PREFIX + normalizedEmail;
         String expected = redis.opsForValue().get(codeKey);
         if (expected == null || !expected.equals(code.trim())) {
             throw new BusinessException(ResponseStatus.EMAIL_CODE_INVALID);
