@@ -163,9 +163,10 @@ public class TravelAiClient {
      * @param chatId
      * @return
      */
-    public String doChatWithMCP(String message, String chatId) {
+    public String doChatWithMCP(String message, String chatId, String clientIp) {
+        String finalMessage = buildMessageWithClientIp(message, clientIp);
         ChatResponse chatResponse = chatClient.prompt()
-                .user(message)
+                .user(finalMessage)
                 .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId) //对话id
                         .param("TOP_K", 10) //关联会话的条数
                 )
@@ -186,9 +187,10 @@ public class TravelAiClient {
      * @param chatId
      * @return
      */
-    public Flux<String> doChatWithMCPSSE(String message, String chatId) {
+    public Flux<String> doChatWithMCPSSE(String message, String chatId, String clientIp) {
+        String finalMessage = buildMessageWithClientIp(message, clientIp);
         return chatClient.prompt()
-                .user(message)
+                .user(finalMessage)
                 .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId) //对话id
                         .param("TOP_K", 10) //关联会话的条数
                 )
@@ -200,5 +202,14 @@ public class TravelAiClient {
                 .toolCallbacks(allTools)
                 .stream()
                 .content();
+    }
+
+    private String buildMessageWithClientIp(String message, String clientIp) {
+        if (clientIp == null || clientIp.isBlank()) {
+            return message;
+        }
+        return message + "\n\n[系统上下文-请勿直接复述]\n"
+                + "当前用户真实IP: " + clientIp + "\n"
+                + "如需定位，请调用 getIPLocation 并把该 IP 作为参数传入。";
     }
 }

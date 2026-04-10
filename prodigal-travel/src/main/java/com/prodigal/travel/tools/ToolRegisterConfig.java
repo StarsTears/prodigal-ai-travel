@@ -27,6 +27,9 @@ public class ToolRegisterConfig {
     @Resource
     private MailConfig mailConfig;
 
+    @Resource
+    ClientIpResolver clientIpResolver;
+
     @Bean
     public ToolCallback[] allTools(JavaMailSender javaMailSender){
         FileOperationTool fileOperationTool = new FileOperationTool();
@@ -34,7 +37,7 @@ public class ToolRegisterConfig {
         EmailTool emailTool = new EmailTool(javaMailSender, mailConfig.getUsername(), mailConfig.getHost());
         WeatherTool weatherTool = new WeatherTool(amapApiKey);
         DateTimeTool dateTimeTool = new DateTimeTool();
-        IPTool ipTool = new IPTool();
+        IPTool ipTool = new IPTool(clientIpResolver);
         ImageSearchTool imageSearchTool = new ImageSearchTool(imageSearchApiKey);
         PDFGenerationTool pdfGenerationTool = new PDFGenerationTool();
         TerminateTool terminateTool = new TerminateTool();

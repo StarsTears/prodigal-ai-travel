@@ -12,17 +12,18 @@ import com.prodigal.travel.controller.request.ChatRequest;
 import com.prodigal.travel.controller.vo.ChatMessageVO;
 import com.prodigal.travel.controller.vo.TravelChatResponse;
 import com.prodigal.travel.constants.LoginUserConstant;
-import com.prodigal.travel.service.ChatConversationService;
+import com.prodigal.travel.service.chat.ChatConversationService;
+import com.prodigal.travel.tools.ClientIpResolver;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.ToolCallbackProvider;
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.http.MediaType;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import reactor.core.publisher.Flux;
@@ -30,6 +31,7 @@ import reactor.core.publisher.Flux;
 import java.io.IOException;
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/travel")
 @RequiredArgsConstructor
@@ -45,6 +47,8 @@ public class TravelAssistantController {
 
     private final ChatModel dashscopeChatModel;
 
+    private final ClientIpResolver clientIpResolver;
+
 
     @Operation(
             summary = "旅游助手对话",
@@ -53,13 +57,15 @@ public class TravelAssistantController {
     @PostMapping("/chat")
     public BaseResult<TravelChatResponse> chat(
             @RequestAttribute(LoginUserConstant.REQUEST_ATTR_USER_ID) Long loginUserId,
+            HttpServletRequest httpServletRequest,
             @RequestBody ChatRequest request) {
         String chatId = request.getChatId();
         if (StrUtil.isBlank(chatId)) {
             chatId = UUID.randomUUID().toString();
         }
         String memoryConversationId = loginUserId + ":" + chatId;
-        String answer = travelAiClient.doChatWithMCP(request.getMessage(), memoryConversationId);
+        String clientIp = clientIpResolver.resolveClientIp(httpServletRequest);
+        String answer = travelAiClient.doChatWithMCP(request.getMessage(), memoryConversationId, clientIp);
         TravelChatResponse response = new TravelChatResponse();
         return ResultUtils.success(response.chatId(chatId).answer(answer));
     }
@@ -88,15 +94,17 @@ public class TravelAssistantController {
     @PostMapping(value = "/chat/sse_emitter")
     public SseEmitter chatSseEmitter(
             @RequestAttribute(LoginUserConstant.REQUEST_ATTR_USER_ID) Long loginUserId,
+            HttpServletRequest httpServletRequest,
             @RequestBody ChatRequest request) {
         String chatId = request.getChatId();
         if (StrUtil.isBlank(chatId)) {
             chatId = UUID.randomUUID().toString();
         }
         String memoryConversationId = loginUserId + ":" + chatId;
+        String clientIp = clientIpResolver.resolveClientIp(httpServletRequest);
         //获取Flux 响应式数据流 且通过  订阅 推送给 SseEmitter
         SseEmitter sseEmitter = new SseEmitter(180000L);
-        travelAiClient.doChatWithMCPSSE(request.getMessage(), memoryConversationId)
+        travelAiClient.doChatWithMCPSSE(request.getMessage(), memoryConversationId, clientIp)
                 .subscribe(chunk->{
                     try {
                         sseEmitter.send(chunk);
