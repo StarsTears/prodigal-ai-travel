@@ -1,4 +1,4 @@
-package com.prodigal.travel.service;
+package com.prodigal.travel.service.auth;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.prodigal.travel.controller.vo.LoginResponse;

@@ -1,4 +1,4 @@
-package com.prodigal.travel.service.impl;
+package com.prodigal.travel.service.chat.impl;
 
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -6,10 +6,10 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.prodigal.travel.controller.vo.ChatMessageVO;
 import com.prodigal.travel.model.entity.ChatConversation;
-import com.prodigal.travel.service.ChatConversationService;
+import com.prodigal.travel.service.chat.ChatConversationService;
 import com.prodigal.travel.mapper.ChatConversationMapper;
 import com.prodigal.travel.model.entity.ChatMessage;
-import com.prodigal.travel.service.ChatMessageService;
+import com.prodigal.travel.service.chat.ChatMessageService;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 
@@ -75,7 +75,3 @@ public class ChatConversationServiceImpl extends ServiceImpl<ChatConversationMap
 
     }
 }
-
-
-
-

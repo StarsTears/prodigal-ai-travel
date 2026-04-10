@@ -7,7 +7,7 @@ import com.prodigal.travel.controller.request.LoginRequest;
 import com.prodigal.travel.controller.request.RegisterRequest;
 import com.prodigal.travel.controller.request.SendRegisterCodeRequest;
 import com.prodigal.travel.controller.vo.LoginResponse;
-import com.prodigal.travel.service.UserService;
+import com.prodigal.travel.service.auth.UserService;
 import com.prodigal.travel.service.auth.UserAuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

@@ -1,4 +1,4 @@
-package com.prodigal.travel.service.impl;
+package com.prodigal.travel.service.auth.impl;
 
 import cn.hutool.crypto.digest.BCrypt;
 import cn.hutool.jwt.JWTUtil;
@@ -12,7 +12,7 @@ import com.prodigal.travel.mapper.UserMapper;
 import com.prodigal.travel.controller.vo.LoginResponse;
 import com.prodigal.travel.model.entity.User;
 import com.prodigal.travel.security.LoginTokenCache;
-import com.prodigal.travel.service.UserService;
+import com.prodigal.travel.service.auth.UserService;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 

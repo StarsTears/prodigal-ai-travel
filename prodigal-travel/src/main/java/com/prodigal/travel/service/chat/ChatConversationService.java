@@ -1,4 +1,4 @@
-package com.prodigal.travel.service;
+package com.prodigal.travel.service.chat;
 
 import com.prodigal.travel.controller.vo.ChatMessageVO;
 import com.prodigal.travel.model.entity.ChatConversation;

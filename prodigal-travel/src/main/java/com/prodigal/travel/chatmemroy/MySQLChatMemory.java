@@ -2,8 +2,8 @@ package com.prodigal.travel.chatmemroy;
 
 import com.prodigal.travel.model.entity.ChatConversation;
 import com.prodigal.travel.model.entity.ChatMessage;
-import com.prodigal.travel.service.ChatConversationService;
-import com.prodigal.travel.service.ChatMessageService;
+import com.prodigal.travel.service.chat.ChatConversationService;
+import com.prodigal.travel.service.chat.ChatMessageService;
 import jakarta.annotation.Resource;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.messages.AssistantMessage;

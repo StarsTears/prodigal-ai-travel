@@ -1,4 +1,4 @@
-package com.prodigal.travel.service;
+package com.prodigal.travel.service.chat;
 
 import com.prodigal.travel.model.entity.ChatMessage;
 import com.baomidou.mybatisplus.extension.service.IService;

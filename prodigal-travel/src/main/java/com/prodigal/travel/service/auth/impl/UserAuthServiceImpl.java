@@ -1,4 +1,4 @@
-package com.prodigal.travel.service.auth;
+package com.prodigal.travel.service.auth.impl;
 
 import cn.hutool.core.util.RandomUtil;
 import com.prodigal.travel.config.properties.AuthRegisterProperties;
@@ -8,7 +8,9 @@ import com.prodigal.travel.controller.vo.LoginResponse;
 import com.prodigal.travel.model.entity.User;
 import com.prodigal.travel.security.JwtTokenHelper;
 import com.prodigal.travel.security.LoginTokenCache;
-import com.prodigal.travel.service.UserService;
+import com.prodigal.travel.service.auth.MailService;
+import com.prodigal.travel.service.auth.UserAuthService;
+import com.prodigal.travel.service.auth.UserService;
 import jakarta.mail.MessagingException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;

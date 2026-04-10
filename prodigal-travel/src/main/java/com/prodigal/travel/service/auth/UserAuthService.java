@@ -5,7 +5,7 @@ import com.prodigal.travel.controller.vo.LoginResponse;
 /**
  * 认证编排：登录验证码、密码/验证码登录、退出与注销。
  *
- * <p>实际签发 JWT 与 Redis 白名单由 {@link com.prodigal.travel.service.UserService} 完成。
+ * <p>实际签发 JWT 与 Redis 白名单由 {@link UserService} 完成。
  */
 public interface UserAuthService {
 
@@ -15,12 +15,12 @@ public interface UserAuthService {
     String sendEmailCode(String email);
 
     /**
-     * 委托 {@link com.prodigal.travel.service.UserService#login(String, String)}：账号或邮箱 + 密码。
+     * 委托 {@link UserService#login(String, String)}：账号或邮箱 + 密码。
      */
     LoginResponse login(String account, String rawPassword);
 
     /**
-     * 校验 Redis 中验证码后 {@link com.prodigal.travel.service.UserService#loginWithoutPassword}；成功后删除验证码键。
+     * 校验 Redis 中验证码后 {@link UserService#loginWithoutPassword}；成功后删除验证码键。
      */
     LoginResponse loginByEmailCode(String email, String code);
 
