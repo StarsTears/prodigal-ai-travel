@@ -52,9 +52,11 @@ public class WeatherTool {
             @ToolParam(description = "Whether to query live weather. true=live weather, false=forecast weather. Default is true.") Boolean realtime
     ) {
         if (StrUtil.isBlank(city)) {
+            log.error("天气查询失败：城市不能为空。");
             return "天气查询失败：城市不能为空。";
         }
         if (StrUtil.isBlank(amapApiKey)) {
+            log.error("天气查询失败：未配置高德天气 API Key。");
             return "天气查询失败：未配置高德天气 API Key。";
         }
 
@@ -63,6 +65,7 @@ public class WeatherTool {
         try {
             String adCode = findAdCodeByCity(normalizedCity);
             if (StrUtil.isBlank(adCode)) {
+                log.error("天气查询失败：在 " + AD_CODE_FILE + " 中未找到城市「" + normalizedCity + "」的编码。");
                 return "天气查询失败：在 " + AD_CODE_FILE + " 中未找到城市「" + normalizedCity + "」的编码。";
             }
 
@@ -75,12 +78,14 @@ public class WeatherTool {
             String weatherResp = HttpUtil.get(AMAP_WEATHER_URL, params);
             JSONObject root = JSONUtil.parseObj(weatherResp);
             if (!"1".equals(root.getStr("status")) || !"10000".equals(root.getStr("infocode"))) {
+                log.error("天气查询失败：高德天气服务返回异常（" + root.getStr("info", "unknown") + "）。");
                 return "天气查询失败：高德天气服务返回异常（" + root.getStr("info", "unknown") + "）。";
             }
 
             if (queryRealtime) {
                 JSONArray lives = root.getJSONArray("lives");
                 if (lives == null || lives.isEmpty()) {
+                    log.error("天气查询失败：天气服务返回为空。");
                     return "天气查询失败：天气服务返回为空。";
                 }
                 JSONObject current = lives.getJSONObject(0);
@@ -140,6 +145,7 @@ public class WeatherTool {
             }
             return sb.toString();
         } catch (Exception e) {
+            log.error("天气查询失败：" + e.getMessage());
             return "天气查询失败：" + e.getMessage();
         }
     }

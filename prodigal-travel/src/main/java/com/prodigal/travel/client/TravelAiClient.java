@@ -26,7 +26,7 @@ import reactor.core.publisher.Flux;
 /**
  * 旅游助手专用 {@link ChatClient}、向量库与本地工具注册。
  * <p>
- * MCP：启用 {@code spring.ai.mcp.client} 后，{@link #doChatWithMCP} 会将
+ *
  */
 @Slf4j
 @Component
