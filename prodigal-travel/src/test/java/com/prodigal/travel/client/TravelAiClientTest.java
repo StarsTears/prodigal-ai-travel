@@ -41,14 +41,14 @@ class TravelAiClientTest {
         String content = travelAiClient.doChat("你好！我是 lang", chatId);
         log.info(content);
         assertNotNull(content);
-//        //第二轮
-//        content = travelAiClient.doChat("我想去贵州旅游，有推荐的景点吗？", chatId);
-//        log.info(content);
-//        assertNotNull(content);
-//        //第三轮
-//        content = travelAiClient.doChat("那些景点好玩吗？", chatId);
-//        log.info(content);
-//        assertNotNull(content);
+        //第二轮
+        content = travelAiClient.doChat("我想去贵州旅游，有推荐的景点吗？", chatId);
+        log.info(content);
+        assertNotNull(content);
+        //第三轮
+        content = travelAiClient.doChat("那些景点好玩吗？", chatId);
+        log.info(content);
+        assertNotNull(content);
     }
 
 

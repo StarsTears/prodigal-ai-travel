@@ -14,11 +14,17 @@ spring:
       password: ${REDIS_PASSWORD:}
       database: ${REDIS_DATABASE:0}
   ai:
-    dashscope:
-      api-key: XXXX
+    minimax:
+      api-key: ${MINIMAX_API_KEY}
       chat:
         options:
-          model: qwen3.5-122b-a10b
+          model: ${MINIMAX_CHAT_MODEL:MiniMax-M2.7}
+          temperature: 0.7
+    dashscope:
+      api-key: ${DASHSCOPE_API_KEY}
+      chat:
+        options:
+          model: ${DASHSCOPE_CHAT_MODEL:qwen3.6-plus}
           temperature: 0.7
           # 部分模型（如 Qwen3 / 部分 MiniMax 接入）要求 enable_thinking 必须为 true，否则 HTTP 400
           enable-thinking: true
@@ -40,7 +46,7 @@ spring:
         version: 1.0
         request-timeout: 180000
         stdio:
-          servers-configuration: classpath:mcp-servers-local.json
+          servers-configuration: classpath:mcp-servers.json
   #        sse:
 #          connections:
 #            url: http://your-mcp-host/sse
