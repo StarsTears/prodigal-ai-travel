@@ -14,6 +14,26 @@ class TravelAiClientTest {
     @Resource
     private TravelAiClient travelAiClient;
 
+//    @Resource
+//    private DashScopeApi dashScopeApi;
+//
+//    @Test
+//    void doChatQwen3plus() {
+//        // 构建多模态请求（纯文本场景）
+//        MultiModalConversationParam param = MultiModalConversationParam.builder()
+//                .model("qwen3.6-plus")
+//                .message(Message.builder()
+//                        .role(Role.USER)
+//                        .content(Collections.singletonList(
+//                                new TextContent(userMessage)
+//                        ))
+//                        .build())
+//                .build();
+//
+//        MultiModalConversationResult result = dashScopeApi.multiModalConversation(param);
+//        assertNotNull(content);
+//    }
+
     @Test
     void doChat() {
         String chatId = UUID.fastUUID().toString();
@@ -21,14 +41,14 @@ class TravelAiClientTest {
         String content = travelAiClient.doChat("你好！我是 lang", chatId);
         log.info(content);
         assertNotNull(content);
-        //第二轮
-        content = travelAiClient.doChat("我想去贵州旅游，有推荐的景点吗？", chatId);
-        log.info(content);
-        assertNotNull(content);
-        //第三轮
-        content = travelAiClient.doChat("那些景点好玩吗？", chatId);
-        log.info(content);
-        assertNotNull(content);
+//        //第二轮
+//        content = travelAiClient.doChat("我想去贵州旅游，有推荐的景点吗？", chatId);
+//        log.info(content);
+//        assertNotNull(content);
+//        //第三轮
+//        content = travelAiClient.doChat("那些景点好玩吗？", chatId);
+//        log.info(content);
+//        assertNotNull(content);
     }
 
 
@@ -56,7 +76,7 @@ class TravelAiClientTest {
         String chatId = UUID.fastUUID().toString();
 //        String message = "我想去贵州旅游，有推荐的景点吗？若要区梵净山游玩，请给出行程规划";
         String message = "给我找一下山顶的风景照";
-        String content = travelAiClient.doChatWithMCP(message, chatId);
+        String content = travelAiClient.doChatWithMCP(message, chatId, "127.0.0.1");
         assertNotNull(content);
 
         //第二轮 ,2812632023@qq.com

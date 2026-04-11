@@ -4,6 +4,7 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.rag.Query;
 import org.springframework.ai.rag.preretrieval.query.expansion.MultiQueryExpander;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -18,7 +19,7 @@ import java.util.List;
 @Component
 public class TravelMultiQueryExpander {
     private final ChatClient.Builder chatClientBuilder;
-    TravelMultiQueryExpander(ChatModel dashscopeChatModel) {
+    TravelMultiQueryExpander(@Qualifier("dashScopeChatModel") ChatModel dashscopeChatModel) {
         this.chatClientBuilder = ChatClient.builder(dashscopeChatModel);
     }
 

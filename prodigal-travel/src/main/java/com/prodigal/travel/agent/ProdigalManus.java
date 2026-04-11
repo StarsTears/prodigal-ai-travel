@@ -8,6 +8,7 @@ import org.springframework.ai.chat.memory.MessageWindowChatMemory;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.ToolCallbackProvider;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 /**
@@ -20,7 +21,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class ProdigalManus extends ToolCallAgent{
     public ProdigalManus(ToolCallback[] availableTools, ToolCallbackProvider toolCallbackProvider,
-                         ChatModel dashScopeChatModel) {
+                         @Qualifier("dashScopeChatModel") ChatModel dashScopeChatModel) {
         super(availableTools, toolCallbackProvider);
         this.setName("ProdigalManus");
         String SYSTEM_PROMPT = """

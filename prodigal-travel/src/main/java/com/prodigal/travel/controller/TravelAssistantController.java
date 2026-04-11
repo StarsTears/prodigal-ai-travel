@@ -20,6 +20,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.ToolCallbackProvider;
 import org.springframework.beans.factory.ObjectProvider;
@@ -45,6 +46,7 @@ public class TravelAssistantController {
     private final ToolCallback[] allTools;
     private final ObjectProvider<ToolCallbackProvider> toolCallbackProvider;
 
+    @Qualifier("dashScopeChatModel")
     private final ChatModel dashscopeChatModel;
 
     private final ClientIpResolver clientIpResolver;

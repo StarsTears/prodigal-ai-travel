@@ -8,6 +8,7 @@ import com.prodigal.travel.rag.TravelRagCustomAdvisorFactory;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
@@ -63,7 +64,7 @@ public class TravelAiClient {
      * @param dashscopeChatModel
      * @param chatMemory
      */
-    public TravelAiClient(ChatModel dashscopeChatModel, MySQLChatMemory chatMemory) {
+    public TravelAiClient(@Qualifier("dashScopeChatModel") ChatModel dashscopeChatModel, MySQLChatMemory chatMemory) {
         this.dashscopeChatModel = dashscopeChatModel;
         chatClient = ChatClient.builder(dashscopeChatModel)
                 .defaultSystem(TravelConstant.SYSTEM_PROMPT)
@@ -164,9 +165,12 @@ public class TravelAiClient {
      * @return
      */
     public String doChatWithMCP(String message, String chatId, String clientIp) {
-        String finalMessage = buildMessageWithClientIp(message, clientIp);
-        ChatResponse chatResponse = chatClient.prompt()
-                .user(finalMessage)
+        String finalSystemPrompt = buildMessageWithClientIp(message, clientIp);
+
+        ChatClient.ChatClientRequestSpec clientRequestSpec = chatClient.prompt()
+                .user(message);
+        ChatResponse chatResponse = clientRequestSpec
+                .system(TravelConstant.SYSTEM_PROMPT + finalSystemPrompt)
                 .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId) //对话id
                         .param("TOP_K", 10) //关联会话的条数
                 )
@@ -188,9 +192,12 @@ public class TravelAiClient {
      * @return
      */
     public Flux<String> doChatWithMCPSSE(String message, String chatId, String clientIp) {
-        String finalMessage = buildMessageWithClientIp(message, clientIp);
-        return chatClient.prompt()
-                .user(finalMessage)
+        String finalSystemPrompt = buildMessageWithClientIp(message, clientIp);
+
+        ChatClient.ChatClientRequestSpec clientRequestSpec = chatClient.prompt()
+                .user(message);
+        return clientRequestSpec
+                .system(TravelConstant.SYSTEM_PROMPT+finalSystemPrompt)
                 .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId) //对话id
                         .param("TOP_K", 10) //关联会话的条数
                 )
