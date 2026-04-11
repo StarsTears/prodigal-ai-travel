@@ -6,6 +6,7 @@ import cn.hutool.http.HttpResponse;
 import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 
@@ -17,6 +18,7 @@ import org.springframework.ai.tool.annotation.ToolParam;
  * @see <a href="https://fanyi-api.baidu.com/doc/21">百度翻译开放平台</a>
  * @since 2026/4/11
  */
+@Slf4j
 public class BaiduTranslateTool {
 
     private static final String TRANSLATE_URL = "https://fanyi-api.baidu.com/ait/api/aiTextTranslate";
@@ -36,9 +38,11 @@ public class BaiduTranslateTool {
             + "Source language is auto-detected. Use when English wording is needed for search, tools, or replies.")
     public String translateToEnglish(@ToolParam(description = "Text to translate to English") String text) {
         if (StrUtil.isBlank(text)) {
+            log.warn("No text provided for translation.");
             return "";
         }
         if (StrUtil.isBlank(appId) || StrUtil.isBlank(apiKey)) {
+            log.error("Baidu Translate is not configured (prodigal.baidu.app-id / prodigal.baidu.api-key).");
             return "Baidu Translate is not configured (prodigal.baidu.app-id / prodigal.baidu.api-key).";
         }
         String q = text.trim();
@@ -56,14 +60,17 @@ public class BaiduTranslateTool {
                     .execute();
             String body = response.body();
             if (!response.isOk()) {
+                log.error("Baidu Translate HTTP " + response.getStatus() + ": " + body);
                 return "Baidu Translate HTTP " + response.getStatus() + ": " + body;
             }
             JSONObject root = JSONUtil.parseObj(body);
             if (root.containsKey("error_code")) {
+                log.error("Baidu Translate error: " + root.getStr("error_msg", body));
                 return "Baidu Translate error: " + root.getStr("error_msg", body);
             }
             JSONArray transResult = root.getJSONArray("trans_result");
             if (transResult == null || transResult.isEmpty()) {
+                log.error("No translation results found for text: " + q);
                 return "";
             }
             StringBuilder out = new StringBuilder();
@@ -82,6 +89,7 @@ public class BaiduTranslateTool {
             }
             return out.toString();
         } catch (Exception e) {
+            log.error("Baidu Translate request failed: " + e.getMessage());
             return "Baidu Translate request failed: " + e.getMessage();
         }
     }
