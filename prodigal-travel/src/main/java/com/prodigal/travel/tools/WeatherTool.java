@@ -3,23 +3,28 @@ package com.prodigal.travel.tools;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.io.resource.ResourceUtil;
 import cn.hutool.core.util.StrUtil;
-import cn.hutool.http.HttpUtil;
+import cn.hutool.http.HttpRequest;
 import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import cn.hutool.poi.excel.ExcelReader;
 import cn.hutool.poi.excel.ExcelUtil;
-import org.springframework.ai.tool.annotation.Tool;
-import org.springframework.ai.tool.annotation.ToolParam;
-import org.springframework.core.io.ClassPathResource;
+import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.ai.tool.annotation.Tool;
+import org.springframework.ai.tool.annotation.ToolParam;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.io.InputStream;
-import java.util.HashSet;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -29,6 +34,7 @@ import java.util.Set;
  * @Version: 1.0
  * @description 天气查询工具类
  */
+@Component
 public class WeatherTool {
     private static final Logger log = LoggerFactory.getLogger(WeatherTool.class);
 
@@ -39,11 +45,31 @@ public class WeatherTool {
     private static final Set<String> CITY_HEADER_CANDIDATES = new HashSet<>(List.of("中文名", "city", "cityname", "name"));
     private static final Set<String> ADCODE_HEADER_CANDIDATES = new HashSet<>(List.of("adcode", "ad_code"));
     private static final int MAX_SCAN_ROWS = 5000;
+    /** 高德 HTTP 超时（毫秒）；避免默认 ~10s 阻塞对话线程 */
+    private static final int AMAP_HTTP_TIMEOUT_MS = 5000;
 
     private final String amapApiKey;
+    private final Object adcodeCacheLock = new Object();
+    /** 本地内存缓存：城市名（及规范化名）→ 高德 adcode，进程级只读快照 */
+    private volatile Map<String, String> localCityToAdcodeCache;
 
-    public WeatherTool(String amapApiKey) {
+    public WeatherTool(@Value("${prodigal.amap.api-key}") String amapApiKey) {
         this.amapApiKey = amapApiKey;
+    }
+
+    /**
+     * 启动时预热本地 adcode 缓存，避免首次用户查天气才解析 xlsx 造成长延迟。
+     * 预热失败不阻止应用启动，首次 {@link #getWeather} 仍会再次尝试懒加载。
+     */
+    @PostConstruct
+    public void warmLocalAdcodeCache() {
+        try {
+            getCityToAdcodeMap();
+            log.info("WeatherTool: local city->adcode cache warmed at startup, entries={}",
+                    localCityToAdcodeCache != null ? localCityToAdcodeCache.size() : 0);
+        } catch (Exception e) {
+            log.warn("WeatherTool: startup cache warm failed, will lazy-load on first getWeather: {}", e.toString());
+        }
     }
 
     @Tool(description = "Query weather by user-provided city name.")
@@ -75,7 +101,11 @@ public class WeatherTool {
             params.put("extensions", queryRealtime ? "base" : "all");
             params.put("output", "JSON");
 
-            String weatherResp = HttpUtil.get(AMAP_WEATHER_URL, params);
+            String weatherResp = HttpRequest.get(AMAP_WEATHER_URL)
+                    .form(params)
+                    .timeout(AMAP_HTTP_TIMEOUT_MS)
+                    .execute()
+                    .body();
             JSONObject root = JSONUtil.parseObj(weatherResp);
             if (!"1".equals(root.getStr("status")) || !"10000".equals(root.getStr("infocode"))) {
                 log.error("天气查询失败：高德天气服务返回异常（" + root.getStr("info", "unknown") + "）。");
@@ -150,12 +180,31 @@ public class WeatherTool {
         }
     }
 
-    private String findAdCodeByCity(String city) {
-        File file = resolveAdCodeFile();
-        if (file == null) {
-            throw new IllegalStateException("未找到 " + AD_CODE_FILE + "，请放到 resources 目录或项目根目录。");
+    /**
+     * 城市编码表只在进程内解析一次并缓存；此前每次查天气都会从 jar 拷出 xlsx 并扫表，极易达到数秒级延迟。
+     */
+    private Map<String, String> getCityToAdcodeMap() {
+        Map<String, String> local = localCityToAdcodeCache;
+        if (local != null) {
+            return local;
         }
+        synchronized (adcodeCacheLock) {
+            if (localCityToAdcodeCache != null) {
+                return localCityToAdcodeCache;
+            }
+            File file = resolveAdCodeFile();
+            if (file == null) {
+                throw new IllegalStateException("未找到 " + AD_CODE_FILE + "，请放到 resources 目录或项目根目录。");
+            }
+            HashMap<String, String> loaded = loadCityToAdcodeMap(file);
+            localCityToAdcodeCache = Collections.unmodifiableMap(loaded);
+            log.info("WeatherTool: loaded AMap city->adcode into local cache, entries={}", localCityToAdcodeCache.size());
+            return localCityToAdcodeCache;
+        }
+    }
 
+    private HashMap<String, String> loadCityToAdcodeMap(File file) {
+        HashMap<String, String> map = new HashMap<>(4096);
         ExcelReader reader = ExcelUtil.getReader(file);
         try {
             int cityColumnIndex = DEFAULT_CITY_COLUMN_INDEX;
@@ -183,14 +232,37 @@ public class WeatherTool {
                 if (StrUtil.isBlank(rowCity) || StrUtil.isBlank(rowAdCode)) {
                     continue;
                 }
-                if (isCityMatch(city, rowCity)) {
-                    return rowAdCode.trim();
+                String ad = rowAdCode.trim();
+                String norm = normalizeCityName(rowCity);
+                if (StrUtil.isNotBlank(norm)) {
+                    map.putIfAbsent(norm, ad);
+                }
+                String trimmed = rowCity.trim();
+                if (StrUtil.isNotBlank(trimmed)) {
+                    map.putIfAbsent(trimmed, ad);
                 }
             }
-            return null;
+            return map;
         } finally {
             reader.close();
         }
+    }
+
+    private String findAdCodeByCity(String city) {
+        Map<String, String> map = getCityToAdcodeMap();
+        String trimmed = city.trim();
+        String ad = map.get(trimmed);
+        if (ad != null) {
+            return ad;
+        }
+        String norm = normalizeCityName(trimmed);
+        if (StrUtil.isNotBlank(norm)) {
+            ad = map.get(norm);
+            if (ad != null) {
+                return ad;
+            }
+        }
+        return null;
     }
 
     /**
@@ -259,12 +331,6 @@ public class WeatherTool {
         log.error("Failed to resolve adcode file from all strategies. resource={}, tmpCopy={}, projectRootCandidate={}",
                 AD_CODE_FILE, tmpCopy.getAbsolutePath(), projectRootFile.getAbsolutePath());
         return null;
-    }
-
-    private boolean isCityMatch(String inputCity, String rowCity) {
-        String a = normalizeCityName(inputCity);
-        String b = normalizeCityName(rowCity);
-        return StrUtil.equals(a, b) || StrUtil.equals(a + "市", b) || StrUtil.equals(a, b + "市");
     }
 
     private String normalizeCityName(String city) {

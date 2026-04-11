@@ -20,8 +20,6 @@ import org.springframework.mail.javamail.JavaMailSender;
 public class ToolRegisterConfig {
     @Value("${prodigal.search-api.api-key}")
     private String searchApiKey;
-    @Value("${prodigal.amap.api-key}")
-    private String amapApiKey;
     @Value("${prodigal.pexels.api-key}")
     private  String imageSearchApiKey;
     @Resource
@@ -31,11 +29,10 @@ public class ToolRegisterConfig {
     ClientIpResolver clientIpResolver;
 
     @Bean
-    public ToolCallback[] allTools(JavaMailSender javaMailSender){
+    public ToolCallback[] allTools(JavaMailSender javaMailSender, WeatherTool weatherTool) {
         FileOperationTool fileOperationTool = new FileOperationTool();
         WebSearchTool webSearchTool = new WebSearchTool(searchApiKey);
         EmailTool emailTool = new EmailTool(javaMailSender, mailConfig.getUsername(), mailConfig.getHost());
-        WeatherTool weatherTool = new WeatherTool(amapApiKey);
         DateTimeTool dateTimeTool = new DateTimeTool();
         IPTool ipTool = new IPTool(clientIpResolver);
         ImageSearchTool imageSearchTool = new ImageSearchTool(imageSearchApiKey);
