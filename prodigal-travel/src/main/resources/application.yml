@@ -105,6 +105,9 @@ prodigal:
     host: https://restapi.amap.com/  # 高德 API 地址
   pexels:
     api-key: XXX
+  baidu:
+    app-id: XXX
+    api-key: XXX
 
 # springdoc-openapi
 # http://localhost:port/api/doc.html

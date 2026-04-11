@@ -6,9 +6,9 @@ import cn.hutool.http.HttpRequest;
 import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
-import org.springframework.beans.factory.annotation.Value;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,6 +20,7 @@ import java.util.List;
  * @description 图片搜索工具（Pexels API）
  * @since 2026/4/4
  */
+@Slf4j
 public class ImageSearchTool {
 
     private static final String API_URL = "https://api.pexels.com/v1/search";
@@ -32,12 +33,16 @@ public class ImageSearchTool {
         this.apiKey = apiKey;
     }
 
-    @Tool(description = "Search royalty-free stock photos on Pexels by keyword; returns image URLs (large), comma-separated if multiple.")
-    public String searchImage(@ToolParam(description = "Search query, e.g. nature, city, food") String query) {
+    @Tool(description = "Search royalty-free stock photos on Pexels by English keyword; returns large image URLs, comma-separated if multiple. "
+            + "If the user query is not English (e.g. Chinese), call translateToEnglish first and pass the English phrase here.")
+    public String searchImage(@ToolParam(description = "English search keywords for Pexels, e.g. nature, city, food. "
+            + "Translate non-English queries to English before calling.") String query) {
         if (StrUtil.isBlank(query)) {
+            log.warn("No query provided for image search.");
             return "";
         }
         if (StrUtil.isBlank(apiKey)) {
+            log.error("Pexels API key is not configured (prodigal.pexels.api-key).");
             return "";
         }
         try {
@@ -51,6 +56,7 @@ public class ImageSearchTool {
             JSONObject root = JSONUtil.parseObj(body);
             JSONArray photos = root.getJSONArray("photos");
             if (photos == null || photos.isEmpty()) {
+                log.warn("No photos found for query: {}", query);
                 return "";
             }
             List<String> links = new ArrayList<>(photos.size());
@@ -70,6 +76,7 @@ public class ImageSearchTool {
             }
             return CollUtil.join(links, ",");
         } catch (Exception e) {
+            log.error("Error searching images: {}", e.getMessage());
             return "";
         }
     }
