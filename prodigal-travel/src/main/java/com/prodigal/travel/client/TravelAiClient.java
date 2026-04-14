@@ -84,7 +84,7 @@ public class TravelAiClient {
                 .user(message)
                 //对话Id、关联对话数
                 .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId)
-                        .param("TOP_K", 20))
+                        .param("TOP_K", 10))
                 //开启日志
                 .advisors(new LoggerAdvisor())
                 .toolCallbacks(allTools)
@@ -196,6 +196,9 @@ public class TravelAiClient {
 
         ChatClient.ChatClientRequestSpec clientRequestSpec = chatClient.prompt()
                 .user(message);
+
+        VectorStore store = pgVectorStore.getIfAvailable();
+
         return clientRequestSpec
                 .system(TravelConstant.SYSTEM_PROMPT+finalSystemPrompt)
                 .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId) //对话id
@@ -203,6 +206,8 @@ public class TravelAiClient {
                 )
                 //开启日志
                 .advisors(new LoggerAdvisor())
+                //检索增强顾问
+//                .advisors(TravelRagCustomAdvisorFactory.createRetrievalAugmentationAdvisor(store, dashscopeChatModel))
                 //MCP 的工具
                 .toolCallbacks(toolCallbackProvider)
                 //工具调用

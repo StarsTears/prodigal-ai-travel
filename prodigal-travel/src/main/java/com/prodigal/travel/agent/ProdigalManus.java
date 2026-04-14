@@ -44,7 +44,7 @@ public class ProdigalManus extends ToolCallAgent{
         //基于内存的会话记忆
         MessageWindowChatMemory chatMemory = MessageWindowChatMemory.builder()
                 .chatMemoryRepository(new InMemoryChatMemoryRepository())
-                .maxMessages(20)
+                .maxMessages(10)
                 .build();
         //初始化 AI 智能体 客户端
         ChatClient chatClient = ChatClient.builder(dashScopeChatModel)
