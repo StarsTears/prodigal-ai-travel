@@ -13,6 +13,20 @@ spring:
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
       database: ${REDIS_DATABASE:0}
+
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/prodigal_ai_travel?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai
+    username: XXX
+    password: XXX
+  rabbitmq:
+    enabled: true
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+    virtual-host: ${RABBITMQ_VHOST:/}
+
   ai:
     minimax:
       api-key: ${MINIMAX_API_KEY}
@@ -51,20 +65,10 @@ spring:
 #          connections:
 #            url: http://your-mcp-host/sse
 
-  #datasource
-#  datasource:
-#    url: jdbc:postgresql://your db host:5432/prodigal_ai_travel
-#    username: XXX
-#    password: XXX
-  datasource:
-     driver-class-name: com.mysql.cj.jdbc.Driver
-     url: jdbc:mysql://localhost:3306/prodigal_ai_agent?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai
-     username: XXX
-     password: XXX
   mail:
     host: smtp.qq.com
     port: 587
-    username: prodigal.lang@qq.com
+    username: 你的邮箱
     password: 你的邮箱 App 专用密码
     properties:
       mail:

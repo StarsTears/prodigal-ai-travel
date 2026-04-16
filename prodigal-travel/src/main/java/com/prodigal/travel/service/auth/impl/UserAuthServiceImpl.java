@@ -6,6 +6,7 @@ import com.prodigal.travel.constants.CacheKeyConstant;
 import com.prodigal.travel.exception.BusinessException;
 import com.prodigal.travel.exception.ResponseStatus;
 import com.prodigal.travel.controller.vo.LoginResponse;
+import com.prodigal.travel.model.dto.MailContentDTO;
 import com.prodigal.travel.model.entity.User;
 import com.prodigal.travel.security.JwtTokenHelper;
 import com.prodigal.travel.security.LoginTokenCache;
@@ -52,28 +53,36 @@ public class UserAuthServiceImpl implements UserAuthService {
      */
     @Override
     public String sendEmailCode(String email) {
-        String normalized = normalizeEmail(email);
-        if (!userService.exists(normalized)) {
+        String toEmail = normalizeEmail(email);
+        if (!userService.exists(toEmail)) {
             throw new BusinessException(ResponseStatus.USER_NOT_FOUND, "该邮箱未注册，请先完成注册");
         }
 
-        String throttleKey = CacheKeyConstant.EMAIL_THROTTLE_KEY_PREFIX + normalized;
+        String throttleKey = CacheKeyConstant.EMAIL_THROTTLE_KEY_PREFIX + toEmail;
         if (Boolean.TRUE.equals(redis.hasKey(throttleKey))) {
             throw new BusinessException(ResponseStatus.EMAIL_SEND_TOO_FREQUENT);
         }
 
         String code = RandomUtil.randomNumbers(6);
-        String codeKey = CacheKeyConstant.EMAIL_CODE_KEY_PREFIX + normalized;
+        String codeKey = CacheKeyConstant.EMAIL_CODE_KEY_PREFIX + toEmail;
         Duration codeTtl = Duration.ofMinutes(authRegisterProperties.getCodeTtlMinutes());
         Duration throttleTtl = Duration.ofSeconds(authRegisterProperties.getSendIntervalSeconds());
         redis.opsForValue().set(codeKey, code, codeTtl);
         redis.opsForValue().set(throttleKey, "1", throttleTtl);
 
         try {
-            mailService.sendEmailCode(normalized, code, authRegisterProperties.getCodeTtlMinutes());
+            MailContentDTO mailContentDTO = MailContentDTO.builder()
+                    .subject("【AI 旅游助手】邮箱登录验证码")
+                    .to(toEmail)
+                    .content("您的登录验证码为：" + code + "\n\n"
+                            + "验证码 " + authRegisterProperties.getCodeTtlMinutes() + " 分钟内有效，请勿泄露给他人。\n"
+                            + "如非本人操作，请立即修改密码并联系客服。")
+                    .isHtml(false)
+                    .build();
+            mailService.sendEmail(mailContentDTO);
             return code;
         } catch (MessagingException e) {
-            log.error("发送登录验证码失败: {}", normalized, e);
+            log.error("发送登录验证码失败: {}", toEmail, e);
             redis.delete(codeKey);
             redis.delete(throttleKey);
             throw new BusinessException(ResponseStatus.OPERATION_ERROR, "验证码邮件发送失败，请稍后重试");
@@ -87,13 +96,13 @@ public class UserAuthServiceImpl implements UserAuthService {
 
     @Override
     public LoginResponse loginByEmailCode(String email, String code) {
-        String normalizedEmail = normalizeEmail(email);
-        String codeKey = CacheKeyConstant.EMAIL_CODE_KEY_PREFIX + normalizedEmail;
+        String toEmail = normalizeEmail(email);
+        String codeKey = CacheKeyConstant.EMAIL_CODE_KEY_PREFIX + toEmail;
         String expected = redis.opsForValue().get(codeKey);
         if (expected == null || !expected.equals(code.trim())) {
             throw new BusinessException(ResponseStatus.EMAIL_CODE_INVALID);
         }
-        User user = userService.findByEmail(normalizedEmail);
+        User user = userService.findByEmail(toEmail);
         if (user == null) {
             redis.delete(codeKey);
             throw new BusinessException(ResponseStatus.USER_NOT_FOUND, "该邮箱未注册，请先完成注册");
@@ -139,7 +148,9 @@ public class UserAuthServiceImpl implements UserAuthService {
         loginTokenCache.revokeAllForUser(userId);
     }
 
-    /** 去空白并转小写，作为 Redis 键与库中邮箱比对的一致形式。 */
+    /**
+     * 去空白并转小写，作为 Redis 键与库中邮箱比对的一致形式。
+     */
     private static String normalizeEmail(String email) {
         return email.trim().toLowerCase(Locale.ROOT);
     }

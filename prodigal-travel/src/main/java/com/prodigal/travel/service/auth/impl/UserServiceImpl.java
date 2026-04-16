@@ -4,6 +4,7 @@ import cn.hutool.crypto.digest.BCrypt;
 import cn.hutool.jwt.JWTUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.prodigal.travel.config.rabbitmq.UserRabbiMQConfig;
 import com.prodigal.travel.config.properties.JwtProperties;
 import com.prodigal.travel.exception.BusinessException;
 import com.prodigal.travel.exception.ResponseStatus;
@@ -11,8 +12,12 @@ import com.prodigal.travel.exception.ThrowUtils;
 import com.prodigal.travel.mapper.UserMapper;
 import com.prodigal.travel.controller.vo.LoginResponse;
 import com.prodigal.travel.model.entity.User;
+import com.prodigal.travel.model.event.UserEvent;
 import com.prodigal.travel.security.LoginTokenCache;
 import com.prodigal.travel.service.auth.UserService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -27,16 +32,15 @@ import java.util.Map;
  *
  * @author 35104
  */
+@Slf4j
 @Service
+@RequiredArgsConstructor
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
 
     private final JwtProperties jwtProperties;
     private final LoginTokenCache loginTokenCache;
+    private final RabbitTemplate rabbitTemplate;
 
-    public UserServiceImpl(JwtProperties jwtProperties, LoginTokenCache loginTokenCache) {
-        this.jwtProperties = jwtProperties;
-        this.loginTokenCache = loginTokenCache;
-    }
 
     @Override
     public boolean register(String email, String username, String rawPassword, String nickname) {
@@ -52,6 +56,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         user.setNickname(StringUtils.hasText(nickname) ? nickname : username);
         boolean ok = this.save(user);
         ThrowUtils.throwIf(!ok, ResponseStatus.OPERATION_ERROR);
+        UserEvent event = UserEvent.builder()
+                .id(user.getId())
+                .build();
+        rabbitTemplate.convertAndSend(
+                UserRabbiMQConfig.USER_EXCHANGE,
+                UserRabbiMQConfig.USER_REGISTERED_EMAIL_QUEUE,
+                event
+        );
         return Boolean.TRUE;
     }
 

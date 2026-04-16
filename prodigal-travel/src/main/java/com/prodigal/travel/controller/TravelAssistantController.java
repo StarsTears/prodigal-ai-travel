@@ -17,7 +17,6 @@ import com.prodigal.travel.tools.ClientIpResolver;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -35,7 +34,6 @@ import java.util.List;
 @Slf4j
 @RestController
 @RequestMapping("/travel")
-@RequiredArgsConstructor
 @Tag(name = "travelAssistant", description = "国内 RAG + 按出发地规划 + 天气工具 + 可选 MCP")
 @SecurityRequirement(name = OpenApiSecurityConfig.SECURITY_SCHEME_NAME)
 public class TravelAssistantController {
@@ -46,10 +44,24 @@ public class TravelAssistantController {
     private final ToolCallback[] allTools;
     private final ObjectProvider<ToolCallbackProvider> toolCallbackProvider;
 
-    @Qualifier("dashScopeChatModel")
     private final ChatModel dashscopeChatModel;
 
     private final ClientIpResolver clientIpResolver;
+
+    public TravelAssistantController(
+            TravelAiClient travelAiClient,
+            ChatConversationService chatConversationService,
+            ToolCallback[] allTools,
+            ObjectProvider<ToolCallbackProvider> toolCallbackProvider,
+            @Qualifier("dashScopeChatModel") ChatModel dashscopeChatModel,
+            ClientIpResolver clientIpResolver) {
+        this.travelAiClient = travelAiClient;
+        this.chatConversationService = chatConversationService;
+        this.allTools = allTools;
+        this.toolCallbackProvider = toolCallbackProvider;
+        this.dashscopeChatModel = dashscopeChatModel;
+        this.clientIpResolver = clientIpResolver;
+    }
 
 
     @Operation(
