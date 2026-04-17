@@ -1,16 +1,23 @@
 package com.prodigal.travel.chatmemroy;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.prodigal.travel.constants.CacheKeyConstant;
+import com.prodigal.travel.constants.TravelConstant;
 import com.prodigal.travel.model.entity.ChatConversation;
 import com.prodigal.travel.model.entity.ChatMessage;
 import com.prodigal.travel.service.chat.ChatConversationService;
 import com.prodigal.travel.service.chat.ChatMessageService;
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.MessageType;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
@@ -21,6 +28,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 将 Spring AI 会话记忆持久化到 MySQL（chat_conversation / chat_message）。
@@ -28,13 +36,21 @@ import java.util.Locale;
  * conversationId 与 {@link com.prodigal.travel.controller.TravelAssistantController} 一致，格式为 {@code userId:前端chatId}，
  * 入库时拆成 user_id + 业务会话 UUID（conversation_id）。
  */
+@Slf4j
 @Component
 public class MySQLChatMemory implements ChatMemory {
+
+    private static final long CACHE_TTL_MINUTES = 60;
 
     @Resource
     private ChatConversationService chatConversationService;
     @Resource
     private ChatMessageService chatMessageService;
+    @Autowired
+    @Qualifier("stringRedisTemplate")
+    private StringRedisTemplate redisTemplate;
+    @Resource
+    private ObjectMapper objectMapper;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -72,6 +88,7 @@ public class MySQLChatMemory implements ChatMemory {
                     .eq(ChatConversation::getUserId, parsed.userId())
                     .set(ChatConversation::getUpdateTime, new Date())
                     .update();
+            cacheRecentMessages(parsed, rows);
         }
     }
 
@@ -81,12 +98,18 @@ public class MySQLChatMemory implements ChatMemory {
             return List.of();
         }
         ParsedConversation parsed = ParsedConversation.parse(conversationId);
-        List<ChatMessage> rows = chatMessageService.findChatMessage(parsed.chatUuid(), parsed.userId(),20);
+        List<Message> cachedMessages = getCachedMessages(parsed);
+        if (!cachedMessages.isEmpty()) {
+            return cachedMessages;
+        }
+
+        List<ChatMessage> rows = chatMessageService.findChatMessage(parsed.chatUuid(), parsed.userId(), TravelConstant.CHAT_MEMORY_MESSAGE_LIMIT);
         Collections.reverse(rows);
         List<Message> out = new ArrayList<>(rows.size());
         for (ChatMessage row : rows) {
             out.add(toSpringMessage(row.getRole(), row.getContent()));
         }
+        cacheRecentMessages(parsed, rows);
         return out;
     }
 
@@ -98,6 +121,7 @@ public class MySQLChatMemory implements ChatMemory {
         }
         ParsedConversation parsed = ParsedConversation.parse(conversationId);
         chatConversationService.remove(parsed.chatUuid(), parsed.userId());
+        redisTemplate.delete(buildCacheKey(parsed));
     }
 
     private void ensureConversation(ParsedConversation parsed,String title) {
@@ -129,6 +153,61 @@ public class MySQLChatMemory implements ChatMemory {
             case "tool", "function" -> new AssistantMessage(text);
             default -> new UserMessage(text);
         };
+    }
+
+    private void cacheRecentMessages(ParsedConversation parsed, List<ChatMessage> rows) {
+        if (rows == null || rows.isEmpty()) {
+            return;
+        }
+        String cacheKey = buildCacheKey(parsed);
+        try {
+            for (ChatMessage row : rows) {
+                if (row == null || !StringUtils.hasText(row.getContent())) {
+                    continue;
+                }
+                CachedMessage cacheRow = new CachedMessage(row.getRole(), row.getContent());
+                redisTemplate.opsForList().rightPush(cacheKey, objectMapper.writeValueAsString(cacheRow));
+            }
+            redisTemplate.opsForList().trim(cacheKey, -TravelConstant.CHAT_MEMORY_MESSAGE_LIMIT, -1);
+            redisTemplate.expire(cacheKey, CACHE_TTL_MINUTES, TimeUnit.MINUTES);
+        } catch (Exception e) {
+            // 缓存异常不应影响主链路（仍可依赖 MySQL 记忆）
+            log.error("Failed to cache recent messages for conversation: {}", parsed.chatUuid(), e);
+        }
+    }
+
+    private List<Message> getCachedMessages(ParsedConversation parsed) {
+        String cacheKey = buildCacheKey(parsed);
+        try {
+            List<String> cacheRows = redisTemplate.opsForList().range(cacheKey, 0, -1);
+            if (cacheRows == null || cacheRows.isEmpty()) {
+                return List.of();
+            }
+            List<Message> messages = new ArrayList<>(cacheRows.size());
+            for (String row : cacheRows) {
+                if (!StringUtils.hasText(row)) {
+                    continue;
+                }
+                CachedMessage cachedMessage = objectMapper.readValue(row, CachedMessage.class);
+                messages.add(toSpringMessage(cachedMessage.role(), cachedMessage.content()));
+            }
+            redisTemplate.expire(cacheKey, CACHE_TTL_MINUTES, TimeUnit.MINUTES);
+            return messages;
+        } catch (Exception ignored) {
+            return List.of();
+        }
+    }
+
+    /**
+     * prodigal:chat:memory:recent:userid:chatid
+     * @param parsed
+     * @return
+     */
+    private String buildCacheKey(ParsedConversation parsed) {
+        return String.format("%s%s:%s", CacheKeyConstant.CHAT_KEY_PREFIX, parsed.userId(), parsed.chatUuid());
+    }
+
+    private record CachedMessage(String role, String content) {
     }
 
     private record ParsedConversation(long userId, String chatUuid) {

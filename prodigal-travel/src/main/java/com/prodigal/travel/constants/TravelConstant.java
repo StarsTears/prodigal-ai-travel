@@ -63,4 +63,7 @@ public class TravelConstant {
 
     //pdf 存储目录
     public static final String PDF_DIR = "pdf";
+
+    //会话记忆关联条数
+    public static final int CHAT_MEMORY_MESSAGE_LIMIT = 10;
 }

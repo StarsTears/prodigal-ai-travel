@@ -16,4 +16,7 @@ public interface CacheKeyConstant {
     String EMAIL_CODE_KEY_PREFIX = "prodigal:auth:email-code:";
     String EMAIL_THROTTLE_KEY_PREFIX = "prodigal:auth:email-throttle:";
 
+    //会话缓存
+    String CHAT_KEY_PREFIX = "prodigal:chat:memory:recent:";
+
 }

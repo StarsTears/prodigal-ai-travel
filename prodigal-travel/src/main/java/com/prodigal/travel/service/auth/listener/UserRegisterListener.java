@@ -86,7 +86,7 @@ public class UserRegisterListener {
                 "<div class='feature'>💰 <strong>预算管理</strong> - 轻松掌控旅行开支</div>" +
 
                 "<div style='text-align: center;'>" +
-                "<a href='http://159.75.74.182/' class='button'>立即开始探索 →</a>" +
+                "<a href='https://your-website.com' class='button'>立即开始探索 →</a>" +
                 "</div>" +
 
                 "<p>如有任何问题，欢迎随时联系我们的客服团队。</p>" +

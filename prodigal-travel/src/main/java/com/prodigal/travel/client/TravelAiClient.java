@@ -84,7 +84,7 @@ public class TravelAiClient {
                 .user(message)
                 //对话Id、关联对话数
                 .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId)
-                        .param("TOP_K", 10))
+                        .param("TOP_K", TravelConstant.CHAT_MEMORY_MESSAGE_LIMIT))
                 //开启日志
                 .advisors(new LoggerAdvisor())
                 .toolCallbacks(allTools)
@@ -120,7 +120,7 @@ public class TravelAiClient {
 
         ChatResponse chatResponse = chatClient.prompt()
                 .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId) //对话id
-                        .param("TOP_K", 10) //关联会话的条数
+                        .param("TOP_K", TravelConstant.CHAT_MEMORY_MESSAGE_LIMIT) //关联会话的条数
                 )
                 .user(rewriterMessage)
                 //开启日志
@@ -146,7 +146,7 @@ public class TravelAiClient {
         ChatResponse chatResponse = chatClient.prompt()
                 .user(message)
                 .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId) //对话id
-                        .param("TOP_K", 10) //关联会话的条数
+                        .param("TOP_K", TravelConstant.CHAT_MEMORY_MESSAGE_LIMIT) //关联会话的条数
                 )
                 //开启日志
                 .advisors(new LoggerAdvisor())
@@ -172,7 +172,7 @@ public class TravelAiClient {
         ChatResponse chatResponse = clientRequestSpec
                 .system(TravelConstant.SYSTEM_PROMPT + finalSystemPrompt)
                 .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId) //对话id
-                        .param("TOP_K", 10) //关联会话的条数
+                        .param("TOP_K", TravelConstant.CHAT_MEMORY_MESSAGE_LIMIT) //关联会话的条数
                 )
                 //开启日志
                 .advisors(new LoggerAdvisor())
@@ -202,7 +202,7 @@ public class TravelAiClient {
         return clientRequestSpec
                 .system(TravelConstant.SYSTEM_PROMPT+finalSystemPrompt)
                 .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId) //对话id
-                        .param("TOP_K", 10) //关联会话的条数
+                        .param("TOP_K", TravelConstant.CHAT_MEMORY_MESSAGE_LIMIT) //关联会话的条数
                 )
                 //开启日志
                 .advisors(new LoggerAdvisor())

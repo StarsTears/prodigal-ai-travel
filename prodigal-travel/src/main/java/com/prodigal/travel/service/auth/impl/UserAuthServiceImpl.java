@@ -22,7 +22,7 @@ import java.time.Duration;
 import java.util.Locale;
 
 /**
- * {@link UserAuthService} 实现：邮件验证码与频控走 Redis；登录成功路径委托 {@link UserService}。
+ * {@link UserAuthService} 实现：邮件验证码与频控走 redisTemplate；登录成功路径委托 {@link UserService}。
  */
 @Slf4j
 @Service
@@ -34,7 +34,7 @@ public class UserAuthServiceImpl implements UserAuthService {
     private final AuthRegisterProperties authRegisterProperties;
     private final JwtTokenHelper jwtTokenHelper;
     private final LoginTokenCache loginTokenCache;
-    private final StringRedisTemplate redis;
+    private final StringRedisTemplate redisTemplate;
 
     public UserAuthServiceImpl(MailService mailService, UserService userService,
                                AuthRegisterProperties authRegisterProperties,
@@ -45,7 +45,7 @@ public class UserAuthServiceImpl implements UserAuthService {
         this.authRegisterProperties = authRegisterProperties;
         this.jwtTokenHelper = jwtTokenHelper;
         this.loginTokenCache = loginTokenCache;
-        this.redis = redisTemplate;
+        this.redisTemplate = redisTemplate;
     }
 
     /**
@@ -59,7 +59,7 @@ public class UserAuthServiceImpl implements UserAuthService {
         }
 
         String throttleKey = CacheKeyConstant.EMAIL_THROTTLE_KEY_PREFIX + toEmail;
-        if (Boolean.TRUE.equals(redis.hasKey(throttleKey))) {
+        if (Boolean.TRUE.equals(redisTemplate.hasKey(throttleKey))) {
             throw new BusinessException(ResponseStatus.EMAIL_SEND_TOO_FREQUENT);
         }
 
@@ -67,8 +67,8 @@ public class UserAuthServiceImpl implements UserAuthService {
         String codeKey = CacheKeyConstant.EMAIL_CODE_KEY_PREFIX + toEmail;
         Duration codeTtl = Duration.ofMinutes(authRegisterProperties.getCodeTtlMinutes());
         Duration throttleTtl = Duration.ofSeconds(authRegisterProperties.getSendIntervalSeconds());
-        redis.opsForValue().set(codeKey, code, codeTtl);
-        redis.opsForValue().set(throttleKey, "1", throttleTtl);
+        redisTemplate.opsForValue().set(codeKey, code, codeTtl);
+        redisTemplate.opsForValue().set(throttleKey, "1", throttleTtl);
 
         try {
             MailContentDTO mailContentDTO = MailContentDTO.builder()
@@ -83,8 +83,8 @@ public class UserAuthServiceImpl implements UserAuthService {
             return code;
         } catch (MessagingException e) {
             log.error("发送登录验证码失败: {}", toEmail, e);
-            redis.delete(codeKey);
-            redis.delete(throttleKey);
+            redisTemplate.delete(codeKey);
+            redisTemplate.delete(throttleKey);
             throw new BusinessException(ResponseStatus.OPERATION_ERROR, "验证码邮件发送失败，请稍后重试");
         }
     }
@@ -98,18 +98,18 @@ public class UserAuthServiceImpl implements UserAuthService {
     public LoginResponse loginByEmailCode(String email, String code) {
         String toEmail = normalizeEmail(email);
         String codeKey = CacheKeyConstant.EMAIL_CODE_KEY_PREFIX + toEmail;
-        String expected = redis.opsForValue().get(codeKey);
+        String expected = redisTemplate.opsForValue().get(codeKey);
         if (expected == null || !expected.equals(code.trim())) {
             throw new BusinessException(ResponseStatus.EMAIL_CODE_INVALID);
         }
         User user = userService.findByEmail(toEmail);
         if (user == null) {
-            redis.delete(codeKey);
+            redisTemplate.delete(codeKey);
             throw new BusinessException(ResponseStatus.USER_NOT_FOUND, "该邮箱未注册，请先完成注册");
         }
 
         LoginResponse resp = userService.loginWithoutPassword(user);
-        redis.delete(codeKey);
+        redisTemplate.delete(codeKey);
         return resp;
     }
 
@@ -149,7 +149,7 @@ public class UserAuthServiceImpl implements UserAuthService {
     }
 
     /**
-     * 去空白并转小写，作为 Redis 键与库中邮箱比对的一致形式。
+     * 去空白并转小写，作为 redisTemplate 键与库中邮箱比对的一致形式。
      */
     private static String normalizeEmail(String email) {
         return email.trim().toLowerCase(Locale.ROOT);
