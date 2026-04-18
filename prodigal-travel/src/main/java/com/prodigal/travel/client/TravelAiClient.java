@@ -164,8 +164,15 @@ public class TravelAiClient {
      * @param chatId
      * @return
      */
-    public String doChatWithMCP(String message, String chatId, String clientIp) {
-        String finalSystemPrompt = buildMessageWithClientIp(message, clientIp);
+    public String doChatWithMCP(
+            String message,
+            String chatId,
+            String clientIp,
+            Double latitude,
+            Double longitude,
+            String browserGeolocationStatus) {
+        String finalSystemPrompt = buildMessageWithClientIp(
+                message, clientIp, latitude, longitude, browserGeolocationStatus);
 
         ChatClient.ChatClientRequestSpec clientRequestSpec = chatClient.prompt()
                 .user(message);
@@ -191,8 +198,15 @@ public class TravelAiClient {
      * @param chatId
      * @return
      */
-    public Flux<String> doChatWithMCPSSE(String message, String chatId, String clientIp) {
-        String finalSystemPrompt = buildMessageWithClientIp(message, clientIp);
+    public Flux<String> doChatWithMCPSSE(
+            String message,
+            String chatId,
+            String clientIp,
+            Double latitude,
+            Double longitude,
+            String browserGeolocationStatus) {
+        String finalSystemPrompt = buildMessageWithClientIp(
+                message, clientIp, latitude, longitude, browserGeolocationStatus);
 
         ChatClient.ChatClientRequestSpec clientRequestSpec = chatClient.prompt()
                 .user(message);
@@ -216,12 +230,42 @@ public class TravelAiClient {
                 .content();
     }
 
-    private String buildMessageWithClientIp(String message, String clientIp) {
-        if (clientIp == null || clientIp.isBlank()) {
+    private String buildMessageWithClientIp(
+            String message,
+            String clientIp,
+            Double latitude,
+            Double longitude,
+            String browserGeolocationStatus) {
+        boolean hasGeo = latitude != null && longitude != null;
+        boolean hasIp = clientIp != null && !clientIp.isBlank();
+        if (!hasGeo && !hasIp) {
             return message;
         }
-        return message + "\n\n[系统上下文-请勿直接复述]\n"
-                + "当前用户真实IP: " + clientIp + "\n"
-                + "如需定位，请调用 getIPLocation 并把该 IP 作为参数传入。";
+        StringBuilder ctx = new StringBuilder();
+        ctx.append("\n\n[系统上下文-请勿直接复述]\n");
+        if (hasGeo) {
+            ctx.append("用户浏览器精确定位：纬度 ")
+                    .append(latitude)
+                    .append("，经度 ")
+                    .append(longitude)
+                    .append("。查询与用户所在地相关天气时，应调用 getWeatherByCoordinates(")
+                    .append(latitude)
+                    .append(", ")
+                    .append(longitude)
+                    .append(", true或false)。\n");
+        }
+        if (hasIp) {
+            if (!hasGeo && browserGeolocationStatus != null
+                    && browserGeolocationStatus.equalsIgnoreCase("denied")) {
+                ctx.append("用户已拒绝浏览器定位权限，请使用 IP 粗定位作为降级。\n");
+            }
+            ctx.append("当前用户真实IP: ").append(clientIp).append("\n");
+            if (hasGeo) {
+                ctx.append("若坐标与公网 IP 明显不符（如 VPN），可结合 getIPLocation 与该 IP 再判断。\n");
+            } else {
+                ctx.append("如需定位，请调用 getIPLocation 并把该 IP 作为参数传入。\n");
+            }
+        }
+        return message + ctx;
     }
 }

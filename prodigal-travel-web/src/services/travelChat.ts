@@ -9,6 +9,10 @@ export interface StreamCallOptions {
   message: string;
   chatId?: string | null;
   signal?: AbortSignal;
+  /** 与后端 `ChatRequest` 对齐：有经纬度时优先用于天气与上下文 */
+  latitude?: number;
+  longitude?: number;
+  browserGeolocationStatus?: string;
 }
 
 type StreamKind = 'travel' | 'manus';
@@ -110,7 +114,15 @@ async function streamByFetch(
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
-    body: JSON.stringify({ message: options.message, chatId }),
+    body: JSON.stringify({
+      message: options.message,
+      chatId,
+      ...(options.latitude != null ? { latitude: options.latitude } : {}),
+      ...(options.longitude != null ? { longitude: options.longitude } : {}),
+      ...(options.browserGeolocationStatus
+        ? { browserGeolocationStatus: options.browserGeolocationStatus }
+        : {}),
+    }),
     signal: options.signal,
   });
   if (!res.ok) {
@@ -167,7 +179,15 @@ async function streamManusByFetch(
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
-    body: JSON.stringify({ message: options.message, chatId }),
+    body: JSON.stringify({
+      message: options.message,
+      chatId,
+      ...(options.latitude != null ? { latitude: options.latitude } : {}),
+      ...(options.longitude != null ? { longitude: options.longitude } : {}),
+      ...(options.browserGeolocationStatus
+        ? { browserGeolocationStatus: options.browserGeolocationStatus }
+        : {}),
+    }),
     signal: options.signal,
   });
   if (!res.ok) {

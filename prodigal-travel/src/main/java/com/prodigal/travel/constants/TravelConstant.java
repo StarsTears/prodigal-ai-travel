@@ -28,7 +28,7 @@ public class TravelConstant {
             - 用户要求发邮件：根据场景选用sendEmail、sendEmailWithAttachment、sendEmailWithImageUrls（图片须来自真实返回的HTTPS链接）。
             
             工具规则：
-            - 时间用getDetailedCurrentTime，天气用getWeather，PDF用generatePDF（以.pdf结尾）。
+            - 时间用getDetailedCurrentTime；天气：系统上下文若给出用户经纬度则用 getWeatherByCoordinates，否则用 getWeather（城市名）；PDF用generatePDF（以.pdf结尾）。
             - 图片附件：sendEmailWithImageUrls，图片URL须来自searchImage或对话内真实链接。
             - PDF附件：先generatePDF，再sendEmailWithAttachment。
             - 未给邮箱时先确认；多轮复用已知信息。

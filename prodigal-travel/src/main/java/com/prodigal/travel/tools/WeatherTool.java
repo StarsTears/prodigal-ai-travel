@@ -40,6 +40,7 @@ public class WeatherTool {
 
     private static final String AD_CODE_FILE = "travel/AMap_adcode_citycode.xlsx";
     private static final String AMAP_WEATHER_URL = "https://restapi.amap.com/v3/weather/weatherInfo";
+    private static final String AMAP_REGEO_URL = "https://restapi.amap.com/v3/geocode/regeo";
     private static final int DEFAULT_CITY_COLUMN_INDEX = 0;
     private static final int DEFAULT_ADCODE_COLUMN_INDEX = 1;
     private static final Set<String> CITY_HEADER_CANDIDATES = new HashSet<>(List.of("中文名", "city", "cityname", "name"));
@@ -94,90 +95,178 @@ public class WeatherTool {
                 log.error("天气查询失败：在 " + AD_CODE_FILE + " 中未找到城市「" + normalizedCity + "」的编码。");
                 return "天气查询失败：在 " + AD_CODE_FILE + " 中未找到城市「" + normalizedCity + "」的编码。";
             }
-
-            HashMap<String, Object> params = new HashMap<>();
-            params.put("key", amapApiKey);
-            params.put("city", adCode);
-            params.put("extensions", queryRealtime ? "base" : "all");
-            params.put("output", "JSON");
-
-            String weatherResp = HttpRequest.get(AMAP_WEATHER_URL)
-                    .form(params)
-                    .timeout(AMAP_HTTP_TIMEOUT_MS)
-                    .execute()
-                    .body();
-            JSONObject root = JSONUtil.parseObj(weatherResp);
-            if (!"1".equals(root.getStr("status")) || !"10000".equals(root.getStr("infocode"))) {
-                log.error("天气查询失败：高德天气服务返回异常（" + root.getStr("info", "unknown") + "）。");
-                return "天气查询失败：高德天气服务返回异常（" + root.getStr("info", "unknown") + "）。";
-            }
-
-            if (queryRealtime) {
-                JSONArray lives = root.getJSONArray("lives");
-                if (lives == null || lives.isEmpty()) {
-                    log.error("天气查询失败：天气服务返回为空。");
-                    return "天气查询失败：天气服务返回为空。";
-                }
-                JSONObject current = lives.getJSONObject(0);
-                return "天气查询成功（实况）\n"
-                        + "城市：" + current.getStr("province", "") + current.getStr("city", normalizedCity) + "\n"
-                        + "天气：" + current.getStr("weather", "未知") + "\n"
-                        + "气温：" + current.getStr("temperature", "") + "°C\n"
-                        + "湿度：" + current.getStr("humidity", "") + "%\n"
-                        + "风向：" + current.getStr("winddirection", "") + "\n"
-                        + "风力：" + current.getStr("windpower", "") + "级\n"
-                        + "发布时间：" + current.getStr("reporttime", "");
-            }
-
-            JSONArray forecasts = root.getJSONArray("forecasts");
-            if (forecasts == null || forecasts.isEmpty()) {
-                return "天气查询失败：天气预报数据为空。";
-            }
-            JSONObject forecast = forecasts.getJSONObject(0);
-            JSONArray casts = forecast.getJSONArray("casts");
-            if (casts == null || casts.isEmpty()) {
-                return "天气查询失败：天气预报明细为空。";
-            }
-
-            StringBuilder sb = new StringBuilder("天气查询成功（预报）\n")
-                    .append("城市：")
-                    .append(forecast.getStr("province", ""))
-                    .append(forecast.getStr("city", normalizedCity))
-                    .append("\n")
-                    .append("发布时间：")
-                    .append(forecast.getStr("reporttime", ""))
-                    .append("\n");
-
-            for (int i = 0; i < casts.size(); i++) {
-                JSONObject cast = casts.getJSONObject(i);
-                sb.append("\n")
-                        .append(cast.getStr("date", ""))
-                        .append(" (周")
-                        .append(cast.getStr("week", ""))
-                        .append(")")
-                        .append("：")
-                        .append(cast.getStr("dayweather", "未知"))
-                        .append("/")
-                        .append(cast.getStr("nightweather", "未知"))
-                        .append("，")
-                        .append(cast.getStr("nighttemp", ""))
-                        .append("~")
-                        .append(cast.getStr("daytemp", ""))
-                        .append("°C，")
-                        .append("风向 ")
-                        .append(cast.getStr("daywind", ""))
-                        .append("/")
-                        .append(cast.getStr("nightwind", ""))
-                        .append("，风力 ")
-                        .append(cast.getStr("daypower", ""))
-                        .append("/")
-                        .append(cast.getStr("nightpower", ""));
-            }
-            return sb.toString();
+            return fetchWeatherByAdcode(adCode, normalizedCity, queryRealtime);
         } catch (Exception e) {
             log.error("天气查询失败：" + e.getMessage());
             return "天气查询失败：" + e.getMessage();
         }
+    }
+
+    @Tool(description = "Query weather by latitude and longitude (decimal degrees). Use when browser Geolocation is available; AMap expects GCJ-02 in China.")
+    public String getWeatherByCoordinates(
+            @ToolParam(description = "Latitude, e.g. 24.479834") Double latitude,
+            @ToolParam(description = "Longitude, e.g. 118.089425") Double longitude,
+            @ToolParam(description = "true=live weather, false=forecast. Default true.") Boolean realtime
+    ) {
+        if (latitude == null || longitude == null) {
+            log.error("天气查询失败：经纬度不能为空。");
+            return "天气查询失败：经纬度不能为空。";
+        }
+        if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+            log.error("天气查询失败：经纬度数值不合法。");
+            return "天气查询失败：经纬度数值不合法。";
+        }
+        if (StrUtil.isBlank(amapApiKey)) {
+            log.error("天气查询失败：未配置高德天气 API Key。");
+            return "天气查询失败：未配置高德天气 API Key。";
+        }
+        boolean queryRealtime = realtime == null || realtime;
+        try {
+            String location = longitude + "," + latitude;
+            HashMap<String, Object> regeoParams = new HashMap<>();
+            regeoParams.put("key", amapApiKey);
+            regeoParams.put("location", location);
+            regeoParams.put("radius", 1000);
+            regeoParams.put("extensions", "base");
+            regeoParams.put("output", "JSON");
+            String regeoResp = HttpRequest.get(AMAP_REGEO_URL)
+                    .form(regeoParams)
+                    .timeout(AMAP_HTTP_TIMEOUT_MS)
+                    .execute()
+                    .body();
+            JSONObject regeoRoot = JSONUtil.parseObj(regeoResp);
+            if (!"1".equals(regeoRoot.getStr("status")) || !"10000".equals(regeoRoot.getStr("infocode"))) {
+                log.error("天气查询失败：逆地理编码异常（{}）。", regeoRoot.getStr("info", "unknown"));
+                return "天气查询失败：逆地理编码异常（" + regeoRoot.getStr("info", "unknown") + "）。";
+            }
+            JSONObject regeocode = regeoRoot.getJSONObject("regeocode");
+            if (regeocode == null) {
+                log.error("天气查询失败：逆地理编码结果为空。");
+                return "天气查询失败：逆地理编码结果为空。";
+            }
+            JSONObject ac = regeocode.getJSONObject("addressComponent");
+            if (ac == null) {
+                log.error("天气查询失败：逆地理编码地址为空。");
+                return "天气查询失败：逆地理编码地址为空。";
+            }
+            String adcode = ac.getStr("adcode", "").trim();
+            if (StrUtil.isBlank(adcode)) {
+                log.error("天气查询失败：未能解析行政区划编码（adcode）。");
+                return "天气查询失败：未能解析行政区划编码（adcode）。";
+            }
+            String cityLabel = resolveCityLabelFromAddressComponent(ac, regeocode.getStr("formatted_address", ""));
+            String coordNote = "（坐标 " + latitude + ", " + longitude + "）";
+            return fetchWeatherByAdcode(adcode, cityLabel + coordNote, queryRealtime);
+        } catch (Exception e) {
+            log.error("天气查询失败：" + e.getMessage());
+            return "天气查询失败：" + e.getMessage();
+        }
+    }
+
+    private String resolveCityLabelFromAddressComponent(JSONObject ac, String formattedAddress) {
+        Object cityObj = ac.get("city");
+        String city = "";
+        if (cityObj instanceof JSONArray ja && !ja.isEmpty()) {
+            city = String.valueOf(ja.get(0)).trim();
+        } else if (cityObj != null) {
+            city = String.valueOf(cityObj).trim();
+        }
+        if (StrUtil.isBlank(city) || "[]".equals(city)) {
+            String province = ac.getStr("province", "").trim();
+            String district = ac.getStr("district", "").trim();
+            if (StrUtil.isNotBlank(district)) {
+                return district;
+            }
+            if (StrUtil.isNotBlank(province)) {
+                return province;
+            }
+        }
+        if (StrUtil.isNotBlank(city)) {
+            return city;
+        }
+        return StrUtil.isNotBlank(formattedAddress) ? formattedAddress : "当前位置";
+    }
+
+    private String fetchWeatherByAdcode(String adCode, String cityDisplayFallback, boolean queryRealtime) throws Exception {
+        HashMap<String, Object> params = new HashMap<>();
+        params.put("key", amapApiKey);
+        params.put("city", adCode);
+        params.put("extensions", queryRealtime ? "base" : "all");
+        params.put("output", "JSON");
+
+        String weatherResp = HttpRequest.get(AMAP_WEATHER_URL)
+                .form(params)
+                .timeout(AMAP_HTTP_TIMEOUT_MS)
+                .execute()
+                .body();
+        JSONObject root = JSONUtil.parseObj(weatherResp);
+        if (!"1".equals(root.getStr("status")) || !"10000".equals(root.getStr("infocode"))) {
+            log.error("天气查询失败：高德天气服务返回异常（" + root.getStr("info", "unknown") + "）。");
+            return "天气查询失败：高德天气服务返回异常（" + root.getStr("info", "unknown") + "）。";
+        }
+
+        if (queryRealtime) {
+            JSONArray lives = root.getJSONArray("lives");
+            if (lives == null || lives.isEmpty()) {
+                log.error("天气查询失败：天气服务返回为空。");
+                return "天气查询失败：天气服务返回为空。";
+            }
+            JSONObject current = lives.getJSONObject(0);
+            return "天气查询成功（实况）\n"
+                    + "城市：" + current.getStr("province", "") + current.getStr("city", cityDisplayFallback) + "\n"
+                    + "天气：" + current.getStr("weather", "未知") + "\n"
+                    + "气温：" + current.getStr("temperature", "") + "°C\n"
+                    + "湿度：" + current.getStr("humidity", "") + "%\n"
+                    + "风向：" + current.getStr("winddirection", "") + "\n"
+                    + "风力：" + current.getStr("windpower", "") + "级\n"
+                    + "发布时间：" + current.getStr("reporttime", "");
+        }
+
+        JSONArray forecasts = root.getJSONArray("forecasts");
+        if (forecasts == null || forecasts.isEmpty()) {
+            return "天气查询失败：天气预报数据为空。";
+        }
+        JSONObject forecast = forecasts.getJSONObject(0);
+        JSONArray casts = forecast.getJSONArray("casts");
+        if (casts == null || casts.isEmpty()) {
+            return "天气查询失败：天气预报明细为空。";
+        }
+
+        StringBuilder sb = new StringBuilder("天气查询成功（预报）\n")
+                .append("城市：")
+                .append(forecast.getStr("province", ""))
+                .append(forecast.getStr("city", cityDisplayFallback))
+                .append("\n")
+                .append("发布时间：")
+                .append(forecast.getStr("reporttime", ""))
+                .append("\n");
+
+        for (int i = 0; i < casts.size(); i++) {
+            JSONObject cast = casts.getJSONObject(i);
+            sb.append("\n")
+                    .append(cast.getStr("date", ""))
+                    .append(" (周")
+                    .append(cast.getStr("week", ""))
+                    .append(")")
+                    .append("：")
+                    .append(cast.getStr("dayweather", "未知"))
+                    .append("/")
+                    .append(cast.getStr("nightweather", "未知"))
+                    .append("，")
+                    .append(cast.getStr("nighttemp", ""))
+                    .append("~")
+                    .append(cast.getStr("daytemp", ""))
+                    .append("°C，")
+                    .append("风向 ")
+                    .append(cast.getStr("daywind", ""))
+                    .append("/")
+                    .append(cast.getStr("nightwind", ""))
+                    .append("，风力 ")
+                    .append(cast.getStr("daypower", ""))
+                    .append("/")
+                    .append(cast.getStr("nightpower", ""));
+        }
+        return sb.toString();
     }
 
     /**

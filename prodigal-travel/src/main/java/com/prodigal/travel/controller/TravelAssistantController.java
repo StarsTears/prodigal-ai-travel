@@ -79,7 +79,13 @@ public class TravelAssistantController {
         }
         String memoryConversationId = loginUserId + ":" + chatId;
         String clientIp = clientIpResolver.resolveClientIp(httpServletRequest);
-        String answer = travelAiClient.doChatWithMCP(request.getMessage(), memoryConversationId, clientIp);
+        String answer = travelAiClient.doChatWithMCP(
+                request.getMessage(),
+                memoryConversationId,
+                clientIp,
+                request.getLatitude(),
+                request.getLongitude(),
+                request.getBrowserGeolocationStatus());
         TravelChatResponse response = new TravelChatResponse();
         return ResultUtils.success(response.chatId(chatId).answer(answer));
     }
@@ -118,7 +124,13 @@ public class TravelAssistantController {
         String clientIp = clientIpResolver.resolveClientIp(httpServletRequest);
         //获取Flux 响应式数据流 且通过  订阅 推送给 SseEmitter
         SseEmitter sseEmitter = new SseEmitter(180000L);
-        travelAiClient.doChatWithMCPSSE(request.getMessage(), memoryConversationId, clientIp)
+        travelAiClient.doChatWithMCPSSE(
+                        request.getMessage(),
+                        memoryConversationId,
+                        clientIp,
+                        request.getLatitude(),
+                        request.getLongitude(),
+                        request.getBrowserGeolocationStatus())
                 .subscribe(chunk->{
                     try {
                         sseEmitter.send(chunk);

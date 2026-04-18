@@ -24,7 +24,13 @@ export function useStreaming() {
 
   const runStream = useCallback(
     async (
-      args: { message: string; chatId?: string | null },
+      args: {
+        message: string;
+        chatId?: string | null;
+        latitude?: number;
+        longitude?: number;
+        browserGeolocationStatus?: string;
+      },
       onDelta: (chunk: string) => void,
       kind: StreamChatKind = 'travel'
     ): Promise<TravelChatResponse> => {
@@ -40,6 +46,9 @@ export function useStreaming() {
             message: args.message,
             chatId: args.chatId ?? undefined,
             signal: controller.signal,
+            latitude: args.latitude,
+            longitude: args.longitude,
+            browserGeolocationStatus: args.browserGeolocationStatus,
           },
           onDelta
         );

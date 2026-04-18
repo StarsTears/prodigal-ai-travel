@@ -56,6 +56,7 @@ public class MySQLChatMemory implements ChatMemory {
     @Transactional(rollbackFor = Exception.class)
     public void add(String conversationId, List<Message> messages) {
         if (!StringUtils.hasText(conversationId) || CollectionUtils.isEmpty(messages)) {
+            log.warn("Invalid conversationId or messages!!");
             return;
         }
         ParsedConversation parsed = ParsedConversation.parse(conversationId);
@@ -100,6 +101,7 @@ public class MySQLChatMemory implements ChatMemory {
         ParsedConversation parsed = ParsedConversation.parse(conversationId);
         List<Message> cachedMessages = getCachedMessages(parsed);
         if (!cachedMessages.isEmpty()) {
+            log.info("Using cached messages for conversationId: {}", conversationId);
             return cachedMessages;
         }
 
@@ -193,7 +195,8 @@ public class MySQLChatMemory implements ChatMemory {
             }
             redisTemplate.expire(cacheKey, CACHE_TTL_MINUTES, TimeUnit.MINUTES);
             return messages;
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            log.error("Failed to get cached messages for conversation: {}", parsed.chatUuid(),e);
             return List.of();
         }
     }

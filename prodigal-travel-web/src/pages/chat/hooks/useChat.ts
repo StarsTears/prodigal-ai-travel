@@ -181,9 +181,65 @@ export function useChat(options: UseChatOptions) {
   const [listLoading, setListLoading] = useState(false);
   const activeIdRef = useRef<string | null>(null);
 
+  type TravelGeoState =
+    | { status: 'idle' }
+    | { status: 'pending' }
+    | { status: 'granted'; latitude: number; longitude: number }
+    | { status: 'denied' }
+    | { status: 'unsupported' }
+    | { status: 'timeout' }
+    | { status: 'error' };
+
+  const travelGeoRef = useRef<TravelGeoState>({ status: 'idle' });
+  const travelGeoInitRef = useRef(false);
+
   useEffect(() => {
     activeIdRef.current = activeId;
   }, [activeId]);
+
+  useEffect(() => {
+    if (!token) {
+      travelGeoInitRef.current = false;
+      travelGeoRef.current = { status: 'idle' };
+    }
+  }, [token]);
+
+  useEffect(() => {
+    if (mode !== 'travel' || !ready || !token) {
+      return;
+    }
+    if (travelGeoInitRef.current) {
+      return;
+    }
+    travelGeoInitRef.current = true;
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      travelGeoRef.current = { status: 'unsupported' };
+      return;
+    }
+    travelGeoRef.current = { status: 'pending' };
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        travelGeoRef.current = {
+          status: 'granted',
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+        };
+      },
+      (err: GeolocationPositionError) => {
+        if (err.code === err.PERMISSION_DENIED) {
+          travelGeoRef.current = { status: 'denied' };
+          message.warning(
+            '您已拒绝浏览器定位权限，将使用 IP 进行大致定位；需要更准确位置时请在浏览器设置中允许本站访问位置。',
+          );
+        } else if (err.code === err.TIMEOUT) {
+          travelGeoRef.current = { status: 'timeout' };
+        } else {
+          travelGeoRef.current = { status: 'error' };
+        }
+      },
+      { enableHighAccuracy: false, timeout: 15000, maximumAge: 300_000 },
+    );
+  }, [mode, ready, token]);
 
   const mergeDetailIntoList = useCallback(
     (chatId: string, rec: ConversationRecord) => {
@@ -531,7 +587,21 @@ export function useChat(options: UseChatOptions) {
                 }
               )
             : await runStream(
-                { message: trimmed, chatId: chatIdForApi },
+                {
+                  message: trimmed,
+                  chatId: chatIdForApi,
+                  ...(() => {
+                    const g = travelGeoRef.current;
+                    if (g.status === 'granted') {
+                      return {
+                        latitude: g.latitude,
+                        longitude: g.longitude,
+                        browserGeolocationStatus: 'granted' as const,
+                      };
+                    }
+                    return { browserGeolocationStatus: g.status };
+                  })(),
+                },
                 (chunk) => {
                   appendAssistantDelta({ convId, messageId: assistantMsg.id, delta: chunk });
                 },

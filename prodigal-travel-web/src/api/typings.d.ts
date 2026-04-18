@@ -55,6 +55,12 @@ declare namespace API {
     message: string;
     /** 对话id */
     chatId?: string;
+    /** 浏览器 Geolocation 纬度 */
+    latitude?: number;
+    /** 浏览器 Geolocation 经度 */
+    longitude?: number;
+    /** granted | denied | unsupported | timeout | error | pending | none */
+    browserGeolocationStatus?: string;
   };
 
   type conversationsParams = {
