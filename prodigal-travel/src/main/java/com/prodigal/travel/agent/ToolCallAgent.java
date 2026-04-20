@@ -57,10 +57,13 @@ public class ToolCallAgent extends ReActAgent {
         this.toolCallbackProvider = toolCallbackProvider;
         this.toolCallingManager = ToolCallingManager.builder().build();
         // DashScope：部分模型要求 enable_thinking 必须为 true；仅用 DefaultToolCallingChatOptions 时请求体不带该字段会 400。
+        // 与工具调用合并时 multiModel 曾被错误覆盖为 false，会走错 HTTP 端点并返回 InvalidParameter「url error」
+        // （见 spring-ai-alibaba #4408 / #4375）。显式开启多模态路由以匹配 qwen3.x 等模型的统一接入。
         this.chatOptions = DashScopeChatOptions.builder()
 //                .withProxyToolCalls(true)
                 .internalToolExecutionEnabled(false)
                 .enableThinking(true)
+                .multiModel(true)
                 .build();
     }
 
