@@ -46,6 +46,8 @@ public class ToolCallAgent extends ReActAgent {
 
     private final ChatOptions chatOptions;
 
+    /** 本轮 think 是否以「无工具调用 + 非空助手正文」结束。 */
+    private boolean lastThinkEndedWithPlainAssistantText;
 
     public ToolCallAgent(ToolCallback[] availableTools) {
         this(availableTools, null);
@@ -68,7 +70,22 @@ public class ToolCallAgent extends ReActAgent {
     }
 
     @Override
+    protected String noActionStepResult() {
+        if (lastThinkEndedWithPlainAssistantText
+                && toolChatResponse != null
+                && toolChatResponse.getResult() != null
+                && toolChatResponse.getResult().getOutput() != null) {
+            String text = toolChatResponse.getResult().getOutput().getText();
+            if (StrUtil.isNotBlank(text)) {
+                return text;
+            }
+        }
+        return super.noActionStepResult();
+    }
+
+    @Override
     public boolean think() {
+        lastThinkEndedWithPlainAssistantText = false;
         //校验提示词
         if (StrUtil.isNotBlank(getNextStepPrompt())){
             UserMessage userMessage = new UserMessage(getNextStepPrompt());
@@ -99,6 +116,11 @@ public class ToolCallAgent extends ReActAgent {
             if (toolCalls.isEmpty()){
                 //不调用工具时，无需记录助手消息；<调用工具会自动记录>
                 getMessageList().add(assistantMessage);
+                lastThinkEndedWithPlainAssistantText = StrUtil.isNotBlank(assistantMessage.getText());
+                // 仅在模型给出明确正文时结束回合，避免重复输出；空正文则允许继续下一步 ReAct。
+                if (lastThinkEndedWithPlainAssistantText) {
+                    this.setState(AgentState.FINISHED);
+                }
                 return false;
             }
             return true;

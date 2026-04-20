@@ -35,13 +35,21 @@ public abstract class ReActAgent extends BaseAgent {
         try {
             boolean shouldAct = this.think();
             if (!shouldAct) {
-                return "Think complete!No need to act";
+                return noActionStepResult();
             }
             return this.act();
         } catch (Exception e) {
             e.printStackTrace();
             return "Error running agent-Step executing failed: " + e.getMessage();
         }
+    }
+
+    /**
+     * {@link #think()} 返回 false 时作为本步对外结果（含流式 SSE）。
+     * 子类可在「模型已给出纯文本答复」时覆盖为实际正文。
+     */
+    protected String noActionStepResult() {
+        return "Think complete!No need to act";
     }
 
 }

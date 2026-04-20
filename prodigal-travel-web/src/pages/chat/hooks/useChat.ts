@@ -126,12 +126,14 @@ function finalizeManusAssistantMessage(m: ChatMessage): ChatMessage {
   const base = { ...m, streaming: false };
   const steps = base.manusSteps ?? [];
   const summary = steps.length > 0 ? summarizeManusSteps(steps).trim() : '';
-  // 统一按「旅游助手式 Markdown」输出：只要有可用步骤摘要，就优先展示摘要。
-  if (summary) {
-    return { ...base, content: summary };
-  }
   const content = (base.content ?? '').trim();
-  if (!content) return base;
+  // 优先展示模型最终正文；仅当正文为空时，才回退为步骤摘要。
+  if (!content) {
+    if (summary) {
+      return { ...base, content: summary };
+    }
+    return base;
+  }
   const normalized = normalizeEscapedManusContent(content);
   if (normalized && normalized !== content) {
     return { ...base, content: normalized };
