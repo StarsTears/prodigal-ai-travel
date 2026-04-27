@@ -1,5 +1,6 @@
 package com.prodigal.travel.service.auth.listener;
 
+import com.alibaba.fastjson.JSON;
 import com.prodigal.travel.config.rabbitmq.UserRabbiMQConfig;
 import com.prodigal.travel.exception.ResponseStatus;
 import com.prodigal.travel.exception.ThrowUtils;
@@ -31,7 +32,7 @@ public class UserRegisterListener {
     @RabbitListener(queues = UserRabbiMQConfig.USER_REGISTERED_EMAIL_QUEUE,
             containerFactory = "userRabbitListenerContainerFactory")
     public void onUserRegistered(UserEvent message) {
-        log.info("收到用户注册消息 userId={}", message.getId());
+        log.info("收到用户注册消息: {}", JSON.toJSONString(message));
 
         // 先查询数据库
         User user = userService.getById(message.getId());

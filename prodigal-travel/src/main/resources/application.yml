@@ -19,6 +19,7 @@ spring:
     url: jdbc:mysql://localhost:3306/prodigal_ai_travel?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai
     username: XXX
     password: XXX
+
   rabbitmq:
     enabled: true
     host: ${RABBITMQ_HOST:localhost}
@@ -112,6 +113,13 @@ prodigal:
   baidu:
     app-id: XXX
     api-key: XXX
+  ai:
+    alert:
+      enabled: ${AI_ALERT_ENABLED:false}
+      # 多个接收人用英文逗号分隔；例如：a@xx.com,b@xx.com
+      recipients: ${AI_ALERT_RECIPIENTS:XXX}
+      # 同一错误的最小告警间隔，避免刷屏
+      cooldown-minutes: ${AI_ALERT_COOLDOWN_MINUTES:30}
 
 # springdoc-openapi
 # http://localhost:port/api/doc.html

@@ -5,6 +5,7 @@ import com.prodigal.travel.chatmemroy.MySQLChatMemory;
 import com.prodigal.travel.constants.TravelConstant;
 import com.prodigal.travel.rag.QueryRewriter;
 import com.prodigal.travel.rag.TravelRagCustomAdvisorFactory;
+import com.prodigal.travel.service.alert.AiModelAlertService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +23,7 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
+import java.util.function.Supplier;
 
 
 /**
@@ -42,6 +44,8 @@ public class TravelAiClient {
     private QueryRewriter queryRewriter;
     @Resource
     private ToolCallback[] allTools;
+    @Resource
+    private AiModelAlertService aiModelAlertService;
 
     private final ChatModel dashscopeChatModel;
 
@@ -80,17 +84,19 @@ public class TravelAiClient {
      * @return
      */
     public String doChat(String message, String chatId) {
-        ChatResponse chatResponse = chatClient.prompt()
-                .user(message)
-                //对话Id、关联对话数
-                .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId)
-                        .param("TOP_K", TravelConstant.CHAT_MEMORY_MESSAGE_LIMIT))
-                //开启日志
-                .advisors(new LoggerAdvisor())
-                .toolCallbacks(allTools)
-                .call()
-                .chatResponse();
-        return chatResponse.getResult().getOutput().getText();
+        return executeWithAlert("doChat", () -> {
+            ChatResponse chatResponse = chatClient.prompt()
+                    .user(message)
+                    //对话Id、关联对话数
+                    .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId)
+                            .param("TOP_K", TravelConstant.CHAT_MEMORY_MESSAGE_LIMIT))
+                    //开启日志
+                    .advisors(new LoggerAdvisor())
+                    .toolCallbacks(allTools)
+                    .call()
+                    .chatResponse();
+            return chatResponse.getResult().getOutput().getText();
+        });
     }
 
     /**
@@ -227,7 +233,17 @@ public class TravelAiClient {
                 //工具调用
                 .toolCallbacks(allTools)
                 .stream()
-                .content();
+                .content()
+                .doOnError(error -> aiModelAlertService.tryAlert(error, "doChatWithMCPSSE"));
+    }
+
+    private <T> T executeWithAlert(String operation, Supplier<T> action) {
+        try {
+            return action.get();
+        } catch (RuntimeException exception) {
+            aiModelAlertService.tryAlert(exception, operation);
+            throw exception;
+        }
     }
 
     private String buildMessageWithClientIp(
