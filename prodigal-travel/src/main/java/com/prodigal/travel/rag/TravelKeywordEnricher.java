@@ -28,7 +28,7 @@ public class TravelKeywordEnricher {
      * @return
      */
     public List<Document> enrichDocument(List<Document> documents) {
-        KeywordMetadataEnricher keywordMetadataEnricher = new KeywordMetadataEnricher(chatModel,5);
+        KeywordMetadataEnricher keywordMetadataEnricher = new KeywordMetadataEnricher(chatModel,3);
         return keywordMetadataEnricher.apply(documents);
     }
 }

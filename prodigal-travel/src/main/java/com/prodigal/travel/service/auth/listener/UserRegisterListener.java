@@ -49,8 +49,7 @@ public class UserRegisterListener {
             mailService.sendEmail(mailContentDTO);
             log.info("成功发送 welcome 邮件 userId={}、to={}", message.getId(), user.getEmail());
         } catch (MessagingException e) {
-            log.error("发送邮件失败", e);
-            throw new RuntimeException(e);
+            log.error("[user register send email] 发送失败，丢弃消息。userId={}, 原因={}", message.getId(), e.getMessage());
         }
     }
 

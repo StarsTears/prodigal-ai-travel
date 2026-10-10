@@ -1,5 +1,6 @@
 -- pg vector 向量数据库，暂时不启用
 SELECT * FROM pg_extension WHERE extname = 'vector';
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS vector;
 CREATE TABLE IF NOT EXISTS travel_vector_store (
     id uuid DEFAULT uuid_generate_v4() PRIMARY KEY,
@@ -7,7 +8,9 @@ CREATE TABLE IF NOT EXISTS travel_vector_store (
     metadata json,
     embedding vector(1536)
     );
-
+-- 3. 创建索引（请替换 `{your_table_name}` 和 `{your_dimension}`）
+-- 根据你的数据量和查询需求，可以选择 IVFFlat 或 HNSW 算法
+CREATE INDEX ON {your_table_name} USING HNSW (embedding vector_cosine_ops);
 -- ========== MySQL：用户与持久化会话（与 prodigal-travel 中 X-User-Id、chatId 对齐）==========
 -- 建库
 CREATE DATABASE IF NOT EXISTS prodigal_ai_travel CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
