@@ -92,7 +92,7 @@ public class TravelAssistantController {
 
 
     @Operation(
-            summary = "旅游助手对话",
+            summary = "旅游助手对话rag",
             description = "需登录：请求头 Authorization: Bearer {token}。可传 departureCity、tripDays、tripFocus；结合 RAG 与工具调用。"
     )
     @PostMapping(value = "/chat/rag")

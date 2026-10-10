@@ -40,8 +40,8 @@ public class TravelRagCustomAdvisorFactory {
         //创建文档检索器
         VectorStoreDocumentRetriever vectorStoreDocumentRetriever = VectorStoreDocumentRetriever.builder()
                 .vectorStore(vectorStore)
-                .similarityThreshold(0.7)    // 相似度阈值
-                .topK(3)                     // 返回文档数量
+                .similarityThreshold(0.3)    // 相似度阈值
+                .topK(5)                     // 返回文档数量
                 .build();
 
         //创建文档合并器
@@ -55,6 +55,7 @@ public class TravelRagCustomAdvisorFactory {
                 .queryExpander(queryExpander)
                 //文档检索器
                 .documentRetriever(vectorStoreDocumentRetriever)
+                .documentJoiner(documentJoiner)
                 //文档查询器-错误处理和边界情况 上下文感知
                 .queryAugmenter(queryAugmenter)
                 .build();
