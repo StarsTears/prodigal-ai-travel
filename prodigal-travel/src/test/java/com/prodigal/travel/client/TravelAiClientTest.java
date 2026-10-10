@@ -55,8 +55,9 @@ class TravelAiClientTest {
     @Test
     void doChatWithRag() {
         String chatId = UUID.fastUUID().toString();
-//        String content = travelAiClient.doChatWithRag("我想去伦敦旅游，有推荐的景点吗？并将内容生成PDF发送给 邮箱", chatId);
-        String content = travelAiClient.doChatWithTool("我想去甘肃旅游，有推荐的景点吗？并将内容生成PDF发送给 邮箱", chatId);
+        String content = travelAiClient.doChatWithRag("我想去伦敦旅游，有推荐的景点吗？并将内容生成PDF发送给 邮箱", chatId);
+        log.info(content);
+//        String content = travelAiClient.doChatWithTool("我想去甘肃旅游，有推荐的景点吗？并将内容生成PDF发送给 邮箱", chatId);
         assertNotNull(content);
     }
 

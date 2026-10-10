@@ -99,6 +99,14 @@ mybatis-plus:
       logic-delete-value: 1
       logic-not-delete-value: 0
 
+# === 新增：PostgreSQL 向量库连接 ===
+pgvector:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/vector_db
+    username: XXX
+    password: XXX
+    driver-class-name: org.postgresql.Driver
+
 prodigal:
   jwt:
     secret: ${PRODIGAL_JWT_SECRET:prodigal-travel-default-jwt-secret-min-32-chars-long!!}

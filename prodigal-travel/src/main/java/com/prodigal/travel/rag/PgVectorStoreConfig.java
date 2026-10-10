@@ -1,15 +1,20 @@
 package com.prodigal.travel.rag;
 
+import com.zaxxer.hikari.HikariDataSource;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.ai.vectorstore.pgvector.PgVectorStore;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
 
+import javax.sql.DataSource;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -33,7 +38,7 @@ import static org.springframework.ai.vectorstore.pgvector.PgVectorStore.PgIndexT
  * @since 2026/4/1
  */
 @Slf4j
-//@Configuration
+@Configuration
 public class PgVectorStoreConfig {
     @Resource
     private TravelKnowledgeLoader travelKnowledgeLoader;
@@ -43,8 +48,34 @@ public class PgVectorStoreConfig {
     private TravelKeywordEnricher travelKeywordEnricher;
 
     private static final int BATCH_SIZE = 25;
+
+
+    @Bean(name = "pgVectorDataSourceProperties")
+    @ConfigurationProperties(prefix = "pgvector.datasource")
+    public DataSourceProperties pgVectorDataSourceProperties() {
+        return new DataSourceProperties();
+    }
+
+    @Bean(name = "pgVectorDataSource")
+    public DataSource pgVectorDataSource(
+            @Qualifier("pgVectorDataSourceProperties") DataSourceProperties properties) {
+        DataSource ds = properties.initializeDataSourceBuilder().build();
+        return ds;
+    }
+
+    // 基于 PG DataSource 创建 JdbcTemplate
+    @Bean(name = "pgVectorJdbcTemplate")
+    public JdbcTemplate pgVectorJdbcTemplate(
+            @Qualifier("pgVectorDataSource") DataSource dataSource) {
+        // 此时绑定已完成
+        if (dataSource instanceof HikariDataSource hikari) {
+            log.info("PgVector JDBC URL: " + hikari.getJdbcUrl());
+        }
+        return new JdbcTemplate(dataSource);
+    }
+
     @Bean
-    public VectorStore pgVectorStore(JdbcTemplate jdbcTemplate, EmbeddingModel dashscopeEmbeddingModel){
+    public VectorStore pgVectorStore(  @Qualifier("pgVectorJdbcTemplate") JdbcTemplate jdbcTemplate, EmbeddingModel dashscopeEmbeddingModel){
         PgVectorStore pgVectorStore = PgVectorStore.builder(jdbcTemplate, dashscopeEmbeddingModel)
                 .dimensions(1536)                    // Optional: defaults to model dimensions or 1536
                 .distanceType(COSINE_DISTANCE)       // Optional: defaults to COSINE_DISTANCE
@@ -56,21 +87,22 @@ public class PgVectorStoreConfig {
                 .build();
         //加载文档
         List<Document> documents = travelKnowledgeLoader.loadMarkdown();
-//        //切分文档
+        //切分文档
         List<Document> splitDocuments = travelTokenTextSplitter.splitCustomized(documents);
-        //添加关键词
-        List<Document> enrichDocument = travelKeywordEnricher.enrichDocument(splitDocuments);
-        List<Document> documentsToInsert = filterNewDocuments(enrichDocument, jdbcTemplate);
+        //先按正文去重，只保留新增分块，避免对已存在内容重复调用 LLM
+        List<Document> newDocuments = filterNewDocuments(splitDocuments, jdbcTemplate);
 
-        if (documentsToInsert.isEmpty()) {
+        if (newDocuments.isEmpty()) {
             log.info("No new knowledge chunks found, skip loading to pgVectorStore.");
             return pgVectorStore;
         }
-        for (int i = 0; i < documentsToInsert.size(); i += BATCH_SIZE) {
-            int end = Math.min(i + BATCH_SIZE, documentsToInsert.size());
-            pgVectorStore.add(documentsToInsert.subList(i, end));
+        //仅对新增分块做关键词增强，节省 token 与启动时间
+        List<Document> enrichDocuments = travelKeywordEnricher.enrichDocument(newDocuments);
+        for (int i = 0; i < enrichDocuments.size(); i += BATCH_SIZE) {
+            int end = Math.min(i + BATCH_SIZE, enrichDocuments.size());
+            pgVectorStore.add(enrichDocuments.subList(i, end));
         }
-        log.info("Knowledge chunks loaded to pgVectorStore: {}/{}", documentsToInsert.size(), enrichDocument.size());
+        log.info("Knowledge chunks loaded to pgVectorStore: {}/{}", enrichDocuments.size(), splitDocuments.size());
         return pgVectorStore;
     }
 

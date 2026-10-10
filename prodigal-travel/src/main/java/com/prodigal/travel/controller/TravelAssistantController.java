@@ -91,21 +91,23 @@ public class TravelAssistantController {
     }
 
 
-//    @Operation(
-//            summary = "旅游助手对话SSE",
-//            description = "需登录：请求头 Authorization: Bearer {token}。可传 departureCity、tripDays、tripFocus；结合 RAG 与工具调用。"
-//    )
-//    @PostMapping(value = "/chat/sse",produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-//    public Flux<String> chatSSE(
-//            @RequestAttribute(LoginUserConstant.REQUEST_ATTR_USER_ID) Long loginUserId,
-//            @RequestBody ChatRequest request) {
-//        String chatId = request.getChatId();
-//        if (StrUtil.isBlank(chatId)) {
-//            chatId = UUID.randomUUID().toString();
-//        }
-//        String memoryConversationId = loginUserId + ":" + chatId;
-//        return travelAiClient.doChatWithMCPSSE(request.getMessage(), memoryConversationId);
-//    }
+    @Operation(
+            summary = "旅游助手对话",
+            description = "需登录：请求头 Authorization: Bearer {token}。可传 departureCity、tripDays、tripFocus；结合 RAG 与工具调用。"
+    )
+    @PostMapping(value = "/chat/rag")
+    public BaseResult<TravelChatResponse> chatRag(
+            @RequestAttribute(LoginUserConstant.REQUEST_ATTR_USER_ID) Long loginUserId,
+            @RequestBody ChatRequest request) {
+        String chatId = request.getChatId();
+        if (StrUtil.isBlank(chatId)) {
+            chatId = UUID.randomUUID().toString();
+        }
+        String memoryConversationId = loginUserId + ":" + chatId;
+        String answer = travelAiClient.doChatWithRag(request.getMessage(), memoryConversationId);
+        TravelChatResponse response = new TravelChatResponse();
+        return ResultUtils.success(response.chatId(chatId).answer(answer));
+    }
 
     @Operation(
             summary = "旅游助手对话sseEmitter",
