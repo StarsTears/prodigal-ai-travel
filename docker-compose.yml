@@ -3,7 +3,7 @@
 services:
   prodigal-travel:
     build:
-      context: .
+      context: ./prodigal-travel
       dockerfile: Dockerfile
     container_name: prodigal-travel
     restart: unless-stopped
