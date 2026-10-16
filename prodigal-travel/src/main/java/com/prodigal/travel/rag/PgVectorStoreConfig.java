@@ -38,7 +38,7 @@ import static org.springframework.ai.vectorstore.pgvector.PgVectorStore.PgIndexT
  * @since 2026/4/1
  */
 @Slf4j
-//@Configuration
+@Configuration
 public class PgVectorStoreConfig {
     @Resource
     private TravelKnowledgeLoader travelKnowledgeLoader;
@@ -74,7 +74,7 @@ public class PgVectorStoreConfig {
         return new JdbcTemplate(dataSource);
     }
 
-//    @Bean
+    @Bean
     public VectorStore pgVectorStore(  @Qualifier("pgVectorJdbcTemplate") JdbcTemplate jdbcTemplate, EmbeddingModel dashscopeEmbeddingModel){
         PgVectorStore pgVectorStore = PgVectorStore.builder(jdbcTemplate, dashscopeEmbeddingModel)
                 .dimensions(1536)                    // Optional: defaults to model dimensions or 1536
@@ -101,8 +101,8 @@ public class PgVectorStoreConfig {
         for (int i = 0; i < enrichDocuments.size(); i += BATCH_SIZE) {
             int end = Math.min(i + BATCH_SIZE, enrichDocuments.size());
             pgVectorStore.add(enrichDocuments.subList(i, end));
+            log.info("Knowledge chunks loaded to pgVectorStore: {}/{}", enrichDocuments.size(), splitDocuments.size());
         }
-        log.info("Knowledge chunks loaded to pgVectorStore: {}/{}", enrichDocuments.size(), splitDocuments.size());
         return pgVectorStore;
     }
 
