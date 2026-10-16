@@ -25,6 +25,7 @@ import { UserSessionBlock } from '@/components/chat/UserSessionBlock';
 import { useAuth } from '@/contexts/AuthContext';
 import type { StreamChatKind } from '@/pages/chat/hooks/useStreaming';
 import { useChat } from '@/pages/chat/hooks/useChat';
+import type { TravelSearchMode } from '@/types';
 
 const { Sider, Content } = Layout;
 
@@ -55,6 +56,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
   const [historyDrawerOpen, setHistoryDrawerOpen] = useState(false);
   const [toolsDrawerOpen, setToolsDrawerOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [searchMode, setSearchMode] = useState<TravelSearchMode>('web');
 
   const {
     conversations,
@@ -77,9 +79,9 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
         setAuthModalOpen(true);
         return;
       }
-      void sendUserMessage(t);
+      void sendUserMessage(t, searchMode);
     },
-    [token, sendUserMessage]
+    [token, sendUserMessage, searchMode]
   );
 
   useEffect(() => {
@@ -222,7 +224,13 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
         />
       </div>
       <div style={{ flexShrink: 0 }}>
-        <MessageInput disabled={sending} onSend={send} />
+        <MessageInput
+          disabled={sending}
+          onSend={send}
+          showSearchModeSwitch={!isManusSolo}
+          searchMode={searchMode}
+          onSearchModeChange={setSearchMode}
+        />
         <Typography.Text
           type="secondary"
           style={{

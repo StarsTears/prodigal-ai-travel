@@ -8,6 +8,7 @@ import com.prodigal.travel.rag.TravelRagCustomAdvisorFactory;
 import com.prodigal.travel.service.alert.AiModelAlertService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.chat.client.advisor.vectorstore.QuestionAnswerAdvisor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.ai.chat.client.ChatClient;
@@ -16,14 +17,20 @@ import org.springframework.ai.chat.memory.ChatMemory;
 //import org.springframework.ai.chat.memory.InMemoryChatMemory;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.document.Document;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.ToolCallbackProvider;
+import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
+import java.util.List;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
+
+import static com.prodigal.travel.constants.TravelConstant.RAG_PROMPT_TEMPLATE;
 
 
 /**
@@ -120,9 +127,10 @@ public class TravelAiClient {
 
         //对向量数据库中的所有文档执行相似性搜索 该与 RetrievalAugmentationAdvisor 检索功能重叠
         //造成token 浪费
-//        QuestionAnswerAdvisor questionAnswerAdvisor = QuestionAnswerAdvisor.builder(pgVectorStore)
-//                .searchRequest(SearchRequest.builder().similarityThreshold(0.7d).topK(3).build())
-//                .build();
+        QuestionAnswerAdvisor questionAnswerAdvisor = QuestionAnswerAdvisor.builder(store)
+                .searchRequest(SearchRequest.builder().similarityThreshold(0.3d).topK(5).build())
+                .build();
+//        String prompt = RAG_PROMPT_TEMPLATE.formatted(context, message);
 
         ChatResponse chatResponse = chatClient.prompt()
                 .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId) //对话id
@@ -132,11 +140,11 @@ public class TravelAiClient {
                 //开启日志
                 .advisors(new LoggerAdvisor())
                 //基于 pgVector知识库回答
-//                .advisors(questionAnswerAdvisor)
+                .advisors(questionAnswerAdvisor)
                 //检索增强顾问
                 .advisors(TravelRagCustomAdvisorFactory.createRetrievalAugmentationAdvisor(store, dashscopeChatModel))
-                //添加工具
-                .toolCallbacks(allTools)
+//                //添加工具
+//                .toolCallbacks(allTools)
                 .call()
                 .chatResponse();
         return chatResponse.getResult().getOutput().getText();

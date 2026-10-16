@@ -7,7 +7,7 @@ import {
   deleteConversationByChatId as deleteConversationApi,
 } from '@/api/travelAssistant';
 import { useAuth } from '@/contexts/AuthContext';
-import type { ChatMessage, ConversationRecord } from '@/types';
+import type { ChatMessage, ConversationRecord, TravelSearchMode } from '@/types';
 import { assertBaseResultOk, unwrapBaseResult } from '@/utils/apiResult';
 import {
   clearManusPersistedState,
@@ -176,7 +176,7 @@ export function useChat(options: UseChatOptions) {
   const { mode } = options;
   const { token, ready } = useAuth();
   const [searchParams] = useSearchParams();
-  const { runStream, runManusStream, abort } = useStreaming();
+  const { runStream, runRag, runManusStream, abort } = useStreaming();
   const [conversations, setConversations] = useState<ConversationRecord[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
@@ -480,7 +480,7 @@ export function useChat(options: UseChatOptions) {
   );
 
   const sendUserMessage = useCallback(
-    async (text: string) => {
+    async (text: string, searchMode: TravelSearchMode = 'web') => {
       const trimmed = text.trim();
       if (!trimmed || sending) return;
 
@@ -557,6 +557,18 @@ export function useChat(options: UseChatOptions) {
 
       setSending(true);
       try {
+        const geoArgs = (() => {
+          const g = travelGeoRef.current;
+          if (g.status === 'granted') {
+            return {
+              latitude: g.latitude,
+              longitude: g.longitude,
+              browserGeolocationStatus: 'granted' as const,
+            };
+          }
+          return { browserGeolocationStatus: g.status };
+        })();
+
         const result =
           mode === 'manus'
             ? await runManusStream(
@@ -588,27 +600,23 @@ export function useChat(options: UseChatOptions) {
                   });
                 }
               )
-            : await runStream(
-                {
+            : searchMode === 'rag'
+              ? await runRag({
                   message: trimmed,
                   chatId: chatIdForApi,
-                  ...(() => {
-                    const g = travelGeoRef.current;
-                    if (g.status === 'granted') {
-                      return {
-                        latitude: g.latitude,
-                        longitude: g.longitude,
-                        browserGeolocationStatus: 'granted' as const,
-                      };
-                    }
-                    return { browserGeolocationStatus: g.status };
-                  })(),
-                },
-                (chunk) => {
-                  appendAssistantDelta({ convId, messageId: assistantMsg.id, delta: chunk });
-                },
-                'travel'
-              );
+                  ...geoArgs,
+                })
+              : await runStream(
+                  {
+                    message: trimmed,
+                    chatId: chatIdForApi,
+                    ...geoArgs,
+                  },
+                  (chunk) => {
+                    appendAssistantDelta({ convId, messageId: assistantMsg.id, delta: chunk });
+                  },
+                  'travel'
+                );
 
         const serverId = result.chatId?.trim();
         const finalTravelAnswer = mode === 'travel' ? result.answer ?? '' : '';
@@ -739,6 +747,7 @@ export function useChat(options: UseChatOptions) {
       persist,
       ready,
       runManusStream,
+      runRag,
       runStream,
       sending,
       token,

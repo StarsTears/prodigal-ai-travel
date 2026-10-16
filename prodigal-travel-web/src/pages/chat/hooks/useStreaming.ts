@@ -1,5 +1,6 @@
 import { useCallback, useRef } from 'react';
 import {
+  requestRagAnswer,
   streamManusAnswer,
   streamTravelAnswer,
   type ManusSsePayload,
@@ -59,6 +60,33 @@ export function useStreaming() {
     [abort]
   );
 
+  const runRag = useCallback(
+    async (args: {
+      message: string;
+      chatId?: string | null;
+      latitude?: number;
+      longitude?: number;
+      browserGeolocationStatus?: string;
+    }): Promise<TravelChatResponse> => {
+      abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
+      try {
+        return await requestRagAnswer({
+          message: args.message,
+          chatId: args.chatId ?? undefined,
+          signal: controller.signal,
+          latitude: args.latitude,
+          longitude: args.longitude,
+          browserGeolocationStatus: args.browserGeolocationStatus,
+        });
+      } finally {
+        abortRef.current = null;
+      }
+    },
+    [abort]
+  );
+
   const runManusStream = useCallback(
     async (
       args: { message: string; chatId?: string | null },
@@ -83,5 +111,5 @@ export function useStreaming() {
     [abort]
   );
 
-  return { runStream, runManusStream, abort };
+  return { runStream, runRag, runManusStream, abort };
 }

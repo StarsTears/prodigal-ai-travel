@@ -3,8 +3,8 @@
 services:
   prodigal-travel:
     build:
-      context: ./prodigal-travel
-      dockerfile: Dockerfile
+      context: ./
+      dockerfile: ./prodigal-travel/Dockerfile
     container_name: prodigal-travel
     restart: unless-stopped
     ports:
@@ -18,8 +18,8 @@ services:
 
   prodigal-web:
     build:
-      context: ./prodigal-travel-web
-      dockerfile: Dockerfile
+      context: ./
+      dockerfile: ./prodigal-travel-web/Dockerfile
     container_name: prodigal-web
     restart: unless-stopped
     ports:

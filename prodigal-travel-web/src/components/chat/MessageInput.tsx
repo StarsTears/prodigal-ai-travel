@@ -1,23 +1,32 @@
 import { SendOutlined } from '@ant-design/icons';
 import { Button, Input, theme } from 'antd';
 import React, { useCallback, useState } from 'react';
+import type { TravelSearchMode } from '@/types';
 
 export interface MessageInputProps {
   disabled?: boolean;
   onSend: (text: string) => void | Promise<void>;
   placeholder?: string;
+  /** 是否显示「联网搜索 / RAG 问答」切换（仅旅游助手显示） */
+  showSearchModeSwitch?: boolean;
+  searchMode?: TravelSearchMode;
+  onSearchModeChange?: (mode: TravelSearchMode) => void;
 }
 
 const { TextArea } = Input;
 
-/** 为右下角发送按钮预留空间，避免文字与按钮重叠 */
-const TEXTAREA_PAD_RIGHT = 92;
-const TEXTAREA_PAD_BOTTOM = 40;
+const MODE_OPTIONS: { value: TravelSearchMode; label: string }[] = [
+  { value: 'web', label: '联网搜索' },
+  { value: 'rag', label: 'RAG 问答' },
+];
 
 export const MessageInput: React.FC<MessageInputProps> = ({
   disabled,
   onSend,
   placeholder = '输入问题，Enter 发送；Shift + Enter 换行',
+  showSearchModeSwitch = false,
+  searchMode = 'web',
+  onSearchModeChange,
 }) => {
   const { token } = theme.useToken();
   const [value, setValue] = useState('');
@@ -68,7 +77,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
         variant="borderless"
         styles={{
           textarea: {
-            padding: `6px ${TEXTAREA_PAD_RIGHT}px ${TEXTAREA_PAD_BOTTOM}px 4px`,
+            padding: '6px 8px 4px',
             fontSize: token.fontSize,
             lineHeight: 1.5,
             background: 'transparent',
@@ -78,12 +87,40 @@ export const MessageInput: React.FC<MessageInputProps> = ({
       />
       <div
         style={{
-          position: 'absolute',
-          right: 8,
-          bottom: 8,
-          zIndex: 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 8,
+          padding: '0 6px 6px 4px',
         }}
       >
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {showSearchModeSwitch
+            ? MODE_OPTIONS.map((opt) => {
+                const active = searchMode === opt.value;
+                return (
+                  <Button
+                    key={opt.value}
+                    size="small"
+                    type={active ? 'primary' : 'default'}
+                    onClick={() => onSearchModeChange?.(opt.value)}
+                    style={{
+                      borderRadius: 999,
+                      ...(active
+                        ? {}
+                        : {
+                            color: 'rgba(203, 213, 225, 0.95)',
+                            background: 'rgba(15, 23, 42, 0.9)',
+                            borderColor: 'rgba(125, 211, 252, 0.46)',
+                          }),
+                    }}
+                  >
+                    {opt.label}
+                  </Button>
+                );
+              })
+            : null}
+        </div>
         <Button
           type={hasValue ? 'primary' : 'default'}
           size="middle"

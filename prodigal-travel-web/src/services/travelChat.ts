@@ -3,6 +3,7 @@ import { getStoredToken } from '@/utils/authStorage';
 import type { TravelChatResponse } from '@/types';
 
 export const TRAVEL_CHAT_SSE_PATH = '/api/travel/chat/sse_emitter';
+export const TRAVEL_CHAT_RAG_PATH = '/api/travel/chat/rag';
 export const MANUS_CHAT_SSE_PATH = '/api/travel/manus/chat';
 
 export interface StreamCallOptions {
@@ -241,6 +242,46 @@ export async function streamTravelAnswer(
   onDelta: (chunk: string) => void
 ): Promise<TravelChatResponse> {
   return streamByFetch('travel', options, onDelta);
+}
+
+/**
+ * RAG 知识库问答（非流式）：调用 `/travel/chat/rag`，返回完整回答。
+ * 入参与联网搜索一致（message、chatId、经纬度、浏览器定位状态）。
+ */
+export async function requestRagAnswer(
+  options: StreamCallOptions
+): Promise<TravelChatResponse> {
+  const chatId = resolveChatId(options);
+  const token = getStoredToken();
+  const res = await fetch(buildApiUrl(TRAVEL_CHAT_RAG_PATH), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({
+      message: options.message,
+      chatId,
+      ...(options.latitude != null ? { latitude: options.latitude } : {}),
+      ...(options.longitude != null ? { longitude: options.longitude } : {}),
+      ...(options.browserGeolocationStatus
+        ? { browserGeolocationStatus: options.browserGeolocationStatus }
+        : {}),
+    }),
+    signal: options.signal,
+  });
+  if (!res.ok) {
+    const errText = await res.text().catch(() => '');
+    throw new Error(errText || `请求失败 (${res.status})`);
+  }
+  const payload = (await res.json().catch(() => null)) as {
+    data?: { chatId?: string; answer?: string } | null;
+    msg?: string;
+  } | null;
+  return {
+    chatId: payload?.data?.chatId?.trim() || chatId,
+    answer: payload?.data?.answer ?? '',
+  };
 }
 
 export async function streamManusAnswer(

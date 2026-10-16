@@ -48,7 +48,7 @@ public class TravelRagCustomAdvisorFactory {
         DocumentJoiner documentJoiner = new ConcatenationDocumentJoiner();
         //创建上下文感知查询增强器
         ContextualQueryAugmenter queryAugmenter = ContextualQueryAugmenter.builder()
-                .allowEmptyContext(true)  // 允许空上下文，避免NPE
+                .allowEmptyContext(false)  // 允许空上下文，避免NPE
                 .emptyContextPromptTemplate(new PromptTemplate(TravelConstant.ERROR_PROMPT))
                 .build();
         return RetrievalAugmentationAdvisor.builder()
