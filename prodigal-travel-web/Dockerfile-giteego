@@ -1,0 +1,31 @@
+# ==========================================
+# 阶段 1：Node 构建阶段
+# ==========================================
+# 1. 替换为国内阿里云的 Node 镜像
+FROM registry.cn-hangzhou.aliyuncs.com/library/node:20-alpine AS builder
+
+WORKDIR /app
+
+# 2. 提前配置 npm 国内镜像源，极大提升依赖拉取速度
+RUN npm config set registry https://registry.npmmirror.com
+
+# 3. 复制依赖文件
+COPY package*.json ./
+# 如果你们使用了 pnpm 或 yarn，记得换成对应的命令。这里假设是 npm。
+RUN npm install
+
+# 4. 复制源码并构建
+COPY . .
+RUN npm run build
+
+# ==========================================
+# 阶段 2：Nginx 运行阶段
+# ==========================================
+# 5. 替换为国内阿里云的 Nginx 镜像
+FROM registry.cn-hangzhou.aliyuncs.com/library/nginx:1.27-alpine
+
+# 6. 复制打包产物和 Nginx 配置
+COPY --from=builder /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 81
