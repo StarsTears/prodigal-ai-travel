@@ -2,7 +2,7 @@ FROM maven:3.9-eclipse-temurin-21 AS builder
 WORKDIR /build
 
 # Copy root pom and module pom first for better layer caching
-COPY pom.xml ./
+COPY pom.xml ./pom.xml
 COPY prodigal-travel/pom.xml ./prodigal-travel/pom.xml
 RUN mvn -pl prodigal-travel -am dependency:go-offline -B
 
