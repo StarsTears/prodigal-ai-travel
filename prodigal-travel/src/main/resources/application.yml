@@ -6,7 +6,7 @@ spring:
   application:
     name: prodigal-ai-travel
   profiles:
-    active: local
+    active: ${SPRING_PROFILES_ACTIVE}
   data:
     redis:
       host: ${REDIS_HOST:localhost}
