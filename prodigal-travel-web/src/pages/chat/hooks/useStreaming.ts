@@ -1,7 +1,7 @@
 import { useCallback, useRef } from 'react';
 import {
-  requestRagAnswer,
   streamManusAnswer,
+  streamRagAnswer,
   streamTravelAnswer,
   type ManusSsePayload,
 } from '@/services/travelChat';
@@ -61,25 +61,31 @@ export function useStreaming() {
   );
 
   const runRag = useCallback(
-    async (args: {
-      message: string;
-      chatId?: string | null;
-      latitude?: number;
-      longitude?: number;
-      browserGeolocationStatus?: string;
-    }): Promise<TravelChatResponse> => {
+    async (
+      args: {
+        message: string;
+        chatId?: string | null;
+        latitude?: number;
+        longitude?: number;
+        browserGeolocationStatus?: string;
+      },
+      onDelta: (chunk: string) => void
+    ): Promise<TravelChatResponse> => {
       abort();
       const controller = new AbortController();
       abortRef.current = controller;
       try {
-        return await requestRagAnswer({
-          message: args.message,
-          chatId: args.chatId ?? undefined,
-          signal: controller.signal,
-          latitude: args.latitude,
-          longitude: args.longitude,
-          browserGeolocationStatus: args.browserGeolocationStatus,
-        });
+        return await streamRagAnswer(
+          {
+            message: args.message,
+            chatId: args.chatId ?? undefined,
+            signal: controller.signal,
+            latitude: args.latitude,
+            longitude: args.longitude,
+            browserGeolocationStatus: args.browserGeolocationStatus,
+          },
+          onDelta
+        );
       } finally {
         abortRef.current = null;
       }

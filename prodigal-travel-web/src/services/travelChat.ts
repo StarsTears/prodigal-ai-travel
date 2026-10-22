@@ -16,8 +16,6 @@ export interface StreamCallOptions {
   browserGeolocationStatus?: string;
 }
 
-type StreamKind = 'travel' | 'manus';
-
 export type ManusSsePayload =
   | { kind: 'delta'; text: string }
   | { kind: 'step'; text: string };
@@ -101,13 +99,12 @@ function mapManusEvent(eventName: string, data: string): ManusSsePayload | null 
 }
 
 async function streamByFetch(
-  kind: StreamKind,
+  path: string,
   options: StreamCallOptions,
   onDelta: (chunk: string) => void
 ): Promise<TravelChatResponse> {
   const chatId = resolveChatId(options);
   const token = getStoredToken();
-  const path = kind === 'manus' ? MANUS_CHAT_SSE_PATH : TRAVEL_CHAT_SSE_PATH;
   const res = await fetch(buildApiUrl(path), {
     method: 'POST',
     headers: {
@@ -241,47 +238,18 @@ export async function streamTravelAnswer(
   options: StreamCallOptions,
   onDelta: (chunk: string) => void
 ): Promise<TravelChatResponse> {
-  return streamByFetch('travel', options, onDelta);
+  return streamByFetch(TRAVEL_CHAT_SSE_PATH, options, onDelta);
 }
 
 /**
- * RAG 知识库问答（非流式）：调用 `/travel/chat/rag`，返回完整回答。
+ * RAG 知识库问答（流式）：调用 `/travel/chat/rag`，与 sse_emitter 同构，逐分片回传实现打字机效果。
  * 入参与联网搜索一致（message、chatId、经纬度、浏览器定位状态）。
  */
-export async function requestRagAnswer(
-  options: StreamCallOptions
+export async function streamRagAnswer(
+  options: StreamCallOptions,
+  onDelta: (chunk: string) => void
 ): Promise<TravelChatResponse> {
-  const chatId = resolveChatId(options);
-  const token = getStoredToken();
-  const res = await fetch(buildApiUrl(TRAVEL_CHAT_RAG_PATH), {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify({
-      message: options.message,
-      chatId,
-      ...(options.latitude != null ? { latitude: options.latitude } : {}),
-      ...(options.longitude != null ? { longitude: options.longitude } : {}),
-      ...(options.browserGeolocationStatus
-        ? { browserGeolocationStatus: options.browserGeolocationStatus }
-        : {}),
-    }),
-    signal: options.signal,
-  });
-  if (!res.ok) {
-    const errText = await res.text().catch(() => '');
-    throw new Error(errText || `请求失败 (${res.status})`);
-  }
-  const payload = (await res.json().catch(() => null)) as {
-    data?: { chatId?: string; answer?: string } | null;
-    msg?: string;
-  } | null;
-  return {
-    chatId: payload?.data?.chatId?.trim() || chatId,
-    answer: payload?.data?.answer ?? '',
-  };
+  return streamByFetch(TRAVEL_CHAT_RAG_PATH, options, onDelta);
 }
 
 export async function streamManusAnswer(

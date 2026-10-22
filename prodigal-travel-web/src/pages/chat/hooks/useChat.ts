@@ -601,11 +601,20 @@ export function useChat(options: UseChatOptions) {
                 }
               )
             : searchMode === 'rag'
-              ? await runRag({
-                  message: trimmed,
-                  chatId: chatIdForApi,
-                  ...geoArgs,
-                })
+              ? await runRag(
+                  {
+                    message: trimmed,
+                    chatId: chatIdForApi,
+                    ...geoArgs,
+                  },
+                  (chunk) => {
+                    appendAssistantDelta({
+                      convId,
+                      messageId: assistantMsg.id,
+                      delta: chunk,
+                    });
+                  }
+                )
               : await runStream(
                   {
                     message: trimmed,

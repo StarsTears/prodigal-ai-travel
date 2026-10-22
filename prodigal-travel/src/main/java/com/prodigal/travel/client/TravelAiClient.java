@@ -116,7 +116,7 @@ public class TravelAiClient {
      * @param chatId  当前会话Id
      * @return
      */
-    public String doChatWithRag(String message, String chatId) {
+    public Flux<String> doChatWithRag(String message, String chatId) {
         VectorStore store = pgVectorStore.getIfAvailable();
         if (store == null) {
             throw new IllegalStateException(
@@ -127,27 +127,22 @@ public class TravelAiClient {
 
         //对向量数据库中的所有文档执行相似性搜索 该与 RetrievalAugmentationAdvisor 检索功能重叠
         //造成token 浪费
-        QuestionAnswerAdvisor questionAnswerAdvisor = QuestionAnswerAdvisor.builder(store)
-                .searchRequest(SearchRequest.builder().similarityThreshold(0.3d).topK(5).build())
-                .build();
+//        QuestionAnswerAdvisor questionAnswerAdvisor = QuestionAnswerAdvisor.builder(store)
+//                .searchRequest(SearchRequest.builder().similarityThreshold(0.3d).topK(5).build())
+//                .build();
 //        String prompt = RAG_PROMPT_TEMPLATE.formatted(context, message);
 
-        ChatResponse chatResponse = chatClient.prompt()
+        return chatClient.prompt()
                 .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId) //对话id
                         .param("TOP_K", TravelConstant.CHAT_MEMORY_MESSAGE_LIMIT) //关联会话的条数
                 )
                 .user(rewriterMessage)
                 //开启日志
                 .advisors(new LoggerAdvisor())
-                //基于 pgVector知识库回答
-                .advisors(questionAnswerAdvisor)
                 //检索增强顾问
                 .advisors(TravelRagCustomAdvisorFactory.createRetrievalAugmentationAdvisor(store, dashscopeChatModel))
-//                //添加工具
-//                .toolCallbacks(allTools)
-                .call()
-                .chatResponse();
-        return chatResponse.getResult().getOutput().getText();
+                .stream()
+                .content();
     }
 
     /**

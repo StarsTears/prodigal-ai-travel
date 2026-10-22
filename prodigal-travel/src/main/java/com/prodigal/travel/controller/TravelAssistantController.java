@@ -96,7 +96,7 @@ public class TravelAssistantController {
             description = "需登录：请求头 Authorization: Bearer {token}。可传 departureCity、tripDays、tripFocus；结合 RAG 与工具调用。"
     )
     @PostMapping(value = "/chat/rag")
-    public BaseResult<TravelChatResponse> chatRag(
+    public SseEmitter chatRag(
             @RequestAttribute(LoginUserConstant.REQUEST_ATTR_USER_ID) Long loginUserId,
             @RequestBody ChatRequest request) {
         String chatId = request.getChatId();
@@ -104,9 +104,17 @@ public class TravelAssistantController {
             chatId = UUID.randomUUID().toString();
         }
         String memoryConversationId = loginUserId + ":" + chatId;
-        String answer = travelAiClient.doChatWithRag(request.getMessage(), memoryConversationId);
-        TravelChatResponse response = new TravelChatResponse();
-        return ResultUtils.success(response.chatId(chatId).answer(answer));
+
+        SseEmitter sseEmitter = new SseEmitter(180000L);
+        travelAiClient.doChatWithRag(request.getMessage(), memoryConversationId)
+                .subscribe(chunk->{
+                    try {
+                        sseEmitter.send(chunk);
+                    } catch (IOException e) {
+                        sseEmitter.completeWithError(e);
+                    }
+                }, sseEmitter::completeWithError, sseEmitter::complete);
+        return sseEmitter;
     }
 
     @Operation(
