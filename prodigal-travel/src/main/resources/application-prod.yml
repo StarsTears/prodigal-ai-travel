@@ -43,7 +43,7 @@ spring:
         options:
           model: ${DASHSCOPE_CHAT_MODEL:qwen3.6-plus}
           temperature: 0.7
-          enable-thinking: true
+          enable-thinking: ${DASHSCOPE_CHAT_ENABLE_THINKING}
           multi-model: true
       embedding:
         options:
