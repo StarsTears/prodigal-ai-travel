@@ -25,6 +25,8 @@ import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
 import java.util.function.Supplier;
@@ -122,27 +124,21 @@ public class TravelAiClient {
             throw new IllegalStateException(
                     "VectorStore 未配置：请取消注释 PgVectorStoreConfig 的 @Configuration，并配置 PostgreSQL（pgvector）数据源。");
         }
-        //重写查询
-        String rewriterMessage = queryRewriter.doRewriteQuery(message);
-
-        //对向量数据库中的所有文档执行相似性搜索 该与 RetrievalAugmentationAdvisor 检索功能重叠
-        //造成token 浪费
-//        QuestionAnswerAdvisor questionAnswerAdvisor = QuestionAnswerAdvisor.builder(store)
-//                .searchRequest(SearchRequest.builder().similarityThreshold(0.3d).topK(5).build())
-//                .build();
-//        String prompt = RAG_PROMPT_TEMPLATE.formatted(context, message);
-
-        return chatClient.prompt()
-                .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId) //对话id
-                        .param("TOP_K", TravelConstant.CHAT_MEMORY_MESSAGE_LIMIT) //关联会话的条数
-                )
-                .user(rewriterMessage)
-                //开启日志
-                .advisors(new LoggerAdvisor())
-                //检索增强顾问
-                .advisors(TravelRagCustomAdvisorFactory.createRetrievalAugmentationAdvisor(store, dashscopeChatModel))
-                .stream()
-                .content();
+        // 查询重写是阻塞的模型调用，放到响应式管道里（boundedElastic 线程），
+        // 避免阻塞 Servlet 请求线程导致 SseEmitter 迟迟不返回、前端收不到分片。
+        return Mono.fromCallable(() -> queryRewriter.doRewriteQuery(message))
+                .flatMapMany(rewriterMessage -> chatClient.prompt()
+                        .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId) //对话id
+                                .param("TOP_K", TravelConstant.CHAT_MEMORY_MESSAGE_LIMIT) //关联会话的条数
+                        )
+                        .user(rewriterMessage)
+                        //开启日志
+                        .advisors(new LoggerAdvisor())
+                        //检索增强顾问
+                        .advisors(TravelRagCustomAdvisorFactory.createRetrievalAugmentationAdvisor(store, dashscopeChatModel))
+                        .stream()
+                        .content())
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
     /**

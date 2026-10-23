@@ -105,7 +105,8 @@ public class TravelAssistantController {
         }
         String memoryConversationId = loginUserId + ":" + chatId;
 
-        SseEmitter sseEmitter = new SseEmitter(180000L);
+        // RAG 前置有查询重写 + 多查询扩展等多轮模型调用，耗时比联网搜索更长，超时时间放宽到 5 分钟
+        SseEmitter sseEmitter = new SseEmitter(300000L);
         travelAiClient.doChatWithRag(request.getMessage(), memoryConversationId)
                 .subscribe(chunk->{
                     try {
