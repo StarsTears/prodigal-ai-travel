@@ -38,7 +38,7 @@ import static org.springframework.ai.vectorstore.pgvector.PgVectorStore.PgIndexT
  * @since 2026/4/1
  */
 @Slf4j
-//@Configuration
+@Configuration
 public class PgVectorStoreConfig {
     @Resource
     private TravelKnowledgeLoader travelKnowledgeLoader;
