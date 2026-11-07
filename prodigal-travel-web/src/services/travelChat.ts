@@ -16,9 +16,15 @@ export interface StreamCallOptions {
   browserGeolocationStatus?: string;
 }
 
+/**
+ * delta = 最终答复（event: delta）
+ * step  = 结构化步骤事件（event: step）
+ * message = 无事件名的旧格式，仍需按文本前缀兼容分类
+ */
 export type ManusSsePayload =
   | { kind: 'delta'; text: string }
-  | { kind: 'step'; text: string };
+  | { kind: 'step'; text: string }
+  | { kind: 'message'; text: string };
 
 function buildApiUrl(path: string): string {
   return `${API_BASE || ''}${path}`;
@@ -94,8 +100,8 @@ function mapManusEvent(eventName: string, data: string): ManusSsePayload | null 
   if (eventName === 'step') {
     return { kind: 'step', text };
   }
-  // Spring `SseEmitter.send(String)` 等：无 event 名时视为 message，由前端 `routeManusSsePayload` 再分类
-  return { kind: 'step', text };
+  // 兼容旧后端：无 event 名的 message，由 routeManusPlainChunk 按文本特征分类
+  return { kind: 'message', text };
 }
 
 async function streamByFetch(

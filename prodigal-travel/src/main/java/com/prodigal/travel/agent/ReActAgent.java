@@ -4,12 +4,14 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.function.Consumer;
+
 /**
- * @author Lang
- * @project prodigal-ai-travel
- * @Version: 1.0
- * @description: 实现思考-执行的步骤
- * @since 2026/4/6
+ * ReAct 骨架：一步 = think（决定是否需要工具）+ act（执行工具并观察结果）。
+ *
+ * <p>旧实现中 think 抛异常会被 {@code step()} 吞掉并返回一句占位文本，
+ * 既不改变状态也不退出循环，导致空转到 maxStep。现在异常统一由
+ * {@link BaseAgent#run} 捕获并转成 ERROR 事件；think/act 直接产出结构化事件。
  */
 @EqualsAndHashCode(callSuper = true)
 @Slf4j
@@ -17,39 +19,20 @@ import lombok.extern.slf4j.Slf4j;
 public abstract class ReActAgent extends BaseAgent {
 
     /**
-     * 思考 决定是否需要执行下一步做
+     * 思考：调用模型，判断本轮是「给出最终答复」还是「需要调用工具」。
      *
-     * @return true 需要执行 false 不需要
+     * @return true 表示需要执行 act()
      */
-    public abstract boolean think();
+    public abstract boolean think(AgentRunContext ctx, Consumer<AgentStepEvent> sink);
 
-    /**
-     * 执行
-     *
-     * @return
-     */
-    public abstract String act();
+    /** 执行工具并把观察结果写回上下文 */
+    public abstract void act(AgentRunContext ctx, Consumer<AgentStepEvent> sink);
 
     @Override
-    public String step() {
-        try {
-            boolean shouldAct = this.think();
-            if (!shouldAct) {
-                return noActionStepResult();
-            }
-            return this.act();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "Error running agent-Step executing failed: " + e.getMessage();
+    public void step(AgentRunContext ctx, Consumer<AgentStepEvent> sink) {
+        boolean needAct = think(ctx, sink);
+        if (needAct && ctx.getState() == AgentState.RUNNING && !ctx.isCancelled()) {
+            act(ctx, sink);
         }
     }
-
-    /**
-     * {@link #think()} 返回 false 时作为本步对外结果（含流式 SSE）。
-     * 子类可在「模型已给出纯文本答复」时覆盖为实际正文。
-     */
-    protected String noActionStepResult() {
-        return "Think complete!No need to act";
-    }
-
 }

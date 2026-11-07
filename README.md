@@ -21,7 +21,9 @@
 | 路径 | 说明 |
 |---|---|
 | `prodigal-travel/` | 后端服务（Spring Boot + Spring AI） |
+| `prodigal-ai-mcp-server/` | 自研 stdio MCP 服务（图片搜索工具），已纳入父 POM 聚合构建 |
 | `prodigal-travel-web/` | 前端应用（Umi 4 + React + Ant Design） |
+| `docs/OPTIMIZATION.md` | 架构优化说明与验证清单 |
 | `pom.xml` | 父 POM（Java 21、依赖版本管理、聚合模块） |
 | `docker-compose.yml` | 一键启动前后端容器 |
 | `Dockerfile` | 后端镜像构建（多阶段 + 健康检查） |
@@ -53,10 +55,12 @@
 ## 3. 核心能力
 
 - **双模式对话**
-  - `/chat/travel`：AI 旅游助手
-  - `/chat/manus`：超级智能体（步骤日志 + 综合回复）
+  - `/chat/travel`：AI 旅游助手（Spring AI + RAG + 本地工具 + MCP）
+  - `/chat/manus`：超级智能体（结构化 SSE：`step` 步骤日志 + `delta` 综合回复 + `done` 结束）
 - **SSE 流式输出**
   - 前端持续接收后端流，支持打字机式呈现
+- **架构优化说明**
+  - 详见 [docs/OPTIMIZATION.md](docs/OPTIMIZATION.md)：ReAct 流程重构、会话隔离、问答链路修正、密钥治理与验证清单
 - **工具调用**
   - 搜索、天气、图片、时间、邮件、文件等
 - **会话管理**
@@ -70,12 +74,15 @@
 
 ## 前置要求
 
-- JDK 21
+- JDK 21（父 POM `java.version=21`；本机若为 JDK 11/17，请显式设置 `JAVA_HOME`）
 - Maven 3.8+
 - Node.js 18+
 - MySQL 8+
 - Redis 6+
 - DashScope API Key（必需）
+- 可选：PostgreSQL + pgvector（RAG）、npx（高德 MCP）、RabbitMQ（注册欢迎邮件）
+
+所有密钥通过 `.env` / 环境变量注入，模板见 `.env.example`；完整变量说明见 [优化文档第 5 节](docs/OPTIMIZATION.md#5-配置密钥与-mcp-接入)。
 
 ## 配置后端
 
@@ -95,10 +102,20 @@
 
 ## 启动后端
 
+根目录先执行一次全量构建（会同时产出 `prodigal-travel` 与 stdio MCP server 的 jar）：
+
+```bash
+mvn -DskipTests package
+```
+
+再启动：
+
 ```bash
 cd prodigal-travel
 mvn spring-boot:run
 ```
+
+本地若没有 npx 或 MCP server jar，设置 `SPRING_AI_MCP_CLIENT_ENABLED=false`。
 
 或在根目录：
 
@@ -184,7 +201,7 @@ Base URL：`http://localhost:8088/api`
 
 - `POST /travel/chat`：普通对话
 - `POST /travel/chat/sse_emitter`：SSE 流式对话
-- `POST /travel/manus/chat`：超级智能体流式执行
+- `POST /travel/manus/chat`：超级智能体流式执行（`event: step` / `delta` / `done`，data 为 JSON）
 - `GET /travel/conversations`：会话列表/详情
 - `DELETE /travel/conversations?chatId=...`：删除会话
 
@@ -220,9 +237,10 @@ npm run openapi2ts
 
 ## 9. 安全提示（重要）
 
-- 请勿将真实 API Key、数据库密码、邮箱授权码提交到仓库。
-- 若你在本地配置文件中已写入真实密钥，建议立即更换为环境变量，并对相关密钥做轮换。
-- 推荐将敏感参数统一放入 `.env` / 部署平台密钥管理中。
+- 请勿将真实 API Key、数据库密码、邮箱授权码提交到仓库；`.env` 已加入 `.gitignore`。
+- 本次优化已把 `application-local.yml`、`mcp-servers-local.json`、MCP server 配置中的明文密钥全部改为环境变量占位。
+- **若这些文件曾写入过真实密钥（或曾进入过 git 历史），请在对应平台立即轮换全部 Key / 授权码 / JWT Secret**。
+- 推荐将敏感参数统一放入 `.env` / 部署平台密钥管理中，生产环境 `mcp-servers.json` 通过继承容器环境变量传 Key。
 
 ---
 

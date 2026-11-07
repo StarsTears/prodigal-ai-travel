@@ -2,33 +2,34 @@ package com.prodigal.travel.controller;
 
 import cn.hutool.core.lang.UUID;
 import cn.hutool.core.util.StrUtil;
-import com.prodigal.travel.agent.ProdigalManus;
-import com.prodigal.travel.chatmemroy.MySQLChatMemory;
 import com.prodigal.travel.client.TravelAiClient;
 import com.prodigal.travel.common.BaseResult;
 import com.prodigal.travel.common.ResultUtils;
+import com.prodigal.travel.common.SseStreams;
 import com.prodigal.travel.config.OpenApiSecurityConfig;
+import com.prodigal.travel.constants.LoginUserConstant;
 import com.prodigal.travel.controller.request.ChatRequest;
 import com.prodigal.travel.controller.vo.ChatMessageVO;
 import com.prodigal.travel.controller.vo.TravelChatResponse;
-import com.prodigal.travel.constants.LoginUserConstant;
+import com.prodigal.travel.service.ManusAgentService;
 import com.prodigal.travel.service.chat.ChatConversationService;
 import com.prodigal.travel.tools.ClientIpResolver;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.ai.chat.model.ChatModel;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.ai.tool.ToolCallback;
-import org.springframework.ai.tool.ToolCallbackProvider;
-import org.springframework.beans.factory.ObjectProvider;
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestAttribute;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
-import reactor.core.publisher.Flux;
 
-import java.io.IOException;
 import java.util.List;
 
 @Slf4j
@@ -40,137 +41,84 @@ public class TravelAssistantController {
 
     private final TravelAiClient travelAiClient;
     private final ChatConversationService chatConversationService;
-
-    private final ToolCallback[] allTools;
-    private final ObjectProvider<ToolCallbackProvider> toolCallbackProvider;
-
-    private final ChatModel dashscopeChatModel;
-
+    private final ManusAgentService manusAgentService;
     private final ClientIpResolver clientIpResolver;
 
     public TravelAssistantController(
             TravelAiClient travelAiClient,
             ChatConversationService chatConversationService,
-            ToolCallback[] allTools,
-            ObjectProvider<ToolCallbackProvider> toolCallbackProvider,
-            @Qualifier("dashScopeChatModel") ChatModel dashscopeChatModel,
+            ManusAgentService manusAgentService,
             ClientIpResolver clientIpResolver) {
         this.travelAiClient = travelAiClient;
         this.chatConversationService = chatConversationService;
-        this.allTools = allTools;
-        this.toolCallbackProvider = toolCallbackProvider;
-        this.dashscopeChatModel = dashscopeChatModel;
+        this.manusAgentService = manusAgentService;
         this.clientIpResolver = clientIpResolver;
     }
 
-
-    @Operation(
-            summary = "旅游助手对话",
-            description = "需登录：请求头 Authorization: Bearer {token}。可传 departureCity、tripDays、tripFocus；结合 RAG 与工具调用。"
-    )
+    @Operation(summary = "旅游助手对话", description = "需登录：请求头 Authorization: Bearer {token}。同步返回完整答复。")
     @PostMapping("/chat")
     public BaseResult<TravelChatResponse> chat(
             @RequestAttribute(LoginUserConstant.REQUEST_ATTR_USER_ID) Long loginUserId,
             HttpServletRequest httpServletRequest,
-            @RequestBody ChatRequest request) {
-        String chatId = request.getChatId();
-        if (StrUtil.isBlank(chatId)) {
-            chatId = UUID.randomUUID().toString();
-        }
-        String memoryConversationId = loginUserId + ":" + chatId;
+            @Valid @RequestBody ChatRequest request) {
+        String chatId = resolveChatId(request.getChatId());
+        String conversationId = loginUserId + ":" + chatId;
         String clientIp = clientIpResolver.resolveClientIp(httpServletRequest);
         String answer = travelAiClient.doChatWithMCP(
                 request.getMessage(),
-                memoryConversationId,
+                conversationId,
                 clientIp,
                 request.getLatitude(),
                 request.getLongitude(),
                 request.getBrowserGeolocationStatus());
-        TravelChatResponse response = new TravelChatResponse();
-        return ResultUtils.success(response.chatId(chatId).answer(answer));
+        return ResultUtils.success(new TravelChatResponse().chatId(chatId).answer(answer));
     }
 
-
-    @Operation(
-            summary = "旅游助手对话rag",
-            description = "需登录：请求头 Authorization: Bearer {token}。可传 departureCity、tripDays、tripFocus；结合 RAG 与工具调用。"
-    )
+    @Operation(summary = "旅游助手 RAG 流式对话", description = "查询重写 -> 向量检索 -> 提示增强 -> 流式生成。")
     @PostMapping(value = "/chat/rag")
     public SseEmitter chatRag(
             @RequestAttribute(LoginUserConstant.REQUEST_ATTR_USER_ID) Long loginUserId,
-            @RequestBody ChatRequest request) {
-        String chatId = request.getChatId();
-        if (StrUtil.isBlank(chatId)) {
-            chatId = UUID.randomUUID().toString();
-        }
-        String memoryConversationId = loginUserId + ":" + chatId;
-
-        // RAG 前置有查询重写 + 多查询扩展等多轮模型调用，耗时比联网搜索更长，超时时间放宽到 5 分钟
-        SseEmitter sseEmitter = new SseEmitter(300000L);
-        travelAiClient.doChatWithRag(request.getMessage(), memoryConversationId)
-                .subscribe(chunk->{
-                    try {
-                        sseEmitter.send(chunk);
-                    } catch (IOException e) {
-                        sseEmitter.completeWithError(e);
-                    }
-                }, sseEmitter::completeWithError, sseEmitter::complete);
-        return sseEmitter;
+            @Valid @RequestBody ChatRequest request) {
+        String chatId = resolveChatId(request.getChatId());
+        String conversationId = loginUserId + ":" + chatId;
+        // RAG 前置有查询重写 + 向量检索，耗时较长
+        return SseStreams.fromFlux(
+                travelAiClient.doChatWithRag(request.getMessage(), conversationId),
+                300_000L, "doChatWithRag");
     }
 
-    @Operation(
-            summary = "旅游助手对话sseEmitter",
-            description = "需登录：请求头 Authorization: Bearer {token}。可传 departureCity、tripDays、tripFocus；结合 RAG 与工具调用。"
-    )
+    @Operation(summary = "旅游助手对话（SSE 流式）", description = "Spring AI + 本地工具 + MCP 工具，逐分片输出。")
     @PostMapping(value = "/chat/sse_emitter")
     public SseEmitter chatSseEmitter(
             @RequestAttribute(LoginUserConstant.REQUEST_ATTR_USER_ID) Long loginUserId,
             HttpServletRequest httpServletRequest,
-            @RequestBody ChatRequest request) {
-        String chatId = request.getChatId();
-        if (StrUtil.isBlank(chatId)) {
-            chatId = UUID.randomUUID().toString();
-        }
-        String memoryConversationId = loginUserId + ":" + chatId;
+            @Valid @RequestBody ChatRequest request) {
+        String chatId = resolveChatId(request.getChatId());
+        String conversationId = loginUserId + ":" + chatId;
         String clientIp = clientIpResolver.resolveClientIp(httpServletRequest);
-        //获取Flux 响应式数据流 且通过  订阅 推送给 SseEmitter
-        SseEmitter sseEmitter = new SseEmitter(180000L);
-        travelAiClient.doChatWithMCPSSE(
+        return SseStreams.fromFlux(
+                travelAiClient.doChatWithMCPSSE(
                         request.getMessage(),
-                        memoryConversationId,
+                        conversationId,
                         clientIp,
                         request.getLatitude(),
                         request.getLongitude(),
-                        request.getBrowserGeolocationStatus())
-                .subscribe(chunk->{
-                    try {
-                        sseEmitter.send(chunk);
-                    } catch (IOException e) {
-                        sseEmitter.completeWithError(e);
-                    }
-                }, sseEmitter::completeWithError, sseEmitter::complete);
-        return sseEmitter;
+                        request.getBrowserGeolocationStatus()),
+                180_000L, "doChatWithMCPSSE");
     }
 
     @Operation(
             summary = "流式调用超级智能体",
-            description = "需登录：请求头 Authorization: Bearer {token}。"
+            description = "需登录。ReAct 循环结构化 SSE：event=step 为思考/工具日志，event=delta 为最终答复，event=done 为结束。"
     )
     @PostMapping(value = "/manus/chat")
     public SseEmitter chatManus(
             @RequestAttribute(LoginUserConstant.REQUEST_ATTR_USER_ID) Long loginUserId,
-            @RequestBody ChatRequest request) {
-        ProdigalManus manus = new ProdigalManus(
-                allTools,
-                toolCallbackProvider.getIfAvailable(),
-                dashscopeChatModel
-        );
-        return manus.runStream(request.getMessage());
+            @Valid @RequestBody ChatRequest request) {
+        return manusAgentService.stream(loginUserId, request);
     }
-    @Operation(
-            summary = "历史会话",
-            description = "不传 chatId 时返回当前用户全部会话（仅元数据）；传 chatId 时返回该会话及全部消息。"
-    )
+
+    @Operation(summary = "历史会话", description = "不传 chatId 时返回当前用户全部会话（仅元数据）；传 chatId 时返回该会话及全部消息。")
     @GetMapping("/conversations")
     public BaseResult<List<ChatMessageVO>> conversations(
             @RequestAttribute(LoginUserConstant.REQUEST_ATTR_USER_ID) Long loginUserId,
@@ -187,4 +135,7 @@ public class TravelAssistantController {
         return ResultUtils.success(null);
     }
 
+    private static String resolveChatId(String chatId) {
+        return StrUtil.isBlank(chatId) ? UUID.randomUUID().toString() : chatId;
+    }
 }

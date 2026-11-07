@@ -105,6 +105,10 @@ declare namespace API {
     email: string;
   };
 
+  /** 后端发送注册/登录验证码的请求体一致；兼容 openapi2ts 生成代码沿用的旧名称 */
+  type SendRegisterCodeRequest = SendCodeRequest;
+  type SendLoginCodeRequest = SendCodeRequest;
+
   type SseEmitter = {
     timeout?: number;
   };

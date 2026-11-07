@@ -60,7 +60,13 @@ public class MySQLChatMemory implements ChatMemory {
             return;
         }
         ParsedConversation parsed = ParsedConversation.parse(conversationId);
-        ensureConversation(parsed,messages.getFirst().getText());
+        // 会话标题取第一条有文本的消息；工具响应/空文本不应导致 NPE
+        String title = messages.stream()
+                .map(message -> message == null ? null : message.getText())
+                .filter(StringUtils::hasText)
+                .findFirst()
+                .orElse("新会话");
+        ensureConversation(parsed, title);
 
         List<ChatMessage> rows = new ArrayList<>(messages.size());
         for (Message message : messages) {
@@ -109,7 +115,11 @@ public class MySQLChatMemory implements ChatMemory {
         Collections.reverse(rows);
         List<Message> out = new ArrayList<>(rows.size());
         for (ChatMessage row : rows) {
-            out.add(toSpringMessage(row.getRole(), row.getContent()));
+            Message replay = toSpringMessage(row.getRole(), row.getContent());
+            // tool/function 消息只作审计留痕，不回放给模型，避免破坏消息顺序与角色配对
+            if (replay != null) {
+                out.add(replay);
+            }
         }
         cacheRecentMessages(parsed, rows);
         return out;
@@ -152,7 +162,7 @@ public class MySQLChatMemory implements ChatMemory {
         return switch (r) {
             case "assistant" -> new AssistantMessage(text);
             case "system" -> new SystemMessage(text);
-            case "tool", "function" -> new AssistantMessage(text);
+            case "tool", "function" -> null;
             default -> new UserMessage(text);
         };
     }
@@ -191,7 +201,10 @@ public class MySQLChatMemory implements ChatMemory {
                     continue;
                 }
                 CachedMessage cachedMessage = objectMapper.readValue(row, CachedMessage.class);
-                messages.add(toSpringMessage(cachedMessage.role(), cachedMessage.content()));
+                Message replay = toSpringMessage(cachedMessage.role(), cachedMessage.content());
+                if (replay != null) {
+                    messages.add(replay);
+                }
             }
             redisTemplate.expire(cacheKey, CACHE_TTL_MINUTES, TimeUnit.MINUTES);
             return messages;

@@ -11,49 +11,46 @@ import org.springframework.ai.chat.memory.MessageWindowChatMemory;
 import org.springframework.ai.minimax.MiniMaxChatModel;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.ToolCallbackProvider;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
+ * 备用（MiniMax）ChatClient。
  *
- * @author Lang
- * @project prodigal-ai-travel
- * @Version: 1.0
- * @since 2026/4/9
+ * <p>说明：这个 Bean 使用进程内会话记忆，仅用于本地对比/调试，不承载线上主链路；
+ * 线上问答统一走 {@link TravelAiClient}（MySQL 持久化记忆）。
+ * MCP 客户端未启用时 {@code ToolCallbackProvider} 可能不存在，这里改为可选注入，
+ * 避免「关闭 MCP 就启动失败」。
  */
 @Configuration
 public class AIClient {
+
     @Resource
     private ToolCallback[] allTools;
+
     @Resource
-    private ToolCallbackProvider toolCallbackProvider;
+    private ObjectProvider<ToolCallbackProvider> toolCallbackProviders;
 
     @Bean
     ChatClient minimaxAiClient(MiniMaxChatModel chatModel) {
-        // 基于内存会话记忆
-        InMemoryChatMemoryRepository inMemoryChatMemoryRepository = new InMemoryChatMemoryRepository();
-        MessageWindowChatMemory chatMemory = MessageWindowChatMemory
-                .builder()
-                .chatMemoryRepository(inMemoryChatMemoryRepository)
+        InMemoryChatMemoryRepository repository = new InMemoryChatMemoryRepository();
+        MessageWindowChatMemory chatMemory = MessageWindowChatMemory.builder()
+                .chatMemoryRepository(repository)
+                .maxMessages(TravelConstant.CHAT_MEMORY_MESSAGE_LIMIT)
                 .build();
-        MessageChatMemoryAdvisor messageChatMemoryAdvisor = MessageChatMemoryAdvisor.builder(chatMemory).build();
-        return ChatClient.builder(chatModel)
+
+        ChatClient.Builder builder = ChatClient.builder(chatModel)
                 .defaultSystem(TravelConstant.SYSTEM_PROMPT)
-                .defaultAdvisors(new LoggerAdvisor(), messageChatMemoryAdvisor, new SystemMessageFirstAdvisor())
-                .defaultToolCallbacks(allTools)
-                .defaultToolCallbacks(toolCallbackProvider)
-                .build();
+                .defaultAdvisors(new LoggerAdvisor(),
+                        MessageChatMemoryAdvisor.builder(chatMemory).build(),
+                        new SystemMessageFirstAdvisor())
+                .defaultToolCallbacks(allTools);
+        ToolCallbackProvider provider = toolCallbackProviders == null
+                ? null : toolCallbackProviders.getIfAvailable();
+        if (provider != null) {
+            builder.defaultToolCallbacks(provider);
+        }
+        return builder.build();
     }
-
-//    @Bean
-//    ChatClient ollamaAiClient(OllamaChatModel chatModel, MySQLChatMemory chatMemory) {
-//        return ChatClient.builder(chatModel)
-//                .defaultSystem(TravelConstant.SYSTEM_PROMPT)
-//                .defaultAdvisors(new LoggerAdvisor())
-////                .defaultAdvisors(MessageChatMemoryAdvisor.builder(chatMemory).build())
-//                .defaultToolCallbacks(allTools)
-//                .defaultToolCallbacks(toolCallbackProvider)
-//                .build();
-//    }
-
 }

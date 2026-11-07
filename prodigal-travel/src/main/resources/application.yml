@@ -6,22 +6,24 @@ spring:
   application:
     name: prodigal-ai-travel
   profiles:
-    active: ${SPRING_PROFILES_ACTIVE}
+    # 不设环境变量时默认使用 local，避免 IDE 直接启动因缺少占位符失败
+    active: ${SPRING_PROFILES_ACTIVE:local}
   data:
     redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:}
-      database: ${REDIS_DATABASE:0}
+      # 兼容 SPRING_DATA_REDIS_* 与 REDIS_* 两套环境变量名
+      host: ${SPRING_DATA_REDIS_HOST:${REDIS_HOST:localhost}}
+      port: ${SPRING_DATA_REDIS_PORT:${REDIS_PORT:6379}}
+      password: ${SPRING_DATA_REDIS_PASSWORD:${REDIS_PASSWORD:}}
+      database: ${SPRING_DATA_REDIS_DATABASE:${REDIS_DATABASE:0}}
 
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/prodigal_ai_travel?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai
-    username: XXX
-    password: XXX
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/prodigal_ai_travel?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai}
+    username: ${SPRING_DATASOURCE_USERNAME:root}
+    password: ${SPRING_DATASOURCE_PASSWORD:}
 
   rabbitmq:
-    enabled: true
+    enabled: ${RABBITMQ_ENABLED:true}
     host: ${RABBITMQ_HOST:localhost}
     port: ${RABBITMQ_PORT:5672}
     username: ${RABBITMQ_USERNAME:guest}
@@ -32,23 +34,23 @@ spring:
         acknowledge-mode: auto
         retry:
           max-attempts: 3
-        default-requeue-rejected: false  # 关键：拒绝后不重回队列
+        default-requeue-rejected: false  # 拒绝后不重回队列
 
   ai:
     minimax:
-      api-key: ${MINIMAX_API_KEY}
+      api-key: ${MINIMAX_API_KEY:}
       chat:
         options:
           model: ${MINIMAX_CHAT_MODEL:MiniMax-M2.7}
           temperature: 0.7
     dashscope:
-      api-key: ${DASHSCOPE_API_KEY}
+      api-key: ${DASHSCOPE_API_KEY:}
       chat:
         options:
           model: ${DASHSCOPE_CHAT_MODEL:qwen3.6-plus}
           temperature: 0.7
-          # 部分模型（如 Qwen3 / 部分 MiniMax 接入）要求 enable_thinking 必须为 true，否则 HTTP 400
-          enable-thinking: true
+          # 部分 Qwen3 模型要求 enable_thinking 为 true，否则 HTTP 400
+          enable-thinking: ${DASHSCOPE_ENABLE_THINKING:true}
       # RAG 向量入库需要 Embedding（与 chat 共用 api-key）
       embedding:
         options:
@@ -58,25 +60,22 @@ spring:
         index-type: HNSW
         distance-type: COSINE_DISTANCE
         dimensions: 1536
-        max-document-batch-size: 10000 # Optional: Maximum number of documents per batch
-    # MCP 客户端：接入地图、天气等外部 MCP 时改为 enabled: true 并配置 sse.connections
+        max-document-batch-size: 10000
+    # MCP 客户端：具体连接见 application-{profile}.yml / mcp-servers*.json
     mcp:
       client:
-        enabled: true
+        enabled: ${SPRING_AI_MCP_CLIENT_ENABLED:true}
         name: travel-mcp-client
         version: 1.0
-        request-timeout: 180000
-        stdio:
-          servers-configuration: classpath:mcp-servers.json
-  #        sse:
-#          connections:
-#            url: http://your-mcp-host/sse
+        request-timeout: ${SPRING_AI_MCP_CLIENT_REQUEST_TIMEOUT:180000}
+        # 各 profile 自行配置 stdio.connections 或 stdio.servers-configuration，
+        # 避免在公共配置里写死连接导致多环境互相覆盖
 
   mail:
-    host: smtp.qq.com
-    port: 587
-    username: 你的邮箱
-    password: 你的邮箱 App 专用密码
+    host: ${SPRING_MAIL_HOST:smtp.qq.com}
+    port: ${SPRING_MAIL_PORT:587}
+    username: ${SPRING_MAIL_USERNAME:}
+    password: ${SPRING_MAIL_PASSWORD:}
     properties:
       mail:
         smtp:
@@ -87,8 +86,8 @@ spring:
 # mybatis plus
 mybatis-plus:
   configuration:
-    map-underscore-to-camel-case: true #????
-    # ??SQL
+    map-underscore-to-camel-case: true
+    # 生产建议关闭 SQL 控制台输出
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
   mapper-locations: classpath:mapper/*.xml
   type-aliases-package: com.prodigal.travel.model.entity
@@ -99,53 +98,55 @@ mybatis-plus:
       logic-delete-value: 1
       logic-not-delete-value: 0
 
-# === 新增：PostgreSQL 向量库连接 ===
+# === PostgreSQL 向量库（RAG，可选） ===
 pgvector:
   datasource:
-    url: jdbc:postgresql://localhost:5432/vector_db
-    username: XXX
-    password: XXX
+    url: ${POSTGRESQL_URL:jdbc:postgresql://${POSTGRESQL_HOST:localhost}:5432/vector_db}
+    username: ${POSTGRESQL_USERNAME:postgres}
+    password: ${POSTGRESQL_PASSWORD:}
     driver-class-name: org.postgresql.Driver
 
 prodigal:
+  # Agent 专用线程池（与 Web 请求线程池隔离）
+  agent:
+    pool-size: ${PRODIGAL_AGENT_POOL_SIZE:6}
+    queue-capacity: ${PRODIGAL_AGENT_QUEUE_CAPACITY:48}
   jwt:
     secret: ${PRODIGAL_JWT_SECRET:prodigal-travel-default-jwt-secret-min-32-chars-long!!}
-    expire-hours: 10
+    expire-hours: ${PRODIGAL_JWT_EXPIRE_HOURS:10}
   auth:
     register:
       code-ttl-minutes: 5
       send-interval-seconds: 60
   # searchApi https://www.searchapi.io/
   search-api:
-    api-key: XXX
+    api-key: ${PRODIGAL_SEARCH_API_API_KEY:}
   # 高德开放平台 Web 服务 API Key
   amap:
-    api-key: XXX
-    host: https://restapi.amap.com/  # 高德 API 地址
+    api-key: ${PRODIGAL_AMAP_API_KEY:}
+    host: https://restapi.amap.com/
   pexels:
-    api-key: XXX
+    api-key: ${PRODIGAL_PEXELS_API_KEY:}
   baidu:
-    app-id: XXX
-    api-key: XXX
+    app-id: ${PRODIGAL_BAIDU_APP_ID:}
+    api-key: ${PRODIGAL_BAIDU_API_KEY:}
   ai:
     alert:
-      enabled: ${AI_ALERT_ENABLED:false}
-      # 多个接收人用英文逗号分隔；例如：a@xx.com,b@xx.com
-      recipients: ${AI_ALERT_RECIPIENTS:XXX}
-      # 同一错误的最小告警间隔，避免刷屏
-      cooldown-minutes: ${AI_ALERT_COOLDOWN_MINUTES:30}
+      enabled: ${PRODIGAL_AI_ALERT_ENABLED:${AI_ALERT_ENABLED:false}}
+      recipients: ${PRODIGAL_AI_ALERT_RECIPIENTS:${AI_ALERT_RECIPIENTS:}}
+      cooldown-minutes: ${PRODIGAL_AI_ALERT_COOLDOWN_MINUTES:${AI_ALERT_COOLDOWN_MINUTES:30}}
 
 # springdoc-openapi
 # http://localhost:port/api/doc.html
 springdoc:
   swagger-u1:
     path: /swagger-ui.html
-    tags-sorter:  alpha
-    operations-sorter:  alpha
+    tags-sorter: alpha
+    operations-sorter: alpha
   api-docs:
     path: /v3/api-docs
   group-configs:
-    group:  'default'
+    group: 'default'
     paths-to-match: '/**'
     packages-to-scan: com.prodigal.travel.controller
 # knife4j

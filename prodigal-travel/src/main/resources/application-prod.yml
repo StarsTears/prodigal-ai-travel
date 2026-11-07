@@ -21,9 +21,9 @@ spring:
     enabled: ${RABBITMQ_ENABLED:true}
     host: ${RABBITMQ_HOST:localhost}
     port: ${RABBITMQ_PORT:5672}
-    username: ${RABBITMQ_USERNAME}
-    password: ${RABBITMQ_PASSWORD}
-    virtual-host: ${RABBITMQ_VHOST}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+    virtual-host: ${RABBITMQ_VHOST:/}
     listener:
       simple:
         acknowledge-mode: auto
@@ -32,18 +32,18 @@ spring:
         default-requeue-rejected: false  # 关键：拒绝后不重回队列
   ai:
     minimax:
-      api-key: ${MINIMAX_API_KEY}
+      api-key: ${MINIMAX_API_KEY:}
       chat:
         options:
-          model: ${MINIMAX_CHAT_MODEL}
+          model: ${MINIMAX_CHAT_MODEL:MiniMax-M2.7}
           temperature: 0.7
     dashscope:
-      api-key: ${DASHSCOPE_API_KEY:XXXX}
+      api-key: ${DASHSCOPE_API_KEY:}
       chat:
         options:
           model: ${DASHSCOPE_CHAT_MODEL:qwen3.6-plus}
           temperature: 0.7
-          enable-thinking: ${DASHSCOPE_CHAT_ENABLE_THINKING}
+          enable-thinking: ${DASHSCOPE_ENABLE_THINKING:true}
           multi-model: true
       embedding:
         options:
@@ -56,9 +56,10 @@ spring:
         max-document-batch-size: 10000 # Optional: Maximum number of documents per batch
     mcp:
       client:
-        enabled: true
+        enabled: ${SPRING_AI_MCP_CLIENT_ENABLED:true}
         name: travel-mcp-client
         version: 1.0
+        request-timeout: ${SPRING_AI_MCP_CLIENT_REQUEST_TIMEOUT:180000}
         stdio:
           servers-configuration: classpath:mcp-servers.json
   #        sse:
@@ -79,9 +80,9 @@ spring:
 # === 新增：PostgreSQL 向量库连接 ===
 pgvector:
   datasource:
-    url: jdbc:postgresql://${POSTGRESQL_HOST}:5432/vector_db
-    username: ${POSTGRESQL_USERNAME}
-    password: ${POSTGRESQL_PASSWORD}
+    url: jdbc:postgresql://${POSTGRESQL_HOST:localhost}:5432/vector_db
+    username: ${POSTGRESQL_USERNAME:postgres}
+    password: ${POSTGRESQL_PASSWORD:}
     driver-class-name: org.postgresql.Driver
 
 # mybatis plus
@@ -101,7 +102,7 @@ mybatis-plus:
 
 prodigal:
   jwt:
-    secret: ${PRODIGAL_JWT_SECRET}
+    secret: ${PRODIGAL_JWT_SECRET:prodigal-travel-default-jwt-secret}
     expire-hours: 24
   auth:
     register:
@@ -109,23 +110,23 @@ prodigal:
       send-interval-seconds: 60
   # searchApi https://www.searchapi.io/
   search-api:
-    api-key: ${PRODIGAL_SEARCH_API_API_KEY}
+    api-key: ${PRODIGAL_SEARCH_API_API_KEY:}
   # 高德开放平台 Web 服务 API Key
   amap:
-    api-key: ${PRODIGAL_AMAP_API_KEY}
+    api-key: ${PRODIGAL_AMAP_API_KEY:}
     host: https://restapi.amap.com/  # 高德 API 地址
   pexels:
-    api-key: ${PRODIGAL_PEXELS_API_KEY}
+    api-key: ${PRODIGAL_PEXELS_API_KEY:}
   baidu:
-    app-id: ${PRODIGAL_BAIDU_APP_ID}
-    api-key: ${PRODIGAL_BAIDU_API_KEY}
+    app-id: ${PRODIGAL_BAIDU_APP_ID:}
+    api-key: ${PRODIGAL_BAIDU_API_KEY:}
   ai:
     alert:
-      enabled: ${AI_ALERT_ENABLED:true}
+      enabled: ${PRODIGAL_AI_ALERT_ENABLED:false}}
       # 多个接收人用英文逗号分隔；例如：a@xx.com,b@xx.com
-      recipients: ${AI_ALERT_RECIPIENTS}
+      recipients: ${PRODIGAL_AI_ALERT_RECIPIENTS:}
       # 同一错误的最小告警间隔，避免刷屏
-      cooldown-minutes: ${AI_ALERT_COOLDOWN_MINUTES:30}
+      cooldown-minutes: ${PRODIGAL_AI_ALERT_COOLDOWN_MINUTES::30}
 
 
 # springdoc-openapi

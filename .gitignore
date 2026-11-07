@@ -35,3 +35,6 @@ build/
 ### Local secrets / environment (do not commit) ###
 **/application-local.yml
 **/mcp-servers-local.json
+.env
+!.env.example
+**/application-*-secret.yml
