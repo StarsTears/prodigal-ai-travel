@@ -5,7 +5,7 @@ const TravelChatPage: React.FC = () => (
   <ChatWorkspace
     mode="travel"
     title="AI 旅游助手"
-    emptyHint="你好！我是 AI 旅游助手。请用「对话列表」「示例问题」管理会话与发起咨询（窄屏在输入区上方，宽屏在两侧）。"
+    emptyHint="问路线、查天气、找景点，或切换到「知识库 RAG」只依据已入库资料作答。"
     showToolPanel
   />
 );

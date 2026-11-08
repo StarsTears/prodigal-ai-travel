@@ -16,6 +16,12 @@ import {
 } from '@/utils/manusChatStorage';
 import { summarizeManusSteps } from '@/utils/manusStepSummary';
 import { routeManusSsePayload } from '@/utils/manusStreamRouting';
+import {
+  getGeoState,
+  requestGeolocation,
+  subscribeGeo,
+  type GeoState,
+} from '@/utils/preferences';
 import { useStreaming, type StreamChatKind } from './useStreaming';
 
 const genId = (): string => {
@@ -28,9 +34,13 @@ const genId = (): string => {
 const PENDING_PREFIX = 'pending-';
 
 const defaultTitleFromMessage = (text: string): string => {
-  const t = text.replace(/\s+/g, ' ').trim();
+  // 侧栏标题取首句：清洗换行/多余空白与开头标点，避免列表被长文本撑乱
+  const t = text
+    .replace(/\s+/g, ' ')
+    .replace(/^[\s"'“”‘’·,，。.!！?？:：\-—]+/, '')
+    .trim();
   if (!t) return '新对话';
-  return t.length > 24 ? `${t.slice(0, 24)}…` : t;
+  return t.length > 22 ? `${t.slice(0, 22)}…` : t;
 };
 
 const sortConversations = (
@@ -141,6 +151,22 @@ function finalizeManusAssistantMessage(m: ChatMessage): ChatMessage {
   return base;
 }
 
+/** 把网关/代理/浏览器的原始英文报错转成用户能看懂、能行动的提示。 */
+const humanizeError = (text: string): string => {
+  const t = text.toLowerCase();
+  if (
+    /error occurred while trying to proxy|econnrefused|failed to fetch|networkerror|load failed|err_proxy/.test(
+      t
+    )
+  ) {
+    return '无法连接后端服务，请确认 prodigal-travel 已启动（开发环境默认 8088 端口）后重试。';
+  }
+  if (t.includes('<html') || t.includes('<!doctype')) {
+    return '服务返回了异常页面，请检查后端服务状态与接口地址。';
+  }
+  return text.length > 200 ? `${text.slice(0, 200)}…` : text;
+};
+
 const formatChatError = (e: unknown): string => {
   if (isAxiosError(e)) {
     const status = e.response?.status;
@@ -161,9 +187,9 @@ const formatChatError = (e: unknown): string => {
       const m = (data as { msg?: unknown }).msg;
       if (typeof m === 'string' && m.trim()) return m;
     }
-    return e.message || '请求失败';
+    return humanizeError(e.message || '请求失败');
   }
-  if (e instanceof Error) return e.message;
+  if (e instanceof Error) return humanizeError(e.message);
   return '请求失败，请检查网络或后端服务';
 };
 
@@ -183,65 +209,23 @@ export function useChat(options: UseChatOptions) {
   const [listLoading, setListLoading] = useState(false);
   const activeIdRef = useRef<string | null>(null);
 
-  type TravelGeoState =
-    | { status: 'idle' }
-    | { status: 'pending' }
-    | { status: 'granted'; latitude: number; longitude: number }
-    | { status: 'denied' }
-    | { status: 'unsupported' }
-    | { status: 'timeout' }
-    | { status: 'error' };
+  // 定位状态由 preferences 模块统一持有：偏好设置弹窗可以改开关/重新定位，
+  // 这里通过订阅实时同步，发送消息时直接读同一份状态。
+  const [geoState, setGeoState] = useState<GeoState>(getGeoState);
+  const geoInitRef = useRef(false);
 
-  const travelGeoRef = useRef<TravelGeoState>({ status: 'idle' });
-  const travelGeoInitRef = useRef(false);
+  useEffect(() => subscribeGeo(setGeoState), []);
 
   useEffect(() => {
     activeIdRef.current = activeId;
   }, [activeId]);
 
   useEffect(() => {
-    if (!token) {
-      travelGeoInitRef.current = false;
-      travelGeoRef.current = { status: 'idle' };
-    }
-  }, [token]);
-
-  useEffect(() => {
-    if (mode !== 'travel' || !ready || !token) {
-      return;
-    }
-    if (travelGeoInitRef.current) {
-      return;
-    }
-    travelGeoInitRef.current = true;
-    if (typeof navigator === 'undefined' || !navigator.geolocation) {
-      travelGeoRef.current = { status: 'unsupported' };
-      return;
-    }
-    travelGeoRef.current = { status: 'pending' };
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        travelGeoRef.current = {
-          status: 'granted',
-          latitude: pos.coords.latitude,
-          longitude: pos.coords.longitude,
-        };
-      },
-      (err: GeolocationPositionError) => {
-        if (err.code === err.PERMISSION_DENIED) {
-          travelGeoRef.current = { status: 'denied' };
-          message.warning(
-            '您已拒绝浏览器定位权限，将使用 IP 进行大致定位；需要更准确位置时请在浏览器设置中允许本站访问位置。',
-          );
-        } else if (err.code === err.TIMEOUT) {
-          travelGeoRef.current = { status: 'timeout' };
-        } else {
-          travelGeoRef.current = { status: 'error' };
-        }
-      },
-      { enableHighAccuracy: false, timeout: 15000, maximumAge: 300_000 },
-    );
-  }, [mode, ready, token]);
+    if (!ready || geoInitRef.current) return;
+    geoInitRef.current = true;
+    // 默认获取当前位置；用户可在「偏好设置」里关闭，关闭后后端用 IP 粗略定位
+    void requestGeolocation();
+  }, [ready]);
 
   const mergeDetailIntoList = useCallback(
     (chatId: string, rec: ConversationRecord) => {
@@ -558,7 +542,7 @@ export function useChat(options: UseChatOptions) {
       setSending(true);
       try {
         const geoArgs = (() => {
-          const g = travelGeoRef.current;
+          const g = getGeoState();
           if (g.status === 'granted') {
             return {
               latitude: g.latitude,
@@ -763,6 +747,11 @@ export function useChat(options: UseChatOptions) {
     ]
   );
 
+  /** 顶栏/输入区「停止生成」：中断当前 SSE，已输出的内容保留。 */
+  const stopGenerating = useCallback(() => {
+    abort();
+  }, [abort]);
+
   return {
     conversations,
     activeId,
@@ -773,5 +762,7 @@ export function useChat(options: UseChatOptions) {
     selectChat,
     deleteChat,
     sendUserMessage,
+    stopGenerating,
+    geoState,
   };
 }

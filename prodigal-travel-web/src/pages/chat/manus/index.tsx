@@ -5,7 +5,7 @@ const ManusChatPage: React.FC = () => (
   <ChatWorkspace
     mode="manus"
     title="超级智能体"
-    emptyHint="服务端按 Agent 循环逐步推送（工具结果为步骤日志，模型最终说明为综合回复）。登录后即可提问；会话列表仅保存在本机，与旅游助手后端会话无关。"
+    emptyHint="描述一个较复杂的目标，智能体会逐步推理、调用工具，并把执行过程与最终结论分开呈现。会话仅保存在本机。"
     showToolPanel={false}
   />
 );

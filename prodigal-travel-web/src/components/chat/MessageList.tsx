@@ -1,27 +1,23 @@
 import {
-  CaretRightOutlined,
-  RobotOutlined,
+  ArrowDownOutlined,
+  CheckOutlined,
+  CopyOutlined,
   UserOutlined,
 } from '@ant-design/icons';
-import {
-  Avatar,
-  Card,
-  Collapse,
-  Empty,
-  Flex,
-  List,
-  Spin,
-  theme,
-  Typography,
-} from 'antd';
-import React, { useEffect, useRef } from 'react';
+import { message } from 'antd';
+import React, { useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import type { Components } from 'react-markdown';
 import rehypeSanitize from 'rehype-sanitize';
 import remarkGfm from 'remark-gfm';
-import type { ChatMessage } from '@/types';
+import { quickPromptsFor } from '@/components/chat/ToolPanel';
 import type { StreamChatKind } from '@/pages/chat/hooks/useStreaming';
+import type { ChatMessage } from '@/types';
 import { isImageUrl } from '@/utils/imageUrl';
+import {
+  ASSISTANT_AVATAR_ALT,
+  ASSISTANT_AVATAR_URL,
+} from '@/utils/preferences';
 import {
   filterManusStepsForCollapse,
   summarizeManusSteps,
@@ -31,58 +27,72 @@ export interface MessageListProps {
   messages: ChatMessage[];
   bubbleVariant?: StreamChatKind;
   emptyHint?: string;
+  /** 空态欢迎卡中的示例问题回调 */
+  onQuickPrompt?: (text: string) => void;
 }
 
-const { Text } = Typography;
-
-const BUBBLE_MAX = 560;
-
+/**
+ * Markdown 的「单个换行」默认会被当作空格，这里转成 hard break。
+ * 跳过列表 / 表格 / 引用 / 标题 / 代码块行，避免破坏 GFM 结构。
+ */
 function preserveSingleNewlinesForMarkdown(md: string): string {
-  // Markdown 里「单个换行」默认会被当成空格；这里把它转成 hard break（两个空格 + \n）
-  // 注意：这是展示层面的格式化，不改变后端原始内容。
-  return md.replace(/\r\n/g, '\n').replace(/\n/g, '  \n');
+  const lines = md.replace(/\r\n/g, '\n').split('\n');
+  let inFence = false;
+  return lines
+    .map((line, i) => {
+      const trimmed = line.trimEnd();
+      if (/^\s*(```|~~~)/.test(trimmed)) {
+        inFence = !inFence;
+        return line;
+      }
+      if (inFence || i === lines.length - 1 || !trimmed || trimmed.endsWith('  ')) {
+        return line;
+      }
+      // 结构性行保持原样，否则会被追加两个空格导致列表/表格解析异常
+      if (/^\s{0,3}([-*+]\s|\d+\.\s|>|#{1,6}\s|\||-{3,})/.test(trimmed)) {
+        return line;
+      }
+      return `${line}  `;
+    })
+    .join('\n');
 }
 
-function markdownImageStyle(borderRadius: number): React.CSSProperties {
-  return {
-    maxWidth: '100%',
-    height: 'auto',
-    display: 'block',
-    borderRadius,
-    verticalAlign: 'middle',
-  };
+function formatTime(ts: number): string {
+  if (!Number.isFinite(ts) || ts <= 0) return '';
+  try {
+    return new Date(ts).toLocaleTimeString('zh-CN', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return '';
+  }
 }
 
 export const MessageList: React.FC<MessageListProps> = ({
   messages,
   bubbleVariant = 'travel',
   emptyHint,
+  onQuickPrompt,
 }) => {
-  const bottomRef = useRef<HTMLDivElement | null>(null);
-  const { token } = theme.useToken();
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const atBottomRef = useRef(true);
+  const prevLengthRef = useRef(messages.length);
+  const [showJump, setShowJump] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const markdownComponents: Components = {
     a: ({ href, children, node: _node, ...rest }) => {
       if (href && isImageUrl(href)) {
-        const alt =
-          typeof children === 'string'
-            ? children
-            : '图片';
         return (
           <a
             {...rest}
             href={href}
             target="_blank"
             rel="noopener noreferrer"
-            style={{ display: 'block', marginTop: 8, marginBottom: 8 }}
+            style={{ display: 'block', margin: '8px 0' }}
           >
-            <img
-              src={href}
-              alt={alt}
-              loading="lazy"
-              decoding="async"
-              style={markdownImageStyle(token.borderRadius)}
-            />
+            <img src={href} alt="图片" loading="lazy" decoding="async" />
           </a>
         );
       }
@@ -93,205 +103,225 @@ export const MessageList: React.FC<MessageListProps> = ({
       );
     },
     img: ({ src, alt, node: _node, ...rest }) => (
-      <img
-        {...rest}
-        src={src}
-        alt={alt ?? ''}
-        loading="lazy"
-        decoding="async"
-        style={markdownImageStyle(token.borderRadius)}
-      />
+      <img {...rest} src={src} alt={alt ?? ''} loading="lazy" decoding="async" />
     ),
   };
 
+  /** 仅当用户停留在底部附近时才跟随流式输出；回看历史不会被强行拉回。 */
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    const el = scrollRef.current;
+    if (!el) return;
+    const grew = messages.length > prevLengthRef.current;
+    const lastIsUser = messages[messages.length - 1]?.role === 'user';
+    prevLengthRef.current = messages.length;
+    if (grew && lastIsUser) {
+      atBottomRef.current = true;
+      setShowJump(false);
+    }
+    if (atBottomRef.current) {
+      el.scrollTop = el.scrollHeight;
+    }
   }, [messages]);
 
+  const onScroll = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 96;
+    atBottomRef.current = nearBottom;
+    setShowJump(!nearBottom);
+  };
+
+  const jumpToLatest = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    atBottomRef.current = true;
+    setShowJump(false);
+    el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+  };
+
+  const copyContent = async (m: ChatMessage) => {
+    const text = m.content || '';
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedId(m.id);
+      window.setTimeout(() => setCopiedId(null), 1600);
+    } catch {
+      message.warning('复制失败，请手动选中文本');
+    }
+  };
+
   if (messages.length === 0) {
-    const emptyTextStyle: React.CSSProperties = {
-      fontSize: 15,
-      lineHeight: 1.8,
-      color: 'rgba(226, 232, 240, 0.9)',
-      textShadow: '0 1px 10px rgba(2, 6, 23, 0.55)',
-    };
+    const isManus = bubbleVariant === 'manus';
     return (
-      <Empty
-        description={
-          <Text style={emptyTextStyle}>
+      <div className="chat-scroll chat-scroll--empty">
+        <div className="chat-empty">
+          <div className={`chat-empty__icon ${isManus ? 'chat-empty__icon--manus' : ''}`}>
+            <img src={ASSISTANT_AVATAR_URL} alt={ASSISTANT_AVATAR_ALT} />
+          </div>
+          <h2 className="chat-empty__title">
+            {isManus ? '交给智能体，把任务拆开做完' : '今天想去哪儿？'}
+          </h2>
+          <p className="chat-empty__desc">
             {emptyHint ??
-              '你好！我是 AI 旅游助手。请用「对话列表」「示例问题」管理会话与发起咨询（窄屏在输入区上方，宽屏在两侧）。'}
-          </Text>
-        }
-      />
+              (isManus
+                ? '描述一个较复杂的目标，智能体会逐步推理、调用工具，并把过程与结论分开呈现。'
+                : '问路线、查天气、找景点，或切换到「知识库问答」只依据已入库资料作答。')}
+          </p>
+          <div className="quick-prompt-grid quick-prompt-grid--empty">
+            {quickPromptsFor(bubbleVariant).map((item) => (
+              <button
+                key={item.prompt}
+                type="button"
+                className="quick-prompt"
+                onClick={() => onQuickPrompt?.(item.prompt)}
+              >
+                <span className="quick-prompt__label">
+                  {item.icon}　{item.label}
+                </span>
+                <span className="quick-prompt__text">{item.prompt}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
     );
   }
 
-  const assistantBaseStyle: React.CSSProperties = {
-    borderColor: 'rgba(56, 189, 248, 0.28)',
-    background: 'rgba(2, 6, 23, 0.16)',
-    color: 'rgba(226, 232, 240, 0.92)',
-  };
-
-  const assistantBubbleStyle: React.CSSProperties =
-    bubbleVariant === 'manus'
-      ? {
-          borderColor: 'rgba(167, 139, 250, 0.35)',
-          background: 'rgba(114, 46, 209, 0.05)',
-          color: 'rgba(226, 232, 240, 0.92)',
-        }
-      : assistantBaseStyle;
-
   return (
-    <List
-      size="small"
-      split={false}
-      dataSource={messages}
-      renderItem={(m) => {
-        const isUser = m.role === 'user';
-        const manusStepsDisplay =
-          bubbleVariant === 'manus' && m.manusSteps?.length
-            ? filterManusStepsForCollapse(m.manusSteps)
-            : [];
-        const showManusPanel =
-          bubbleVariant === 'manus' && manusStepsDisplay.length > 0;
-        const manusSummaryFallback =
-          bubbleVariant === 'manus' &&
-          !isUser &&
-          !m.streaming &&
-          !m.content?.trim() &&
-          m.manusSteps &&
-          m.manusSteps.length > 0
-            ? summarizeManusSteps(m.manusSteps)
-            : '';
-        const manusReplyMd =
-          (m.content?.trim() && m.content) || manusSummaryFallback || '';
-        return (
-          <List.Item
-            key={m.id}
-            style={{
-              display: 'block',
-              width: '100%',
-              padding: '10px 20px',
-              border: 'none',
-            }}
-          >
-            <Flex
-              style={{ width: '100%' }}
-              justify={isUser ? 'flex-end' : 'flex-start'}
-              align="flex-start"
-              gap="middle"
-              wrap="nowrap"
-            >
-              {!isUser ? <Avatar icon={<RobotOutlined />} /> : null}
-              <Card
-                size="small"
-                variant={isUser ? 'borderless' : 'outlined'}
-                style={{
-                  maxWidth: `min(88%, ${BUBBLE_MAX}px)`,
-                  minWidth: 0,
-                  flexShrink: 0,
-                  overflow: 'hidden',
-                  ...(!isUser ? assistantBubbleStyle : {}),
-                }}
-                styles={{
-                  body: isUser
-                    ? {
-                        padding: '10px 14px',
-                        background: token.colorPrimaryBg,
-                      }
-                    : {
-                        padding: '10px 14px',
-                        background: 'transparent',
-                      },
-                }}
+    <>
+      <div className="chat-scroll" ref={scrollRef} onScroll={onScroll}>
+        <div className="chat-thread">
+          {messages.map((m) => {
+            const isUser = m.role === 'user';
+            const manusSteps =
+              bubbleVariant === 'manus' && m.manusSteps?.length
+                ? filterManusStepsForCollapse(m.manusSteps)
+                : [];
+            const showSteps = !isUser && manusSteps.length > 0;
+            const summaryFallback =
+              bubbleVariant === 'manus' &&
+              !isUser &&
+              !m.streaming &&
+              !m.content?.trim() &&
+              m.manusSteps?.length
+                ? summarizeManusSteps(m.manusSteps)
+                : '';
+            const reply = (m.content?.trim() && m.content) || summaryFallback || '';
+            const time = formatTime(m.createdAt);
+            const waiting = Boolean(m.streaming) && !isUser && !reply && !showSteps;
+
+            return (
+              <div
+                key={m.id}
+                className={`chat-row ${isUser ? 'chat-row--user' : 'chat-row--assistant'}`}
               >
-                {!isUser ? (
-                  <Flex vertical gap="small">
-                    {showManusPanel ? (
-                      <Collapse
-                        key={`${m.id}-think`}
-                        size="small"
-                        defaultActiveKey={m.streaming ? (['think'] as string[]) : []}
-                        rootClassName="manus-think-collapse"
-                        expandIcon={({ isActive }) => (
-                          <CaretRightOutlined
-                            rotate={isActive ? 90 : 0}
-                            style={{
-                              color: 'rgba(226, 232, 240, 0.92)',
-                              fontSize: 12,
-                            }}
-                          />
-                        )}
-                        items={[
-                          {
-                            key: 'think',
-                            label: `思考与执行过程（${manusStepsDisplay.length} 步）`,
-                            children: (
-                              <Flex vertical gap={8}>
-                                {manusStepsDisplay.map((step, i) => (
-                                  <Card key={i} size="small" type="inner">
-                                    <Text type="secondary" style={{ fontSize: 12 }}>
-                                      步骤 {i + 1}
-                                    </Text>
-                                    <Typography.Paragraph
-                                      style={{
-                                        marginBottom: 0,
-                                        whiteSpace: 'pre-wrap',
-                                        wordBreak: 'break-word',
-                                        overflowWrap: 'anywhere',
-                                      }}
-                                    >
-                                      {step}
-                                    </Typography.Paragraph>
-                                  </Card>
-                                ))}
-                              </Flex>
-                            ),
-                          },
-                        ]}
-                      />
+                <div
+                  className={`chat-avatar ${
+                    isUser
+                      ? 'chat-avatar--user'
+                      : bubbleVariant === 'manus'
+                        ? 'chat-avatar--manus'
+                        : 'chat-avatar--assistant'
+                  }`}
+                >
+                  {isUser ? (
+                    <UserOutlined />
+                  ) : (
+                    <img
+                      className="chat-avatar__img"
+                      src={ASSISTANT_AVATAR_URL}
+                      alt={ASSISTANT_AVATAR_ALT}
+                    />
+                  )}
+                </div>
+                <div className="chat-bubble-wrap">
+                  <div className="chat-meta">
+                    <span>{isUser ? '我' : bubbleVariant === 'manus' ? '超级智能体' : 'AI 旅游助手'}</span>
+                    {time ? <span>· {time}</span> : null}
+                    {m.streaming && !isUser ? (
+                      <span className="streaming-label">
+                        <span className="streaming-dot" />
+                        正在生成
+                      </span>
                     ) : null}
-                    {showManusPanel && manusReplyMd ? (
-                      <Text
-                        style={{
-                          fontSize: 12,
-                          color: 'rgba(191, 219, 254, 0.98)',
-                          fontWeight: 600,
-                          letterSpacing: 0.2,
-                          textShadow: '0 0 10px rgba(30, 64, 175, 0.35)',
-                        }}
+                  </div>
+
+                  {isUser ? (
+                    <div className="chat-bubble chat-bubble--user">{m.content}</div>
+                  ) : (
+                    <div
+                      className={`chat-bubble chat-bubble--assistant ${
+                        bubbleVariant === 'manus' ? 'chat-bubble--manus' : ''
+                      }`}
+                    >
+                      {showSteps ? (
+                        <details className="manus-steps" open={m.streaming ? true : undefined}>
+                          <summary>
+                            <span>思考与执行过程</span>
+                            <span className="ui-chip">{manusSteps.length} 步</span>
+                          </summary>
+                          <div className="manus-steps__body">
+                            {manusSteps.map((step, i) => (
+                              <div className="manus-step" key={`${m.id}-step-${i}`}>
+                                <span className="manus-step__index">步骤 {i + 1}</span>
+                                {step}
+                              </div>
+                            ))}
+                          </div>
+                        </details>
+                      ) : null}
+
+                      {showSteps && reply ? (
+                        <div className="chat-reply-label" style={{ marginTop: 12 }}>
+                          综合回复
+                        </div>
+                      ) : null}
+
+                      {reply ? (
+                        <div className="chat-markdown" style={{ marginTop: showSteps ? 6 : 0 }}>
+                          <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            rehypePlugins={[rehypeSanitize]}
+                            components={markdownComponents}
+                          >
+                            {preserveSingleNewlinesForMarkdown(reply)}
+                          </ReactMarkdown>
+                        </div>
+                      ) : null}
+
+                      {waiting ? (
+                        <div className="streaming-label">
+                          <span className="streaming-dot" />
+                          正在整理思路…
+                        </div>
+                      ) : null}
+                    </div>
+                  )}
+
+                  {!isUser && reply ? (
+                    <div className="chat-actions">
+                      <button
+                        type="button"
+                        className="chat-action"
+                        onClick={() => void copyContent(m)}
                       >
-                        综合回复
-                      </Text>
-                    ) : null}
-                    {manusReplyMd ? (
-                      <div className={bubbleVariant === 'manus' ? 'chat-markdown chat-markdown-manus' : 'chat-markdown'}>
-                        <ReactMarkdown
-                          remarkPlugins={[remarkGfm]}
-                          rehypePlugins={[rehypeSanitize]}
-                          components={markdownComponents}
-                        >
-                          {preserveSingleNewlinesForMarkdown(manusReplyMd)}
-                        </ReactMarkdown>
-                      </div>
-                    ) : null}
-                    {m.streaming && !m.content?.trim() && !manusSummaryFallback ? (
-                      <Spin size="small" />
-                    ) : null}
-                  </Flex>
-                ) : (
-                  <Text style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-                    {m.content}
-                  </Text>
-                )}
-              </Card>
-              {isUser ? <Avatar icon={<UserOutlined />} /> : null}
-            </Flex>
-          </List.Item>
-        );
-      }}
-      footer={<div ref={bottomRef} />}
-    />
+                        {copiedId === m.id ? <CheckOutlined /> : <CopyOutlined />}
+                        {copiedId === m.id ? '已复制' : '复制'}
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      {showJump ? (
+        <button type="button" className="chat-jump-latest" onClick={jumpToLatest}>
+          <ArrowDownOutlined /> 回到最新
+        </button>
+      ) : null}
+    </>
   );
 };

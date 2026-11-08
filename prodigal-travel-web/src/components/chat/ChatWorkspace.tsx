@@ -1,21 +1,14 @@
 import {
   AppstoreOutlined,
-  MenuFoldOutlined,
+  CompassOutlined,
+  HomeOutlined,
   MenuOutlined,
-  MenuUnfoldOutlined,
+  PlusOutlined,
+  RocketOutlined,
 } from '@ant-design/icons';
-import {
-  Button,
-  Drawer,
-  Flex,
-  FloatButton,
-  Grid,
-  Layout,
-  Modal,
-  Typography,
-  message,
-} from 'antd';
+import { Drawer, Grid, Modal, message } from 'antd';
 import React, { useCallback, useEffect, useState } from 'react';
+import { history } from 'umi';
 import { AuthCard } from '@/components/auth/AuthCard';
 import { MessageInput } from '@/components/chat/MessageInput';
 import { MessageList } from '@/components/chat/MessageList';
@@ -26,19 +19,15 @@ import { useAuth } from '@/contexts/AuthContext';
 import type { StreamChatKind } from '@/pages/chat/hooks/useStreaming';
 import { useChat } from '@/pages/chat/hooks/useChat';
 import type { TravelSearchMode } from '@/types';
-
-const { Sider, Content } = Layout;
-
-const CHAT_MAIN_MAX = 920;
-const CHAT_PAGE_GUTTER = 24;
+import { type ChatMode, persistChatMode } from '@/utils/chatMode';
 
 export interface ChatWorkspaceProps {
   mode: StreamChatKind;
-  /** 顶栏主标题 */
+  /** 顶栏模式名 */
   title: string;
-  /** 空列表提示 */
+  /** 空态说明 */
   emptyHint: string;
-  /** 是否显示右侧「示例问题」面板（旅游助手专用） */
+  /** 是否显示右侧「快速开始」面板（旅游助手专用） */
   showToolPanel: boolean;
 }
 
@@ -51,8 +40,9 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
   const { token } = useAuth();
   const screens = Grid.useBreakpoint();
   const isWide = screens.lg === true;
+  const isManus = mode === 'manus';
 
-  const [toolsCollapsed, setToolsCollapsed] = useState(false);
+  const [toolsOpen, setToolsOpen] = useState(true);
   const [historyDrawerOpen, setHistoryDrawerOpen] = useState(false);
   const [toolsDrawerOpen, setToolsDrawerOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -68,6 +58,8 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
     selectChat,
     deleteChat,
     sendUserMessage,
+    stopGenerating,
+    geoState,
   } = useChat({ mode });
 
   const send = useCallback(
@@ -90,42 +82,47 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
     }
   }, [token, authModalOpen]);
 
-  const loginModal = (
-    <Modal
-      title={null}
-      open={authModalOpen}
-      onCancel={() => setAuthModalOpen(false)}
-      footer={null}
-      width={440}
-      destroyOnHidden
-      centered
-      styles={{ content: { paddingTop: 20 } }}
-    >
-      <AuthCard
-        embedded
-        onLoginSuccess={() => setAuthModalOpen(false)}
-        subtitle="登录后即可发送消息并与 AI 对话"
-      />
-    </Modal>
+  const switchMode = useCallback(
+    (next: ChatMode) => {
+      if (next === mode) return;
+      persistChatMode(next);
+      history.push(next === 'manus' ? '/chat/manus' : '/chat/travel');
+    },
+    [mode]
   );
+
+  const goHome = useCallback(() => {
+    history.push('/entry');
+  }, []);
+
+  const handleNewChat = useCallback(() => {
+    newChat();
+    setHistoryDrawerOpen(false);
+  }, [newChat]);
+
+  const openLogin = useCallback(() => setAuthModalOpen(true), []);
 
   const sidebar = (
     <Sidebar
       conversations={conversations}
       activeId={activeId}
       listLoading={Boolean(token) && listLoading}
-      onNew={newChat}
+      showSessionBlock={!isWide}
+      onNew={handleNewChat}
       onSelect={(id) => {
         selectChat(id);
         setHistoryDrawerOpen(false);
       }}
       onDelete={deleteChat}
-      onOpenLogin={() => setAuthModalOpen(true)}
+      onOpenLogin={openLogin}
     />
   );
 
   const toolPanel = (
     <ToolPanel
+      mode={mode}
+      searchMode={searchMode}
+      showQuickPrompts={messages.length > 0}
       onQuickPrompt={(t) => {
         send(t);
         setToolsDrawerOpen(false);
@@ -133,316 +130,172 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
     />
   );
 
-  const isManusSolo = mode === 'manus';
-
-  const headerBar = (
-    <Flex
-      justify="space-between"
-      align="center"
-      wrap="wrap"
-      gap="middle"
-      style={{ flexShrink: 0, width: '100%' }}
-    >
-      <Flex
-        align="center"
-        gap="middle"
-        wrap="wrap"
-        style={{ flex: 1, minWidth: 0 }}
-      >
-        <Typography.Title
-          level={isManusSolo ? 4 : 5}
-          style={{
-            margin: 0,
-            color: isManusSolo ? '#f8fafc' : '#e2e8f0',
-            textShadow: isManusSolo
-              ? '0 0 22px rgba(147, 197, 253, 0.4)'
-              : '0 0 18px rgba(125, 211, 252, 0.25)',
-            letterSpacing: isManusSolo ? 0.4 : 0.2,
-          }}
-        >
-          {title}
-        </Typography.Title>
-      </Flex>
-      {isManusSolo ? (
-        <UserSessionBlock
-          variant="toolbar"
-          onOpenLogin={() => setAuthModalOpen(true)}
-        />
-      ) : null}
-    </Flex>
-  );
-
-  const chatMain = (
-    <Flex
-      vertical
-      gap={12}
-      style={{
-        flex: 1,
-        minHeight: 0,
-        width: '100%',
-        maxWidth: CHAT_MAIN_MAX,
-        marginInline: 'auto',
-        overflow: 'hidden',
-        position: 'relative',
-        zIndex: 1,
-      }}
-    >
-      {headerBar}
-      {!isWide && !isManusSolo ? (
-        <Flex
-          justify="space-between"
-          align="center"
-          gap="small"
-          wrap="wrap"
-          style={{ flexShrink: 0 }}
-        >
-          <Button type="default" icon={<MenuOutlined />} onClick={() => setHistoryDrawerOpen(true)}>
-            对话列表
-          </Button>
-          {showToolPanel ? (
-            <Button
-              type="default"
-              icon={<AppstoreOutlined />}
-              onClick={() => setToolsDrawerOpen(true)}
-            >
-              示例问题
-            </Button>
-          ) : null}
-        </Flex>
-      ) : null}
-      <div
-        style={{
-          flex: 1,
-          minHeight: 0,
-          overflow: 'auto',
-        }}
-      >
-        <MessageList
-          messages={messages}
-          bubbleVariant={mode}
-          emptyHint={emptyHint}
-        />
+  const topbar = (
+    <header className="chat-topbar">
+      <div className="chat-topbar__group">
+        <span className="brand-mark">
+          <img src="/logo.svg" alt="" width={22} height={22} />
+        </span>
+        <span className="chat-topbar__title">{title}</span>
       </div>
-      <div style={{ flexShrink: 0 }}>
-        <MessageInput
-          disabled={sending}
-          onSend={send}
-          showSearchModeSwitch={!isManusSolo}
-          searchMode={searchMode}
-          onSearchModeChange={setSearchMode}
-        />
-        <Typography.Text
-          type="secondary"
-          style={{
-            display: 'block',
-            textAlign: 'center',
-            fontSize: 12,
-            marginTop: 6,
-            lineHeight: 1.5,
-            color: isManusSolo
-              ? 'rgba(226, 232, 240, 0.78)'
-              : 'rgba(226, 232, 240, 0.62)',
-          }}
-        >
-          AI 生成内容仅供参考，请注意辨别真伪
-        </Typography.Text>
+
+      <div className="chat-topbar__group">
+        <div className="mode-switch" role="group" aria-label="切换工作模式">
+          <button
+            type="button"
+            className={`mode-switch__item ${!isManus ? 'mode-switch__item--active' : ''}`}
+            onClick={() => switchMode('travel')}
+          >
+            <CompassOutlined />
+            {isWide ? '旅游助手' : '助手'}
+          </button>
+          <button
+            type="button"
+            className={`mode-switch__item mode-switch__item--violet ${
+              isManus ? 'mode-switch__item--active' : ''
+            }`}
+            onClick={() => switchMode('manus')}
+          >
+            <RocketOutlined />
+            {isWide ? '超级智能体' : '智能体'}
+          </button>
+        </div>
       </div>
-    </Flex>
+
+      <div className="chat-topbar__group chat-topbar__group--right">
+        {/* 宽屏的新建入口已在侧栏，顶栏不重复；窄屏侧栏收进抽屉时再显示 */}
+        {!isWide ? (
+          <button type="button" className="icon-btn" onClick={handleNewChat}>
+            <PlusOutlined /> 新对话
+          </button>
+        ) : null}
+        {isWide && showToolPanel ? (
+          <button
+            type="button"
+            className="icon-btn"
+            onClick={() => setToolsOpen((v) => !v)}
+          >
+            <AppstoreOutlined />
+            {toolsOpen ? '收起示例' : '示例问题'}
+          </button>
+        ) : null}
+        {!isWide ? (
+          <button
+            type="button"
+            className="icon-btn"
+            onClick={() => setHistoryDrawerOpen(true)}
+          >
+            <MenuOutlined /> 历史
+          </button>
+        ) : null}
+        {!isWide && showToolPanel ? (
+          <button
+            type="button"
+            className="icon-btn"
+            onClick={() => setToolsDrawerOpen(true)}
+          >
+            <AppstoreOutlined /> 示例
+          </button>
+        ) : null}
+        <button
+          type="button"
+          className="icon-btn icon-btn--square"
+          onClick={goHome}
+          title="返回首页"
+          aria-label="返回首页"
+        >
+          <HomeOutlined />
+        </button>
+        {isWide ? <UserSessionBlock variant="toolbar" onOpenLogin={openLogin} /> : null}
+      </div>
+    </header>
   );
-
-  /** 超级智能体：无左右侧栏与抽屉，仅顶栏 + 对话区 + 用户块 */
-  if (isManusSolo) {
-    return (
-      <>
-        <Layout
-          style={{
-            flex: 1,
-            minHeight: 0,
-            height: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-          }}
-        >
-          <Content
-            className="entry-geek-page"
-            style={{
-              flex: 1,
-              minHeight: 0,
-              display: 'flex',
-              flexDirection: 'column',
-              padding: isWide ? '12px 24px 8px' : '12px 16px 8px',
-              overflow: 'hidden',
-              position: 'relative',
-            }}
-          >
-            <div className="entry-geek-grid" />
-            <div className="entry-geek-orb entry-geek-orb-left" />
-            <div className="entry-geek-orb entry-geek-orb-right" />
-            {chatMain}
-          </Content>
-        </Layout>
-        {loginModal}
-      </>
-    );
-  }
-
-  if (!isWide) {
-    return (
-      <>
-        <Layout
-          style={{
-            flex: 1,
-            minHeight: 0,
-            height: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-          }}
-        >
-          <Content
-            className="entry-geek-page"
-            style={{
-              flex: 1,
-              minHeight: 0,
-              display: 'flex',
-              flexDirection: 'column',
-              padding: '12px 16px 8px',
-              overflow: 'hidden',
-              position: 'relative',
-            }}
-          >
-            <div className="entry-geek-grid" />
-            <div className="entry-geek-orb entry-geek-orb-left" />
-            <div className="entry-geek-orb entry-geek-orb-right" />
-            {chatMain}
-          </Content>
-          <Drawer
-            title="历史对话"
-            placement="left"
-            width={280}
-            open={historyDrawerOpen}
-            onClose={() => setHistoryDrawerOpen(false)}
-            destroyOnHidden={false}
-            styles={{ body: { padding: 0, height: '100%' } }}
-          >
-            <div className="chat-sider-inner">{sidebar}</div>
-          </Drawer>
-          {showToolPanel ? (
-            <Drawer
-              title="示例与说明"
-              placement="right"
-              width={Math.min(360, typeof window !== 'undefined' ? window.innerWidth - 24 : 360)}
-              open={toolsDrawerOpen}
-              onClose={() => setToolsDrawerOpen(false)}
-              destroyOnHidden={false}
-            >
-              {toolPanel}
-            </Drawer>
-          ) : null}
-        </Layout>
-        {loginModal}
-      </>
-    );
-  }
 
   return (
-    <>
-      <div
-        style={{
-          flex: 1,
-          minHeight: 0,
-          height: '100%',
-          overflow: 'hidden',
-          display: 'flex',
-          flexDirection: 'column',
-          paddingInline: CHAT_PAGE_GUTTER,
-          boxSizing: 'border-box',
-        }}
-      >
-        <Layout
-          hasSider
-          style={{
-            flex: 1,
-            minHeight: 0,
-            height: '100%',
-            overflow: 'hidden',
-          }}
-        >
-          <Sider
-            width={280}
-            theme="dark"
-            style={{
-              overflow: 'hidden',
-              height: '100%',
-              borderRight: '1px solid rgba(255, 255, 255, 0.08)',
-            }}
-          >
-            <div className="chat-sider-inner">{sidebar}</div>
-          </Sider>
-          <Layout
-            style={{
-              flex: 1,
-              minWidth: 0,
-              minHeight: 0,
-              height: '100%',
-              display: 'flex',
-              flexDirection: 'column',
-              overflow: 'hidden',
-            }}
-          >
-            <Content
-              className="entry-geek-page"
-              style={{
-                flex: 1,
-                minHeight: 0,
-                display: 'flex',
-                flexDirection: 'column',
-                padding: '12px 24px 8px',
-                overflow: 'hidden',
-                position: 'relative',
-              }}
-            >
-              <div className="entry-geek-grid" />
-              <div className="entry-geek-orb entry-geek-orb-left" />
-              <div className="entry-geek-orb entry-geek-orb-right" />
-              {chatMain}
-              {showToolPanel ? (
-                <FloatButton
-                  icon={toolsCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-                  type="default"
-                  style={{ bottom: 96, right: 24 }}
-                  onClick={() => setToolsCollapsed((c) => !c)}
-                  tooltip={toolsCollapsed ? '展开工具栏' : '收起工具栏'}
-                />
-              ) : null}
-            </Content>
-          </Layout>
-          {showToolPanel && !toolsCollapsed ? (
-            <Sider
-              width={360}
-              theme="dark"
-              style={{
-                overflow: 'hidden',
-                height: '100%',
-                borderLeft: '1px solid rgba(255, 255, 255, 0.08)',
-              }}
-            >
-              <div
-                style={{
-                  height: '100%',
-                  overflow: 'auto',
-                  padding: 12,
-                  boxSizing: 'border-box',
-                }}
-              >
-                <ToolPanel onQuickPrompt={send} />
-              </div>
-            </Sider>
-          ) : null}
-        </Layout>
+    <div className="app-shell">
+      {topbar}
+
+      <div className="chat-layout">
+        {isWide ? <aside className="chat-side">{sidebar}</aside> : null}
+
+        <main className="chat-main">
+          <div className="chat-scroll-host">
+            <MessageList
+              messages={messages}
+              bubbleVariant={mode}
+              emptyHint={emptyHint}
+              onQuickPrompt={send}
+            />
+          </div>
+          <div className="chat-dock">
+            <MessageInput
+              disabled={sending}
+              onSend={send}
+              onStop={stopGenerating}
+              placeholder={
+                isManus
+                  ? '描述一个较复杂的任务目标，或点一个示例问题开始…'
+                  : '描述你的旅行问题，或点一个示例问题开始…'
+              }
+              showSearchModeSwitch={!isManus}
+              searchMode={searchMode}
+              onSearchModeChange={setSearchMode}
+              loginRequired={!token}
+              onOpenLogin={openLogin}
+              geoStatus={isManus ? undefined : geoState.status}
+            />
+            <div className="chat-disclaimer">
+              AI 生成内容仅供参考，请自行核实天气、票价与开放时间等信息
+            </div>
+          </div>
+        </main>
+
+        {isWide && showToolPanel && toolsOpen ? (
+          <aside className="chat-tools">{toolPanel}</aside>
+        ) : null}
       </div>
-      {loginModal}
-    </>
+
+      {!isWide ? (
+        <Drawer
+          title="历史对话"
+          placement="left"
+          width={280}
+          open={historyDrawerOpen}
+          onClose={() => setHistoryDrawerOpen(false)}
+          styles={{ body: { padding: 0, height: '100%' } }}
+        >
+          {sidebar}
+        </Drawer>
+      ) : null}
+
+      {!isWide && showToolPanel ? (
+        <Drawer
+          title="快速开始"
+          placement="right"
+          width={Math.min(360, typeof window !== 'undefined' ? window.innerWidth - 24 : 360)}
+          open={toolsDrawerOpen}
+          onClose={() => setToolsDrawerOpen(false)}
+        >
+          {toolPanel}
+        </Drawer>
+      ) : null}
+
+      <Modal
+        title={null}
+        open={authModalOpen}
+        onCancel={() => setAuthModalOpen(false)}
+        footer={null}
+        width={440}
+        destroyOnHidden
+        centered
+        styles={{ content: { paddingTop: 20 } }}
+      >
+        <AuthCard
+          embedded
+          onLoginSuccess={() => setAuthModalOpen(false)}
+          subtitle="登录后即可发送消息并与 AI 对话"
+        />
+      </Modal>
+    </div>
   );
 };

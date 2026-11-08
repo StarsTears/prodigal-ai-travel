@@ -1,168 +1,158 @@
 import {
+  ArrowRightOutlined,
+  BookOutlined,
+  CheckOutlined,
   CompassOutlined,
-  FireOutlined,
-  RobotOutlined,
+  GlobalOutlined,
   RocketOutlined,
   ThunderboltOutlined,
 } from '@ant-design/icons';
-import { Button, Card, Flex, Space, Tag, Typography } from 'antd';
-import React from 'react';
+import { Modal } from 'antd';
+import React, { useState } from 'react';
 import { history } from 'umi';
-import {
-  type ChatMode,
-  persistChatMode,
-} from '@/utils/chatMode';
+import { AuthCard } from '@/components/auth/AuthCard';
+import { UserSessionBlock } from '@/components/chat/UserSessionBlock';
+import { type ChatMode, persistChatMode } from '@/utils/chatMode';
 
-const { Title, Paragraph, Text } = Typography;
+const TRAVEL_FEATURES = [
+  '「联网工具」查天气、景点与实时信息',
+  '「知识库 RAG」只依据已入库文档，资料不足会说明',
+  '会话保存在服务端，可随时回到历史对话',
+];
 
-const cardBodyStyle: React.CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  height: '100%',
-  minHeight: 220,
-};
+const MANUS_FEATURES = [
+  '自主拆解任务，多步推理并调用工具',
+  '思考与执行过程可展开，结论单独呈现',
+  '会话仅保存在本机，适合一次性复杂任务',
+];
 
 const EntryPage: React.FC = () => {
+  const [authOpen, setAuthOpen] = useState(false);
+
   const go = (mode: ChatMode) => {
     persistChatMode(mode);
-    history.push(
-      mode === 'manus' ? '/chat/manus?fresh=1' : '/chat/travel'
-    );
+    // 不再附带 fresh=1：进入智能体时保留本机历史，需要新对话用顶栏按钮
+    history.push(mode === 'manus' ? '/chat/manus' : '/chat/travel');
   };
 
   return (
-    <Flex
-      className="entry-geek-page"
-      vertical
-      align="center"
-      justify="center"
-      gap={32}
-      style={{
-        flex: 1,
-        minHeight: 0,
-        padding: '40px 20px 56px',
-        overflow: 'auto',
-        position: 'relative',
-      }}
-    >
-      <div className="entry-geek-grid" />
-      <div className="entry-geek-orb entry-geek-orb-left" />
-      <div className="entry-geek-orb entry-geek-orb-right" />
-      <Flex vertical align="center" gap={8} style={{ maxWidth: 520 }}>
-        <Space size={8} wrap>
-          <Tag color="processing" style={{ borderRadius: 999 }}>
-            vNext AI Experience
-          </Tag>
-          <Tag color="purple" style={{ borderRadius: 999 }}>
-            Live Streaming
-          </Tag>
-        </Space>
-        <ThunderboltOutlined style={{ fontSize: 42, color: '#7dd3fc' }} />
-        <Title
-          level={2}
-          style={{
-            margin: 0,
-            textAlign: 'center',
-            color: '#fff',
-            textShadow: '0 0 24px rgba(56, 189, 248, 0.45)',
-          }}
-        >
-          Prodigal AI Command Deck
-        </Title>
-        <Text
-          style={{
-            textAlign: 'center',
-            fontSize: 15,
-            color: 'rgba(226, 232, 240, 0.9)',
-          }}
-        >
-          进入你的智能中控台，解锁实时流式对话、工具编排与任务级自动化。
-        </Text>
-      </Flex>
+    <div className="app-shell entry-page">
+      <nav className="entry-nav">
+        <div className="chat-topbar__group">
+          <span className="brand-mark">
+            <img src="/logo.svg" alt="" width={22} height={22} />
+          </span>
+          <span className="entry-nav__title">AI 旅行工作台</span>
+        </div>
+        <UserSessionBlock variant="toolbar" onOpenLogin={() => setAuthOpen(true)} />
+      </nav>
 
-      <Flex
-        gap={24}
-        wrap="wrap"
-        justify="center"
-        style={{ maxWidth: 940, width: '100%', zIndex: 1 }}
+      <main className="entry-main">
+        <section className="entry-hero">
+          <div className="entry-hero__eyebrow">
+            <span className="ui-chip ui-chip--brand">
+              <ThunderboltOutlined /> 实时流式对话
+            </span>
+            <span className="ui-chip ui-chip--violet">工具编排</span>
+          </div>
+          <h1 className="entry-hero__title">
+            把旅行问题，交给<em>会查证的 AI</em>
+          </h1>
+          <p className="entry-hero__desc">
+            两种工作方式：旅游助手负责查资料、看天气、做行程；超级智能体负责把复杂目标拆成步骤并执行。
+            选一个入口开始，进入后随时可以在顶栏切换。
+          </p>
+          <span className="entry-hero__en">AI Travel Workspace</span>
+        </section>
+
+        <section className="entry-cards">
+          <article className="entry-card entry-card--blue">
+            <div className="entry-card__icon entry-card__icon--blue">
+              <CompassOutlined />
+            </div>
+            <h2 className="entry-card__title">AI 旅游助手</h2>
+            <p className="entry-card__desc">
+              问路线、查天气、找景点，一键得到可执行的出行建议；回答依据可以在联网工具与知识库之间切换。
+            </p>
+            <ul className="entry-card__features">
+              {TRAVEL_FEATURES.map((f) => (
+                <li key={f}>
+                  <CheckOutlined />
+                  <span>{f}</span>
+                </li>
+              ))}
+            </ul>
+            <button
+              type="button"
+              className="entry-card__cta entry-card__cta--blue"
+              onClick={() => go('travel')}
+            >
+              进入旅游助手 <ArrowRightOutlined />
+            </button>
+            <div className="entry-card__foot">适合：查资料 · 做行程 · 问天气</div>
+          </article>
+
+          <article className="entry-card entry-card--violet">
+            <div className="entry-card__icon entry-card__icon--violet">
+              <RocketOutlined />
+            </div>
+            <h2 className="entry-card__title">超级智能体</h2>
+            <p className="entry-card__desc">
+              面对多城市对比、带预算约束的规划等复杂任务，让智能体自己决定步骤、调用工具并汇总结论。
+            </p>
+            <ul className="entry-card__features">
+              {MANUS_FEATURES.map((f) => (
+                <li key={f}>
+                  <CheckOutlined />
+                  <span>{f}</span>
+                </li>
+              ))}
+            </ul>
+            <button
+              type="button"
+              className="entry-card__cta entry-card__cta--violet"
+              onClick={() => go('manus')}
+            >
+              启动超级智能体 <ArrowRightOutlined />
+            </button>
+            <div className="entry-card__foot">适合：多步任务 · 信息对比 · 自动执行</div>
+          </article>
+        </section>
+
+        <section className="entry-guide">
+          <span className="entry-guide__item">
+            <GlobalOutlined /> 实时信息 <strong>联网工具</strong>
+          </span>
+          <span className="entry-guide__item">
+            <BookOutlined /> 严格依据文档 <strong>知识库 RAG</strong>
+          </span>
+          <span className="entry-guide__item">
+            <RocketOutlined /> 复杂任务 <strong>超级智能体</strong>
+          </span>
+        </section>
+
+        <p className="entry-footer">
+          未登录可浏览界面，发送消息前需登录授权　·　AI 生成内容仅供参考，请自行核实关键信息
+        </p>
+      </main>
+
+      <Modal
+        title={null}
+        open={authOpen}
+        onCancel={() => setAuthOpen(false)}
+        footer={null}
+        width={440}
+        destroyOnHidden
+        centered
+        styles={{ content: { paddingTop: 20 } }}
       >
-        <Card
-          className="entry-geek-card entry-geek-card-blue"
-          hoverable
-          style={{
-            flex: '1 1 300px',
-            maxWidth: 400,
-            borderRadius: 16,
-          }}
-          styles={{ body: cardBodyStyle }}
-        >
-          <Flex align="center" gap={12} style={{ marginBottom: 12 }}>
-            <CompassOutlined
-              style={{ fontSize: 28, color: '#7dd3fc' }}
-            />
-            <Title level={4} style={{ margin: 0, color: '#f8fafc' }}>
-              AI 旅游助手
-            </Title>
-          </Flex>
-          <Paragraph style={{ flex: 1, color: 'rgba(226, 232, 240, 0.86)' }}>
-            城市路线、天气洞察、景点速查一键联动，像科幻 HUD 一样快速给你可执行出行方案。
-          </Paragraph>
-          <Flex gap={8} style={{ marginBottom: 14 }} wrap>
-            <Tag color="cyan">流式回答</Tag>
-            <Tag color="blue">旅行决策</Tag>
-            <Tag color="geekblue">即时建议</Tag>
-          </Flex>
-          <Button
-            type="primary"
-            size="large"
-            block
-            className="entry-geek-btn entry-geek-btn-blue"
-            icon={<RobotOutlined />}
-            onClick={() => go('travel')}
-          >
-            进入 AI 旅游助手
-          </Button>
-        </Card>
-
-        <Card
-          className="entry-geek-card entry-geek-card-purple"
-          hoverable
-          style={{
-            flex: '1 1 300px',
-            maxWidth: 400,
-            borderRadius: 16,
-          }}
-          styles={{ body: cardBodyStyle }}
-        >
-          <Flex align="center" gap={12} style={{ marginBottom: 12 }}>
-            <RocketOutlined style={{ fontSize: 28, color: '#c4b5fd' }} />
-            <Title level={4} style={{ margin: 0, color: '#f8fafc' }}>
-              超级智能体
-            </Title>
-          </Flex>
-          <Paragraph style={{ flex: 1, color: 'rgba(226, 232, 240, 0.86)' }}>
-            多步推理 + 工具调度 + 思考过程可视化，适合复杂任务的重火力自动执行模式。
-          </Paragraph>
-          <Flex gap={8} style={{ marginBottom: 14 }} wrap>
-            <Tag color="purple">Agent Loop</Tag>
-            <Tag color="magenta">多工具编排</Tag>
-            <Tag color="volcano">高阶任务</Tag>
-          </Flex>
-          <Button
-            size="large"
-            block
-            className="entry-geek-btn entry-geek-btn-purple"
-            icon={<RocketOutlined />}
-            onClick={() => go('manus')}
-          >
-            启动超级智能体
-          </Button>
-        </Card>
-      </Flex>
-      <Text style={{ color: 'rgba(148, 163, 184, 0.85)', fontSize: 12, zIndex: 1 }}>
-        <FireOutlined /> 未登录也可预览模式；发送消息前需要登录授权。
-      </Text>
-    </Flex>
+        <AuthCard
+          embedded
+          onLoginSuccess={() => setAuthOpen(false)}
+          subtitle="登录后即可发送消息并与 AI 对话"
+        />
+      </Modal>
+    </div>
   );
 };
 

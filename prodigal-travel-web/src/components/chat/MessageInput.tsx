@@ -1,55 +1,83 @@
-import { SendOutlined } from '@ant-design/icons';
-import { Button, Input, theme } from 'antd';
+import {
+  BookOutlined,
+  EnvironmentOutlined,
+  GlobalOutlined,
+  PauseOutlined,
+  SendOutlined,
+} from '@ant-design/icons';
+import { Button, Input } from 'antd';
 import React, { useCallback, useState } from 'react';
 import type { TravelSearchMode } from '@/types';
-
-export interface MessageInputProps {
-  disabled?: boolean;
-  onSend: (text: string) => void | Promise<void>;
-  placeholder?: string;
-  /** 是否显示「联网搜索 / RAG 问答」切换（仅旅游助手显示） */
-  showSearchModeSwitch?: boolean;
-  searchMode?: TravelSearchMode;
-  onSearchModeChange?: (mode: TravelSearchMode) => void;
-}
+import { GEO_STATUS_TEXT, type GeoStatus } from '@/utils/preferences';
 
 const { TextArea } = Input;
 
-const MODE_OPTIONS: { value: TravelSearchMode; label: string }[] = [
-  { value: 'web', label: '联网搜索' },
-  { value: 'rag', label: 'RAG 问答' },
+export interface MessageInputProps {
+  /** 正在生成中：保留草稿可编辑，但禁止再次发送，改为「停止生成」 */
+  disabled?: boolean;
+  onSend: (text: string) => void | Promise<void>;
+  onStop?: () => void;
+  placeholder?: string;
+  /** 仅旅游助手显示「联网工具 / 知识库 RAG」切换 */
+  showSearchModeSwitch?: boolean;
+  searchMode?: TravelSearchMode;
+  onSearchModeChange?: (mode: TravelSearchMode) => void;
+  /** 未登录时在输入区直接给出登录入口，而不是点击发送后才提示 */
+  loginRequired?: boolean;
+  onOpenLogin?: () => void;
+  /** 当前定位状态，仅旅游助手展示 */
+  geoStatus?: GeoStatus;
+}
+
+const GEO_SHORT_LABEL: Partial<Record<GeoStatus, string>> = {
+  granted: '已定位',
+  pending: '定位中…',
+  denied: 'IP 定位',
+  unsupported: 'IP 定位',
+  timeout: 'IP 定位',
+  error: 'IP 定位',
+  off: '定位已关',
+};
+
+const MODE_OPTIONS: {
+  value: TravelSearchMode;
+  label: string;
+  icon: React.ReactNode;
+  hint: string;
+}[] = [
+  {
+    value: 'web',
+    label: '联网工具',
+    icon: <GlobalOutlined />,
+    hint: '可查天气 · 实时搜索',
+  },
+  {
+    value: 'rag',
+    label: '知识库 RAG',
+    icon: <BookOutlined />,
+    hint: '仅依据入库文档 · 不联网',
+  },
 ];
 
 export const MessageInput: React.FC<MessageInputProps> = ({
-  disabled,
+  disabled = false,
   onSend,
-  placeholder = '输入问题，Enter 发送；Shift + Enter 换行',
+  onStop,
+  placeholder = '描述你的旅行问题，或点一个示例问题开始…',
   showSearchModeSwitch = false,
   searchMode = 'web',
   onSearchModeChange,
+  loginRequired = false,
+  onOpenLogin,
+  geoStatus,
 }) => {
-  const { token } = theme.useToken();
   const [value, setValue] = useState('');
-  const [focused, setFocused] = useState(false);
   const hasValue = value.trim().length > 0;
-  const isHighlight = focused || hasValue;
-
-  const composerStyle: React.CSSProperties = {
-    position: 'relative',
-    borderRadius: 12,
-    border: isHighlight
-      ? '1px solid rgba(56, 189, 248, 0.62)'
-      : '1px solid rgba(125, 211, 252, 0.42)',
-    boxShadow: isHighlight
-      ? '0 0 0 1px rgba(56, 189, 248, 0.2), 0 14px 28px rgba(2, 6, 23, 0.44)'
-      : '0 10px 22px rgba(2, 6, 23, 0.38)',
-    padding: '4px 4px 4px 8px',
-    background: isHighlight
-      ? 'linear-gradient(180deg, rgba(15, 23, 42, 0.86), rgba(2, 6, 23, 0.74))'
-      : 'linear-gradient(180deg, rgba(15, 23, 42, 0.78), rgba(2, 6, 23, 0.62))',
-    backdropFilter: 'blur(10px)',
-    transition: 'all 180ms ease',
-  };
+  const activeMode = MODE_OPTIONS.find((o) => o.value === searchMode) ?? MODE_OPTIONS[0];
+  const sourceHint = showSearchModeSwitch
+    ? activeMode.hint
+    : '思考过程可展开，最终结论单独呈现';
+  const geoLabel = geoStatus ? GEO_SHORT_LABEL[geoStatus] : undefined;
 
   const submit = useCallback(async () => {
     const t = value.trim();
@@ -59,98 +87,107 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   }, [disabled, onSend, value]);
 
   return (
-    <div style={composerStyle}>
+    <div className="composer">
+      <div className="composer__top">
+        {showSearchModeSwitch ? (
+          <div className="source-switch" role="group" aria-label="回答模式">
+            {MODE_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                aria-pressed={searchMode === opt.value}
+                className={`source-switch__item ${
+                  searchMode === opt.value ? 'source-switch__item--active' : ''
+                }`}
+                onClick={() => onSearchModeChange?.(opt.value)}
+              >
+                {opt.icon}
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <span className="ui-chip ui-chip--violet">
+            <span className="ui-chip__dot" />
+            多步推理 · 工具编排
+          </span>
+        )}
+        <div className="composer__meta">
+          <span className="composer__source">{sourceHint}</span>
+          {geoLabel && geoStatus ? (
+            <span
+              className={`composer__geo ${
+                geoStatus === 'granted' ? 'composer__geo--ok' : ''
+              }`}
+              title={GEO_STATUS_TEXT[geoStatus]}
+            >
+              <EnvironmentOutlined />
+              {geoLabel}
+            </span>
+          ) : null}
+        </div>
+      </div>
+
       <TextArea
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
         onKeyDown={(e) => {
-          if (e.key === 'Enter' && !e.shiftKey) {
+          if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
             e.preventDefault();
             void submit();
           }
         }}
         placeholder={placeholder}
-        disabled={disabled}
         autoSize={{ minRows: 2, maxRows: 8 }}
         variant="borderless"
-        styles={{
-          textarea: {
-            padding: '6px 8px 4px',
-            fontSize: token.fontSize,
-            lineHeight: 1.5,
-            background: 'transparent',
-            color: 'rgba(241, 245, 249, 0.95)',
-          },
-        }}
+        styles={{ textarea: { padding: '6px 4px', background: 'transparent' } }}
       />
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 8,
-          padding: '0 6px 6px 4px',
-        }}
-      >
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          {showSearchModeSwitch
-            ? MODE_OPTIONS.map((opt) => {
-                const active = searchMode === opt.value;
-                return (
-                  <Button
-                    key={opt.value}
-                    size="small"
-                    type={active ? 'primary' : 'default'}
-                    onClick={() => onSearchModeChange?.(opt.value)}
-                    style={{
-                      borderRadius: 999,
-                      ...(active
-                        ? {}
-                        : {
-                            color: 'rgba(203, 213, 225, 0.95)',
-                            background: 'rgba(15, 23, 42, 0.9)',
-                            borderColor: 'rgba(125, 211, 252, 0.46)',
-                          }),
-                    }}
-                  >
-                    {opt.label}
-                  </Button>
-                );
-              })
-            : null}
-          {showSearchModeSwitch && searchMode === 'rag' ? (
-            <span
-              style={{
-                alignSelf: 'center',
-                fontSize: 12,
-                color: 'rgba(203, 213, 225, 0.72)',
-              }}
-            >
-              仅依据知识库作答，不联网
-            </span>
+
+      <div className="composer__foot">
+        <span className="composer__hint">
+          {disabled ? (
+            '正在生成，可点击「停止生成」中断'
+          ) : (
+            <>
+              Enter 发送
+              <span className="composer__hint-extra"> · Shift + Enter 换行</span>
+            </>
+          )}
+          {hasValue ? <span className="composer__count">　·　{value.length} 字</span> : null}
+          {loginRequired ? (
+            <>
+              　·　
+              <button
+                type="button"
+                className="chat-action"
+                style={{ opacity: 1, color: '#93c5fd' }}
+                onClick={() => onOpenLogin?.()}
+              >
+                登录后发送
+              </button>
+            </>
           ) : null}
-        </div>
-        <Button
-          type={hasValue ? 'primary' : 'default'}
-          size="middle"
-          icon={<SendOutlined />}
-          loading={disabled}
-          onClick={() => void submit()}
-          disabled={disabled}
-          style={{
-            color: hasValue ? undefined : 'rgba(148, 163, 184, 0.96)',
-            borderColor: hasValue ? undefined : 'rgba(125, 211, 252, 0.46)',
-            background: hasValue ? undefined : 'rgba(15, 23, 42, 0.9)',
-            boxShadow: hasValue
-              ? '0 6px 18px rgba(14, 165, 233, 0.35)'
-              : '0 2px 10px rgba(2, 6, 23, 0.3)',
-            opacity: disabled ? 0.55 : 1,
-          }}
-        >
-          发送
-        </Button>
+        </span>
+
+        {disabled ? (
+          <Button
+            danger
+            icon={<PauseOutlined />}
+            onClick={() => onStop?.()}
+            disabled={!onStop}
+          >
+            停止生成
+          </Button>
+        ) : (
+          <Button
+            type="primary"
+            icon={<SendOutlined />}
+            onClick={() => void submit()}
+            disabled={!hasValue}
+          >
+            发送
+          </Button>
+        )}
       </div>
     </div>
   );

@@ -1,8 +1,8 @@
-import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
-import { Button, Empty, Flex, Popconfirm, Spin, Typography, theme } from 'antd';
-import React, { useMemo } from 'react';
-import type { ConversationRecord } from '@/types';
+import { DeleteOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
+import { Button, Input, Popconfirm, Spin } from 'antd';
+import React, { useMemo, useState } from 'react';
 import { UserSessionBlock } from '@/components/chat/UserSessionBlock';
+import type { ConversationRecord } from '@/types';
 
 type DateBucketKey = 'today' | 'yesterday' | 'week' | 'month' | 'older';
 
@@ -24,7 +24,6 @@ const DATE_BUCKET_LABEL: Record<DateBucketKey, string> = {
 
 const MS_PER_DAY = 86_400_000;
 
-/** 按本地日历日将 `updatedAt` 归入 DeepSeek 式分组（今天 / 昨天 / 7 天内 / 30 天内 / 更早）。 */
 function bucketForUpdatedAt(updatedAt: number): DateBucketKey {
   const ts = Math.min(updatedAt, Date.now());
   const now = new Date();
@@ -33,13 +32,10 @@ function bucketForUpdatedAt(updatedAt: number): DateBucketKey {
     now.getMonth(),
     now.getDate()
   ).getTime();
-  const startYesterday = startToday - MS_PER_DAY;
-  const startWeek = startToday - 7 * MS_PER_DAY;
-  const startMonth = startToday - 30 * MS_PER_DAY;
   if (ts >= startToday) return 'today';
-  if (ts >= startYesterday) return 'yesterday';
-  if (ts >= startWeek) return 'week';
-  if (ts >= startMonth) return 'month';
+  if (ts >= startToday - MS_PER_DAY) return 'yesterday';
+  if (ts >= startToday - 7 * MS_PER_DAY) return 'week';
+  if (ts >= startToday - 30 * MS_PER_DAY) return 'month';
   return 'older';
 }
 
@@ -63,23 +59,26 @@ function groupConversationsByDate(
   })).filter((g) => g.items.length > 0);
 }
 
+/** 会话标题来自首句提问，展示前做一次清洗，避免换行/空白把列表撑乱。 */
+function cleanTitle(title: string): string {
+  const t = (title ?? '').replace(/\s+/g, ' ').trim();
+  return t || '新对话';
+}
+
 export interface SidebarProps {
   conversations: ConversationRecord[];
   activeId: string | null;
   onNew: () => void;
   onSelect: (id: string) => void;
   onDelete: (id: string) => void | Promise<void>;
-  /** 未登录时点击打开登录弹窗 */
   onOpenLogin?: () => void;
   /**
-   * 已移除侧栏搜索框；保留可选字段并默认 `''`，避免旧代码或合并残留仍引用 `search` 时报 ReferenceError。
+   * 是否在底部显示用户/登录入口。
+   * 宽屏时顶栏已有用户胶囊，这里不再重复；窄屏侧栏是抽屉，需要保留入口。
    */
-  search?: string;
-  /** 已登录且正在从服务端拉取会话列表 */
+  showSessionBlock?: boolean;
   listLoading?: boolean;
 }
-
-const { Text } = Typography;
 
 export const Sidebar: React.FC<SidebarProps> = ({
   conversations,
@@ -88,172 +87,106 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelect,
   onDelete,
   onOpenLogin,
-  search = '',
+  showSessionBlock = false,
   listLoading = false,
 }) => {
-  const { token: themeToken } = theme.useToken();
-  const textPrimary = 'rgba(226, 232, 240, 0.94)';
-  const textSecondary = 'rgba(148, 163, 184, 0.9)';
+  const [keyword, setKeyword] = useState('');
 
-  const groupedConversations = useMemo(
-    () => groupConversationsByDate(conversations),
-    [conversations]
-  );
+  const grouped = useMemo(() => {
+    const q = keyword.trim().toLowerCase();
+    const filtered = q
+      ? conversations.filter((c) => cleanTitle(c.title).toLowerCase().includes(q))
+      : conversations;
+    return groupConversationsByDate(filtered);
+  }, [conversations, keyword]);
 
   return (
-    <Flex
-      vertical
-      style={{
-        height: '100%',
-        minHeight: 0,
-        padding: '22px 12px 12px',
-        boxSizing: 'border-box',
-        gap: 0,
-      }}
-      data-deprecated-sidebar-search={search || undefined}
-    >
-      <Flex
-        align="center"
-        gap={10}
-        style={{ flexShrink: 0, marginBottom: 22 }}
-      >
-        <img
-          src="/logo.svg"
-          alt=""
-          width={28}
-          height={28}
-          style={{ display: 'block', flexShrink: 0 }}
-        />
-        <Typography.Text strong style={{ fontSize: 15, color: textPrimary }}>
-          AI 旅游助手
-        </Typography.Text>
-      </Flex>
-      <div style={{ flexShrink: 0, marginBottom: 18 }}>
-        <Button type="primary" icon={<PlusOutlined />} block onClick={onNew}>
-          新对话
-        </Button>
-      </div>
-      <div
-        className="prodigal-sidebar-conv-scroll"
-        style={{
-          flex: 1,
-          minHeight: 0,
-          overflow: 'auto',
-          position: 'relative',
-          paddingRight: 2,
-        }}
-      >
-        {listLoading ? (
-          <Flex align="center" justify="center" style={{ minHeight: 120 }}>
-            <Spin />
-          </Flex>
-        ) : conversations.length === 0 ? (
-          <Empty
-            description={
-              <Text style={{ color: textSecondary }}>
-                暂无对话
-              </Text>
-            }
+    <div className="chat-sider-inner">
+      <div className="sidebar">
+        {/* 品牌与账号信息统一由顶栏承载，侧栏只保留会话操作，避免重复 */}
+        <button type="button" className="sidebar__new" onClick={onNew}>
+          <PlusOutlined /> 新对话
+        </button>
+
+        <div className="sidebar__search">
+          <Input
+            size="small"
+            allowClear
+            prefix={<SearchOutlined />}
+            placeholder="搜索会话"
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
           />
-        ) : (
-          <Flex vertical gap={0}>
-            {groupedConversations.map((group, gi) => (
+        </div>
+
+        <div className="sidebar__list prodigal-sidebar-conv-scroll">
+          {listLoading ? (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}>
+              <Spin />
+            </div>
+          ) : grouped.length === 0 ? (
+            <div className="sidebar__empty">
+              {keyword.trim()
+                ? '没有匹配的对话，换个关键词试试'
+                : '还没有对话，点上方「新对话」开始吧'}
+            </div>
+          ) : (
+            grouped.map((group) => (
               <div key={group.key}>
-                <Text
-                  type="secondary"
-                  style={{
-                    display: 'block',
-                    fontSize: 12,
-                    lineHeight: '16px',
-                    marginTop: gi === 0 ? 0 : 18,
-                    marginBottom: 10,
-                    paddingLeft: 4,
-                    color: textSecondary,
-                  }}
-                >
-                  {group.label}
-                </Text>
-                <Flex vertical gap={6}>
-                  {group.items.map((c) => {
-                    const selected = activeId === c.id;
-                    return (
-                      <Flex
-                        key={c.id}
-                        align="center"
-                        gap={8}
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => onSelect(c.id)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            onSelect(c.id);
-                          }
-                        }}
-                        style={{
-                          padding: '9px 10px',
-                          borderRadius: themeToken.borderRadiusLG,
-                          cursor: 'pointer',
-                          background: selected
-                            ? 'rgba(59, 130, 246, 0.22)'
-                            : 'transparent',
-                          border: selected
-                            ? '1px solid rgba(125, 211, 252, 0.4)'
-                            : '1px solid transparent',
-                          transition: 'background 0.15s ease',
-                          outline: 'none',
+                <span className="sidebar__group-label">{group.label}</span>
+                {group.items.map((c) => {
+                  const selected = activeId === c.id;
+                  return (
+                    <div
+                      key={c.id}
+                      role="button"
+                      tabIndex={0}
+                      className={`sidebar__item ${selected ? 'sidebar__item--active' : ''}`}
+                      onClick={() => onSelect(c.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          onSelect(c.id);
+                        }
+                      }}
+                    >
+                      <span className="sidebar__item-title" title={cleanTitle(c.title)}>
+                        {cleanTitle(c.title)}
+                      </span>
+                      <Popconfirm
+                        title="删除此对话？"
+                        description="删除后不可恢复"
+                        okText="删除"
+                        cancelText="取消"
+                        onConfirm={(e) => {
+                          e?.stopPropagation?.();
+                          void onDelete(c.id);
                         }}
                       >
-                        <Typography.Text
-                          ellipsis={{ tooltip: c.title }}
-                          style={{
-                            flex: 1,
-                            minWidth: 0,
-                            fontSize: 14,
-                            color: selected
-                              ? '#bfdbfe'
-                              : textPrimary,
-                          }}
-                        >
-                          {c.title}
-                        </Typography.Text>
-                        <Popconfirm
-                          title="删除此对话？"
-                          okText="删除"
-                          cancelText="取消"
-                          onConfirm={(e) => {
-                            e?.stopPropagation?.();
-                            void onDelete(c.id);
-                          }}
-                        >
-                          <Button
-                            type="text"
-                            size="small"
-                            danger
-                            icon={<DeleteOutlined />}
-                            onClick={(e) => e.stopPropagation()}
-                            aria-label="删除对话"
-                          />
-                        </Popconfirm>
-                      </Flex>
-                    );
-                  })}
-                </Flex>
+                        <Button
+                          className="sidebar__delete"
+                          type="text"
+                          size="small"
+                          danger
+                          icon={<DeleteOutlined />}
+                          aria-label="删除对话"
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </Popconfirm>
+                    </div>
+                  );
+                })}
               </div>
-            ))}
-          </Flex>
-        )}
+            ))
+          )}
+        </div>
+
+        {showSessionBlock ? (
+          <div className="sidebar__footer">
+            <UserSessionBlock onOpenLogin={onOpenLogin} />
+          </div>
+        ) : null}
       </div>
-      <div
-        style={{
-          flexShrink: 0,
-          marginTop: 'auto',
-          paddingTop: 12,
-          borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-        }}
-      >
-        <UserSessionBlock onOpenLogin={onOpenLogin} />
-      </div>
-    </Flex>
+    </div>
   );
 };

@@ -1,33 +1,47 @@
 import {
+  DownOutlined,
+  EnvironmentOutlined,
   LoginOutlined,
   LogoutOutlined,
-  MoreOutlined,
   SettingOutlined,
   UserDeleteOutlined,
 } from '@ant-design/icons';
 import {
   Avatar,
   Button,
+  Divider,
   Dropdown,
   Flex,
   Input,
   Modal,
+  Switch,
   Typography,
   message,
-  theme,
 } from 'antd';
 import type { MenuProps } from 'antd';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-
-const DISPLAY_NAME_KEY = 'prodigal-travel-display-name';
+import {
+  ASSISTANT_AVATAR_ALT,
+  ASSISTANT_PORTRAIT_URL,
+  GEO_STATUS_TEXT,
+  getGeoState,
+  readAutoLocate,
+  readDisplayName,
+  requestGeolocation,
+  setGeoState as publishGeoState,
+  subscribeGeo,
+  writeAutoLocate,
+  writeDisplayName,
+  type GeoState,
+} from '@/utils/preferences';
 
 const { Text } = Typography;
 
 export interface UserSessionBlockProps {
   /** 访客点击登录 */
   onOpenLogin?: () => void;
-  /** 旅游助手侧栏底部：全宽、无描边 */
+  /** toolbar：顶栏紧凑胶囊；sidebar：侧栏底部全宽 */
   variant?: 'sidebar' | 'toolbar';
 }
 
@@ -36,7 +50,6 @@ export const UserSessionBlock: React.FC<UserSessionBlockProps> = ({
   variant = 'sidebar',
 }) => {
   const compact = variant === 'toolbar';
-  const { token: themeToken } = theme.useToken();
   const { user, logout, deregisterAccount, token } = useAuth();
   const isLoggedIn = Boolean(token);
   const accountLabel = useMemo(
@@ -50,37 +63,42 @@ export const UserSessionBlock: React.FC<UserSessionBlockProps> = ({
   const [localAlias, setLocalAlias] = useState('');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [nameDraft, setNameDraft] = useState('');
+  const [autoLocate, setAutoLocate] = useState(true);
+  const [geo, setGeo] = useState<GeoState>(getGeoState);
 
   useEffect(() => {
-    try {
-      const v = localStorage.getItem(DISPLAY_NAME_KEY);
-      setLocalAlias(v?.trim() ? v.trim() : '');
-    } catch {
-      /* ignore */
-    }
+    setLocalAlias(readDisplayName());
+    setAutoLocate(readAutoLocate());
+    setGeo(getGeoState());
+    return subscribeGeo(setGeo);
   }, []);
 
-  const displayName =
-    localAlias.trim() || (isLoggedIn ? accountLabel : '未登录');
+  const displayName = localAlias || (isLoggedIn ? accountLabel : '未登录');
 
   const openSettings = () => {
     setNameDraft(localAlias);
+    setAutoLocate(readAutoLocate());
+    setGeo(getGeoState());
     setSettingsOpen(true);
   };
 
   const saveSettings = () => {
     const next = nameDraft.trim();
     setLocalAlias(next);
-    try {
-      if (next) {
-        localStorage.setItem(DISPLAY_NAME_KEY, next);
-      } else {
-        localStorage.removeItem(DISPLAY_NAME_KEY);
-      }
-    } catch {
-      /* ignore */
-    }
+    writeDisplayName(next);
+    writeAutoLocate(autoLocate);
     setSettingsOpen(false);
+  };
+
+  /** 位置开关即时生效，避免「改了设置没保存」的困惑。 */
+  const handleAutoLocateChange = (enabled: boolean) => {
+    setAutoLocate(enabled);
+    writeAutoLocate(enabled);
+    if (enabled) {
+      void requestGeolocation({ force: true });
+    } else {
+      publishGeoState({ status: 'off' });
+    }
   };
 
   const confirmDeregister = () => {
@@ -107,7 +125,7 @@ export const UserSessionBlock: React.FC<UserSessionBlockProps> = ({
     {
       key: 'settings',
       icon: <SettingOutlined />,
-      label: '系统设置',
+      label: '偏好设置',
     },
     { type: 'divider' },
     {
@@ -139,26 +157,34 @@ export const UserSessionBlock: React.FC<UserSessionBlockProps> = ({
     }
   };
 
-  const avatarSize = compact ? 26 : 28;
-  const panelBg = compact ? themeToken.colorBgContainer : 'transparent';
-  const panelBorder = compact
-    ? '1px solid rgba(0, 0, 0, 0.06)'
-    : '1px solid transparent';
-  const textColor = compact ? undefined : 'rgba(226, 232, 240, 0.92)';
-  const iconColor = compact
-    ? themeToken.colorTextTertiary
-    : 'rgba(148, 163, 184, 0.95)';
+  const shellStyle: React.CSSProperties = {
+    width: compact ? undefined : '100%',
+    padding: compact ? '5px 10px' : '6px 8px',
+    borderRadius: 10,
+    border: compact ? '1px solid var(--border)' : '1px solid transparent',
+    background: compact ? 'var(--surface-2)' : 'transparent',
+    cursor: isLoggedIn ? 'pointer' : 'default',
+    transition: 'background 0.16s ease, border-color 0.16s ease',
+  };
+
+  const avatar = (
+    <Avatar
+      size={compact ? 26 : 28}
+      style={{
+        flexShrink: 0,
+        background: isLoggedIn
+          ? 'linear-gradient(135deg, #2563eb, #7c3aed)'
+          : 'var(--surface-3)',
+        color: '#fff',
+      }}
+    >
+      {isLoggedIn ? displayName.slice(0, 1).toUpperCase() : '访'}
+    </Avatar>
+  );
 
   return (
     <>
-      <Flex
-        align="center"
-        gap={compact ? 8 : 10}
-        style={{
-          flexShrink: 0,
-          maxWidth: compact ? 260 : undefined,
-        }}
-      >
+      <Flex align="center" style={{ flexShrink: 0, maxWidth: compact ? 220 : undefined }}>
         {isLoggedIn ? (
           <Dropdown
             menu={{ items: profileMenuItems, onClick: onProfileMenuClick }}
@@ -170,127 +196,146 @@ export const UserSessionBlock: React.FC<UserSessionBlockProps> = ({
             <Flex
               align="center"
               gap={compact ? 8 : 10}
-              style={{
-                width: compact ? undefined : '100%',
-                padding: compact ? '6px 8px' : '8px 10px',
-                borderRadius: themeToken.borderRadiusLG,
-                cursor: 'pointer',
-                transition: 'background 0.15s ease',
-                ...(compact
-                  ? {
-                      border: panelBorder,
-                      background: panelBg,
-                    }
-                  : {}),
-              }}
+              style={shellStyle}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = compact
-                  ? themeToken.colorFillTertiary
-                  : 'rgba(148, 163, 184, 0.12)';
+                e.currentTarget.style.background = 'var(--surface-3)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = compact
-                  ? panelBg
+                  ? 'var(--surface-2)'
                   : 'transparent';
               }}
               aria-label="用户菜单"
             >
-              <Avatar size={avatarSize} style={{ flexShrink: 0 }}>
-                {displayName.slice(0, 1).toUpperCase()}
-              </Avatar>
+              {avatar}
               <Typography.Text
                 strong
                 ellipsis
                 style={{
                   flex: 1,
-                  minWidth: compact ? 72 : 0,
-                  maxWidth: compact ? 140 : undefined,
-                  fontSize: compact ? 13 : 14,
-                  color: textColor,
+                  minWidth: 0,
+                  maxWidth: compact ? 120 : undefined,
+                  fontSize: 13,
+                  color: 'var(--text)',
                 }}
               >
                 {displayName}
               </Typography.Text>
-              <MoreOutlined
-                style={{
-                  color: iconColor,
-                  fontSize: compact ? 14 : 16,
-                  flexShrink: 0,
-                }}
-              />
+              <DownOutlined style={{ color: 'var(--faint)', fontSize: 11, flexShrink: 0 }} />
             </Flex>
           </Dropdown>
         ) : (
-          <Flex
-            align="center"
-            gap="small"
-            style={{
-              width: compact ? undefined : '100%',
-              padding: compact ? '4px 8px' : '4px 0',
-              borderRadius: themeToken.borderRadiusLG,
-              ...(compact
-                ? {
-                    border: panelBorder,
-                    background: panelBg,
-                  }
-                : {}),
-            }}
-          >
-            <Avatar size="small" style={{ flexShrink: 0 }}>
-              访
-            </Avatar>
+          <Flex align="center" gap="small" style={shellStyle}>
+            {avatar}
             <Typography.Text
               ellipsis
               style={{
                 flex: 1,
                 minWidth: 0,
-                maxWidth: compact ? 100 : undefined,
-                fontSize: compact ? 13 : 14,
-                color: textColor,
+                maxWidth: compact ? 72 : undefined,
+                fontSize: 13,
+                color: 'var(--muted)',
               }}
             >
               {displayName}
             </Typography.Text>
             <Button
-              type="link"
+              type="primary"
               size="small"
               icon={<LoginOutlined />}
               onClick={() => onOpenLogin?.()}
-              style={{ paddingInline: 4 }}
+              style={{ paddingInline: 8 }}
             >
               登录
             </Button>
           </Flex>
         )}
       </Flex>
+
       <Modal
-        title="系统设置"
+        title="偏好设置"
         open={settingsOpen}
         okText="保存"
         cancelText="取消"
         onOk={saveSettings}
         onCancel={() => setSettingsOpen(false)}
+        width={460}
         destroyOnHidden
+        centered
       >
-        <Flex vertical gap="middle" style={{ marginTop: 8 }}>
-          {isLoggedIn && user?.email ? (
-            <div>
-              <Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>
-                当前账号
-              </Text>
-              <Text>{user.email}</Text>
-            </div>
-          ) : null}
+        <Flex vertical gap={16} style={{ marginTop: 12 }}>
           <div>
-            <Text type="secondary" style={{ display: 'block', marginBottom: 6 }}>
-              侧栏显示名（可选，仅本机）
-            </Text>
+            <Text type="secondary" className="pref-label">账号</Text>
+            {isLoggedIn && user?.email ? (
+              <Text>{user.email}</Text>
+            ) : (
+              <Text type="secondary">未登录 · 登录后消息会保存到云端会话</Text>
+            )}
+          </div>
+
+          <Divider style={{ margin: 0 }} />
+
+          <div>
+            <Text type="secondary" className="pref-label">显示名</Text>
             <Input
               value={nameDraft}
               onChange={(e) => setNameDraft(e.target.value)}
               placeholder={accountLabel}
               maxLength={32}
             />
+            <Text type="secondary" className="pref-help">
+              仅保存在本机，用于右上角用户菜单与头像首字母。
+            </Text>
+          </div>
+
+          <Divider style={{ margin: 0 }} />
+
+          <div>
+            <Text type="secondary" className="pref-label">助手形象</Text>
+            <Flex align="center" gap={12}>
+              <img
+                className="pref-avatar"
+                src={ASSISTANT_PORTRAIT_URL}
+                alt={ASSISTANT_AVATAR_ALT}
+              />
+              <div style={{ minWidth: 0 }}>
+                <Text strong>{ASSISTANT_AVATAR_ALT}</Text>
+                <div>
+                  <Text type="secondary" className="pref-help">
+                    AI 旅游助手与超级智能体统一使用此形象。
+                  </Text>
+                </div>
+              </div>
+            </Flex>
+          </div>
+
+          <Divider style={{ margin: 0 }} />
+
+          <div>
+            <Flex align="center" justify="space-between" gap={16}>
+              <div style={{ minWidth: 0 }}>
+                <Text strong>默认获取当前位置</Text>
+                <div>
+                  <Text type="secondary" className="pref-help">
+                    用于天气与附近推荐；关闭后由后端按 IP 粗略定位。
+                  </Text>
+                </div>
+              </div>
+              <Switch checked={autoLocate} onChange={handleAutoLocateChange} />
+            </Flex>
+            <Flex align="center" justify="space-between" gap={12} style={{ marginTop: 12 }}>
+              <Text type="secondary" className="pref-help">
+                <EnvironmentOutlined />　{GEO_STATUS_TEXT[geo.status]}
+              </Text>
+              <Button
+                size="small"
+                icon={<EnvironmentOutlined />}
+                disabled={!autoLocate || geo.status === 'pending'}
+                onClick={() => void requestGeolocation({ force: true })}
+              >
+                重新获取
+              </Button>
+            </Flex>
           </div>
         </Flex>
       </Modal>
