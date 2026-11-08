@@ -43,7 +43,7 @@ public class AuthController {
         return ResultUtils.success(result);
     }
 
-    @Operation(summary = "注册", description = "校验邮箱验证码后创建账号")
+    @Operation(summary = "注册", description = "创建账号")
     @PostMapping("/register")
     public BaseResult<String> register(@Valid @RequestBody RegisterRequest request) {
         userService.register(
