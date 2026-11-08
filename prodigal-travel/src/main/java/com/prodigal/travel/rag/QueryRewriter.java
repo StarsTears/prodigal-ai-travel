@@ -1,57 +1,56 @@
 package com.prodigal.travel.rag;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.model.ChatModel;
-import org.springframework.ai.rag.Query;
-import org.springframework.ai.rag.preretrieval.query.transformation.QueryTransformer;
-import org.springframework.ai.rag.preretrieval.query.transformation.RewriteQueryTransformer;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
+import java.util.regex.Pattern;
+
 /**
- * @author Lang
- * @project prodigal-ai-travel
- * @Version: 1.0
- * @description 查询重写
- * @since 2026/4/1
+ * 检索查询的本地规整器。
+ *
+ * <p>旧版使用 {@code RewriteQueryTransformer} 调用大模型改写查询：每次 RAG 请求都会额外
+ * 产生一次外部模型调用，且改写结果不可控（可能把「拉萨」扩写成其它目的地），与
+ * 「RAG 只从知识库取信息」的目标相冲突。现在改为纯字符串规整：剥离口语前缀、
+ * 折叠空白、限制长度，保留用户原文里的实体与意图词，全程不访问网络。
  */
 @Slf4j
 @Component
 public class QueryRewriter {
-    private QueryTransformer queryTransformer;
 
-    public QueryRewriter(@Qualifier("dashScopeChatModel") ChatModel dashscopeChatModel) {
-        ChatClient.Builder chatClientBuilder = ChatClient.builder(dashscopeChatModel);
-        // 创建查询重写转换器
-        queryTransformer = RewriteQueryTransformer.builder()
-                .chatClientBuilder(chatClientBuilder)
-                .build();
-    }
+    private static final int MAX_QUERY_LENGTH = 120;
+
+    private static final Pattern WHITESPACE = Pattern.compile("\\s+");
+
+    private static final Pattern ORAL_PREFIX = Pattern.compile(
+            "^(请问|请帮我|帮忙|帮我|麻烦(你|问一下)?|我想(知道|了解|问一下|咨询)|我想|"
+                    + "给我(介绍|说说|讲讲|推荐)|给我|能不能(介绍|说说|讲讲)|"
+                    + "可以(介绍|说说|讲讲)吗?|想问(一下)?|问一下|谁知道|"
+                    + "来点|说说|介绍一下|介绍下|关于)[，,、:：\\s?？]*");
+
+    private static final Pattern LEADING_PUNCT = Pattern.compile("^[，,、:：\\s?？!！.。]+");
 
     /**
-     * 执行查询重写，返回可直接用于向量检索的纯改写查询。
-     *
-     * <p>旧版返回「原问题 + 改写查询」的拼接串，并被直接当作 user 消息送给模型：
-     * 检索 query 里混入了说明文字，聊天记忆里保存的也是被改写过的问题，
-     * 模型还可能把 "[用于知识库检索的改写查询]" 当成用户指令照着执行。
-     * 现在检索与生成解耦：本方法只服务于检索，生成阶段始终使用原始用户消息。
-     *
-     * @param prompt 原始查询
-     * @return 用于向量检索的改写查询；重写失败时返回原查询
+     * 返回可直接用于向量检索的查询串；任何异常都回退到原问题，不会调用外部接口。
      */
     public String rewriteForRetrieval(String prompt) {
-        try {
-            Query query = new Query(prompt);
-            Query transform = queryTransformer.transform(query);
-            if (transform == null || transform.text() == null || transform.text().isBlank()) {
-                return prompt;
-            }
-            return transform.text().strip();
-        } catch (Exception e) {
-            log.warn("查询重写失败，使用原始查询检索：{}", e.getMessage());
-            return prompt;
+        if (prompt == null || prompt.isBlank()) {
+            return prompt == null ? "" : prompt.strip();
         }
+        String original = prompt.strip();
+        String q = WHITESPACE.matcher(original).replaceAll(" ").strip();
+        String previous;
+        do {
+            previous = q;
+            q = ORAL_PREFIX.matcher(q).replaceFirst("").strip();
+            q = LEADING_PUNCT.matcher(q).replaceFirst("").strip();
+        } while (!q.equals(previous) && !q.isBlank());
+        if (q.isBlank()) {
+            return original;
+        }
+        if (q.length() > MAX_QUERY_LENGTH) {
+            q = q.substring(0, MAX_QUERY_LENGTH);
+        }
+        return q;
     }
 
     /**

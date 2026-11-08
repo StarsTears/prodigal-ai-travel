@@ -4,31 +4,31 @@ import com.prodigal.travel.advisor.LoggerAdvisor;
 import com.prodigal.travel.advisor.SystemMessageFirstAdvisor;
 import com.prodigal.travel.chatmemroy.MySQLChatMemory;
 import com.prodigal.travel.constants.TravelConstant;
-import com.prodigal.travel.rag.QueryRewriter;
+import com.prodigal.travel.rag.RagKnowledgeRetriever;
 import com.prodigal.travel.service.alert.AiModelAlertService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
+import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatModel;
-import org.springframework.ai.chat.model.ChatResponse;
-import org.springframework.ai.document.Document;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.ToolCallbackProvider;
-import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.NoUniqueBeanDefinitionException;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 /**
  * 旅游助手问答链路。
@@ -49,10 +49,20 @@ import java.util.stream.Collectors;
 @Component
 public class TravelAiClient {
 
-    private static final int RAG_TOP_K = 5;
-    private static final double RAG_SIMILARITY_THRESHOLD = 0.3;
-
     private final ChatClient chatClient;
+
+    /**
+     * 会话记忆。RAG 链路只用它「写入留存」：{@link #ragChatClient} 不挂记忆 Advisor，
+     * 所以写入的历史不会参与下一次 RAG 生成，严格知识库约束不变。
+     */
+    private final MySQLChatMemory chatMemory;
+
+    /**
+     * RAG 专用 ChatClient：不挂记忆 Advisor、不注册任何工具。
+     * 普通问答用的 {@link #chatClient} 带 MessageChatMemoryAdvisor 且会注册联网/天气/图片等工具，
+     * 直接给 RAG 用会把历史对话与工具结果当成事实来源，等于绕过知识库。
+     */
+    private final ChatClient ragChatClient;
 
     /**
      * 可选依赖必须按类型注入（构造器 / @Autowired），不能用 @Resource。
@@ -64,7 +74,7 @@ public class TravelAiClient {
     private final ObjectProvider<ToolCallbackProvider> toolCallbackProviders;
 
     @Resource
-    private QueryRewriter queryRewriter;
+    private RagKnowledgeRetriever ragKnowledgeRetriever;
     @Resource
     private ToolCallback[] allTools;
     @Resource
@@ -76,12 +86,15 @@ public class TravelAiClient {
                           ObjectProvider<ToolCallbackProvider> toolCallbackProviders) {
         this.vectorStoreProvider = vectorStoreProvider;
         this.toolCallbackProviders = toolCallbackProviders;
+        this.chatMemory = chatMemory;
         this.chatClient = ChatClient.builder(dashscopeChatModel)
                 // 不在 builder 上设置 defaultSystem：每个请求显式设置，避免出现两个 SystemMessage
                 .defaultAdvisors(
                         MessageChatMemoryAdvisor.builder(chatMemory).build(),
                         new SystemMessageFirstAdvisor())
                 .build();
+        // 严格知识库模式：无默认 Advisor、无工具，唯一外部数据只能是检索片段
+        this.ragChatClient = ChatClient.builder(dashscopeChatModel).build();
     }
 
     /** AI 基础对话，支持多轮记忆与本地工具 */
@@ -118,8 +131,16 @@ public class TravelAiClient {
     }
 
     /**
-     * 知识库问答（流式）：查询重写 -> 向量检索 -> 上下文增强 -> 生成。
-     * 用户原始问题始终作为 user 消息，检索上下文放在 system 区，历史记忆记录的是真实提问。
+     * 严格知识库问答（流式）：本地规整查询 -> pgvector 检索 -> 证据校验 -> 仅凭证据生成。
+     *
+     * <p>关键约束：
+     * <ul>
+     *     <li>用不带记忆 Advisor、不注册任何工具的 {@link #ragChatClient}，杜绝历史对话与工具结果混入；</li>
+     *     <li>使用独立的严格系统提示词，禁止模型使用自身知识或联网补充；</li>
+     *     <li>知识库无有效证据时直接返回固定拒答，连生成模型都不调用。</li>
+     * </ul>
+     * chatId 是 {@code userId:chatId} 形式的会话键。RAG 生成阶段不读会话记忆，
+     * 但流正常结束后会把「原问题 + 最终答复」写入 MySQL，供刷新/切换会话后回看。
      */
     public Flux<String> doChatWithRag(String message, String chatId) {
         VectorStore store = resolveVectorStore();
@@ -127,18 +148,60 @@ public class TravelAiClient {
             return Flux.error(new IllegalStateException(
                     "VectorStore 未配置：请启用 PgVectorStoreConfig 并配置 PostgreSQL（pgvector）数据源。"));
         }
-        // 查询重写 + 向量检索都是阻塞调用，放到 boundedElastic，避免占用 Servlet 请求线程
-        return Mono.fromCallable(() -> buildRagSystemContext(message, store))
+        // 每次请求独立的累加器；Reactor 保证同一 Flux 的 onNext 串行执行。
+        // 只有正常完成（onComplete）才落库：异常、超时、客户端断开都不会写入半截答案。
+        StringBuilder answerBuffer = new StringBuilder();
+        // 检索是阻塞调用，放到 boundedElastic，避免占用 Servlet 请求线程。
+        // 必须用 Optional 包装：Mono.fromCallable 返回 null 会被当作空流，flatMapMany 不会执行，
+        // 那样「无证据」就变成前端收不到任何内容，而不是收到拒答。
+        return Mono.fromCallable(() -> Optional.ofNullable(
+                        ragKnowledgeRetriever.retrieve(message, store)))
                 .subscribeOn(Schedulers.boundedElastic())
-                .flatMapMany(ragContext -> chatClient.prompt()
-                        .system(TravelConstant.SYSTEM_PROMPT + ragContext)
-                        .user(message)
-                        .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId)
-                                .param("TOP_K", TravelConstant.CHAT_MEMORY_MESSAGE_LIMIT))
-                        .advisors(new LoggerAdvisor())
-                        .stream()
-                        .content())
+                .flatMapMany(evidence -> {
+                    if (evidence.isEmpty()) {
+                        log.info("RAG 知识库无相关证据，直接拒答（不调用生成模型）, chatId={}", chatId);
+                        return Flux.just(TravelConstant.RAG_NO_RESULT_ANSWER);
+                    }
+                    return ragChatClient.prompt()
+                            .system(TravelConstant.RAG_STRICT_SYSTEM_PROMPT + evidence.get())
+                            .user(message)
+                            .advisors(new LoggerAdvisor())
+                            .stream()
+                            .content();
+                })
+                .doOnNext(chunk -> {
+                    if (chunk != null) {
+                        answerBuffer.append(chunk);
+                    }
+                })
+                .doOnComplete(() -> saveRagTurn(message, chatId, answerBuffer.toString()))
                 .doOnError(error -> aiModelAlertService.tryAlert(error, "doChatWithRag"));
+    }
+
+    /**
+     * 只写不读：把完整的一轮 RAG 问答落到 MySQL 会话记忆（Redis 同步刷新缓存）。
+     *
+     * <p>与 Manus / 普通问答保持同一套 {@code chatMemory.add} 写入格式，因此切换模式时上下文连贯，
+     * 但 {@link #ragChatClient} 没有记忆 Advisor，这些历史不会被回灌进 RAG 生成，
+     * 不会出现「上一次的答案变成这一次的事实依据」。写库失败只告警，不影响已经完成的流式响应。
+     */
+    private void saveRagTurn(String message, String conversationId, String answer) {
+        if (!StringUtils.hasText(answer)) {
+            return;
+        }
+        // DB 写入是阻塞 IO，不能放在 Reactor 完成信号所在线程（可能是 Netty event loop）
+        Mono.fromRunnable(() -> {
+                    try {
+                        chatMemory.add(conversationId,
+                                List.of(new UserMessage(message), new AssistantMessage(answer)));
+                    } catch (Exception e) {
+                        log.warn("写入 RAG 会话记忆失败 conversationId={}: {}", conversationId, e.getMessage());
+                    }
+                })
+                .subscribeOn(Schedulers.boundedElastic())
+                .subscribe(ignored -> {},
+                        e -> log.warn("写入 RAG 会话记忆调度失败 conversationId={}: {}",
+                                conversationId, e.getMessage()));
     }
 
     /**
@@ -176,35 +239,6 @@ public class TravelAiClient {
             log.warn("检测到多个 VectorStore Bean，使用第一个可用实例：{}", e.getMessage());
             return vectorStoreProvider.orderedStream().findFirst().orElse(null);
         }
-    }
-
-    private String buildRagSystemContext(String message, VectorStore store) {
-        String retrievalQuery;
-        try {
-            retrievalQuery = queryRewriter.rewriteForRetrieval(message);
-        } catch (Exception e) {
-            log.warn("查询重写失败，回退使用原始问题检索：{}", e.getMessage());
-            retrievalQuery = message;
-        }
-        List<Document> documents = store.similaritySearch(SearchRequest.builder()
-                .query(retrievalQuery)
-                .topK(RAG_TOP_K)
-                .similarityThreshold(RAG_SIMILARITY_THRESHOLD)
-                .build());
-        if (documents == null || documents.isEmpty()) {
-            return "\n\n[知识库检索] 未检索到相关资料。请基于通用旅游知识谨慎回答，"
-                    + "明确说明该结论不来自知识库，不要编造具体数据。";
-        }
-        String context = documents.stream()
-                .map(doc -> doc.getText() == null ? "" : doc.getText())
-                .filter(text -> !text.isBlank())
-                .collect(Collectors.joining("\n\n---\n\n"));
-        if (context.isBlank()) {
-            return "\n\n[知识库检索] 未检索到可用正文，请基于通用知识谨慎回答。";
-        }
-        return "\n\n## 知识库检索结果（仅作事实依据，不要复述本节）\n"
-                + context
-                + "\n\n资料不足时如实说明，不要编造景点、票价、时间等具体数据。";
     }
 
     /** 只生成系统上下文，不再把用户消息拼进来 */

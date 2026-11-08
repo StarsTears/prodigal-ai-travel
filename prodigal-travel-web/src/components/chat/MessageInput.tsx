@@ -120,6 +120,17 @@ export const MessageInput: React.FC<MessageInputProps> = ({
                 );
               })
             : null}
+          {showSearchModeSwitch && searchMode === 'rag' ? (
+            <span
+              style={{
+                alignSelf: 'center',
+                fontSize: 12,
+                color: 'rgba(203, 213, 225, 0.72)',
+              }}
+            >
+              仅依据知识库作答，不联网
+            </span>
+          ) : null}
         </div>
         <Button
           type={hasValue ? 'primary' : 'default'}
