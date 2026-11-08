@@ -29,11 +29,9 @@ public class AIClient {
     @Resource
     private ToolCallback[] allTools;
 
-    @Resource
-    private ObjectProvider<ToolCallbackProvider> toolCallbackProviders;
-
     @Bean
-    ChatClient minimaxAiClient(MiniMaxChatModel chatModel) {
+    ChatClient minimaxAiClient(MiniMaxChatModel chatModel,
+                               ObjectProvider<ToolCallbackProvider> toolCallbackProviders) {
         InMemoryChatMemoryRepository repository = new InMemoryChatMemoryRepository();
         MessageWindowChatMemory chatMemory = MessageWindowChatMemory.builder()
                 .chatMemoryRepository(repository)
@@ -46,8 +44,8 @@ public class AIClient {
                         MessageChatMemoryAdvisor.builder(chatMemory).build(),
                         new SystemMessageFirstAdvisor())
                 .defaultToolCallbacks(allTools);
-        ToolCallbackProvider provider = toolCallbackProviders == null
-                ? null : toolCallbackProviders.getIfAvailable();
+        // ObjectProvider 按类型注入；MCP 未启用时 getIfAvailable() 返回 null，不影响启动
+        ToolCallbackProvider provider = toolCallbackProviders.getIfAvailable();
         if (provider != null) {
             builder.defaultToolCallbacks(provider);
         }

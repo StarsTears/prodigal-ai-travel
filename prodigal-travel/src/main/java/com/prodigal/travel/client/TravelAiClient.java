@@ -18,6 +18,7 @@ import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.ToolCallbackProvider;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.beans.factory.NoUniqueBeanDefinitionException;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
@@ -53,20 +54,28 @@ public class TravelAiClient {
 
     private final ChatClient chatClient;
 
-    @Resource
-    private ObjectProvider<VectorStore> pgVectorStore;
+    /**
+     * 可选依赖必须按类型注入（构造器 / @Autowired），不能用 @Resource。
+     * @Resource 会把字段名当 Bean 名解析：这里的名字恰好与 PgVectorStoreConfig 的
+     * pgVectorStore Bean 相同，Spring 会试图把 PgVectorStore 适配成 ObjectProvider，
+     * 启动期直接抛 BeanNotOfRequiredTypeException。
+     */
+    private final ObjectProvider<VectorStore> vectorStoreProvider;
+    private final ObjectProvider<ToolCallbackProvider> toolCallbackProviders;
+
     @Resource
     private QueryRewriter queryRewriter;
     @Resource
     private ToolCallback[] allTools;
-    /** MCP 关闭时可能没有该 Bean，用 ObjectProvider 保证应用仍可启动 */
-    @Resource
-    private ObjectProvider<ToolCallbackProvider> toolCallbackProviders;
     @Resource
     private AiModelAlertService aiModelAlertService;
 
     public TravelAiClient(@Qualifier("dashScopeChatModel") ChatModel dashscopeChatModel,
-                          MySQLChatMemory chatMemory) {
+                          MySQLChatMemory chatMemory,
+                          ObjectProvider<VectorStore> vectorStoreProvider,
+                          ObjectProvider<ToolCallbackProvider> toolCallbackProviders) {
+        this.vectorStoreProvider = vectorStoreProvider;
+        this.toolCallbackProviders = toolCallbackProviders;
         this.chatClient = ChatClient.builder(dashscopeChatModel)
                 // 不在 builder 上设置 defaultSystem：每个请求显式设置，避免出现两个 SystemMessage
                 .defaultAdvisors(
@@ -113,7 +122,7 @@ public class TravelAiClient {
      * 用户原始问题始终作为 user 消息，检索上下文放在 system 区，历史记忆记录的是真实提问。
      */
     public Flux<String> doChatWithRag(String message, String chatId) {
-        VectorStore store = pgVectorStore.getIfAvailable();
+        VectorStore store = resolveVectorStore();
         if (store == null) {
             return Flux.error(new IllegalStateException(
                     "VectorStore 未配置：请启用 PgVectorStoreConfig 并配置 PostgreSQL（pgvector）数据源。"));
@@ -145,8 +154,7 @@ public class TravelAiClient {
                         .param("TOP_K", TravelConstant.CHAT_MEMORY_MESSAGE_LIMIT))
                 .advisors(new LoggerAdvisor());
         if (withTools) {
-            ToolCallbackProvider provider = toolCallbackProviders == null
-                    ? null : toolCallbackProviders.getIfAvailable();
+            ToolCallbackProvider provider = toolCallbackProviders.getIfAvailable();
             if (provider != null) {
                 spec = spec.toolCallbacks(provider);
             }
@@ -155,6 +163,19 @@ public class TravelAiClient {
             }
         }
         return spec;
+    }
+
+    /**
+     * 解析向量库：没有配置返回 null，配置了多个实现时取排序最前的一个，避免 RAG 接口直接 500。
+     * 包级可见，便于不依赖外部服务的注入回归测试直接验证。
+     */
+    VectorStore resolveVectorStore() {
+        try {
+            return vectorStoreProvider.getIfAvailable();
+        } catch (NoUniqueBeanDefinitionException e) {
+            log.warn("检测到多个 VectorStore Bean，使用第一个可用实例：{}", e.getMessage());
+            return vectorStoreProvider.orderedStream().findFirst().orElse(null);
+        }
     }
 
     private String buildRagSystemContext(String message, VectorStore store) {
