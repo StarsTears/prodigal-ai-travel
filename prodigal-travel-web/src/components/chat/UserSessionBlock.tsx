@@ -28,6 +28,7 @@ import {
   getGeoState,
   readAutoLocate,
   readDisplayName,
+  readDisplayNameCustom,
   requestGeolocation,
   setGeoState as publishGeoState,
   subscribeGeo,
@@ -54,13 +55,14 @@ export const UserSessionBlock: React.FC<UserSessionBlockProps> = ({
   const isLoggedIn = Boolean(token);
   const accountLabel = useMemo(
     () =>
-      user?.nickname ||
       user?.username ||
+      user?.nickname ||
       user?.email?.split('@')[0] ||
       '用户',
     [user?.email, user?.nickname, user?.username]
   );
   const [localAlias, setLocalAlias] = useState('');
+  const [nameCustom, setNameCustom] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [nameDraft, setNameDraft] = useState('');
   const [autoLocate, setAutoLocate] = useState(true);
@@ -68,15 +70,27 @@ export const UserSessionBlock: React.FC<UserSessionBlockProps> = ({
 
   useEffect(() => {
     setLocalAlias(readDisplayName());
+    setNameCustom(readDisplayNameCustom());
     setAutoLocate(readAutoLocate());
     setGeo(getGeoState());
     return subscribeGeo(setGeo);
   }, []);
 
-  const displayName = localAlias || (isLoggedIn ? accountLabel : '未登录');
+  /**
+   * 显示名优先级：用户在本机显式设置的别名 > 登录响应 username > nickname > 邮箱前缀。
+   * 历史遗留的脏值（如 prodigal）因无自定义标记会被忽略，自动回退到 username。
+   */
+  const displayName =
+    nameCustom && localAlias
+      ? localAlias
+      : isLoggedIn
+        ? accountLabel
+        : '未登录';
 
   const openSettings = () => {
-    setNameDraft(localAlias);
+    setNameCustom(readDisplayNameCustom());
+    setLocalAlias(readDisplayName());
+    setNameDraft(nameCustom ? localAlias : '');
     setAutoLocate(readAutoLocate());
     setGeo(getGeoState());
     setSettingsOpen(true);
@@ -85,6 +99,7 @@ export const UserSessionBlock: React.FC<UserSessionBlockProps> = ({
   const saveSettings = () => {
     const next = nameDraft.trim();
     setLocalAlias(next);
+    setNameCustom(next.length > 0);
     writeDisplayName(next);
     writeAutoLocate(autoLocate);
     setSettingsOpen(false);

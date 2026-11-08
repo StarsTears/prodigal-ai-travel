@@ -6,6 +6,11 @@
  */
 
 export const DISPLAY_NAME_KEY = 'prodigal-travel-display-name';
+/**
+ * 标记「显示名是否被用户在本机显式设置过」。
+ * 有标记 → 用本机存的值；无标记 → 回退到登录响应里的 username（含历史遗留脏值 prodigal）。
+ */
+export const DISPLAY_NAME_CUSTOM_KEY = 'prodigal-travel-display-name-custom';
 export const AUTO_LOCATE_KEY = 'prodigal-travel-auto-locate';
 
 /** 助手 / 智能体统一形象（用户提供的「大肥鱼」立绘，透明底） */
@@ -71,9 +76,16 @@ export function readDisplayName(): string {
   return (readStorage(DISPLAY_NAME_KEY) ?? '').trim();
 }
 
+/** 用户是否在本机显式设置过显示名（而非沿用登录响应的 username）。 */
+export function readDisplayNameCustom(): boolean {
+  return readStorage(DISPLAY_NAME_CUSTOM_KEY) === 'true';
+}
+
 export function writeDisplayName(value: string): void {
   const v = value.trim();
   writeStorage(DISPLAY_NAME_KEY, v || null);
+  // 清空时同时撤销自定义标记，回退到登录响应的 username
+  writeStorage(DISPLAY_NAME_CUSTOM_KEY, v ? 'true' : null);
 }
 
 /** 默认开启：进入旅游助手时自动获取当前位置，用于天气与附近推荐。 */
