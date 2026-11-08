@@ -2,6 +2,7 @@ package com.prodigal.travel.rag;
 
 import com.prodigal.travel.constants.TravelConstant;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
@@ -18,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -112,8 +114,41 @@ class RagKnowledgeRetrieverTest {
 
     @Test
     void filtersDocumentsBelowSimilarityThreshold() {
-        VectorStore store = storeReturning(doc("huangshan.md", HUANGSHAN, 0.42));
+        VectorStore store = storeReturning(doc("huangshan.md", HUANGSHAN, 0.20));
         assertNull(retriever.retrieve("黄山门票", store));
+    }
+
+    @Test
+    void strictThresholdIsNotPushedDownToSql() {
+        // 回归：0.65 这类绝对阈值下推到 SQL 会变成 `embedding <=> ? < 0.35`，
+        // 短问题检索长文档分块时 pgvector 直接返回 0 行（线上表现为「召回=0」）。
+        VectorStore store = storeReturning(doc("huangshan.md", HUANGSHAN, 0.42));
+        retriever.retrieve("泰山", store);
+
+        ArgumentCaptor<SearchRequest> captor = ArgumentCaptor.forClass(SearchRequest.class);
+        verify(store).similaritySearch(captor.capture());
+        SearchRequest request = captor.getValue();
+        assertEquals(SearchRequest.SIMILARITY_THRESHOLD_ACCEPT_ALL,
+                request.getSimilarityThreshold(), 0.0001,
+                "SQL 层必须宽召回，严格阈值只留在应用层");
+        assertEquals(5, request.getTopK());
+        assertTrue(request.getQuery().contains("泰山"));
+    }
+
+    @Test
+    void applicationLayerKeepsOnlyNeighboursAboveThreshold() {
+        VectorStore store = mock(VectorStore.class);
+        when(store.similaritySearch(any(SearchRequest.class))).thenReturn(List.of(
+                doc("huangshan.md", "黄山春季与秋季气候舒适。", 0.42),
+                doc("huangshan.md", "黄山旺季门票 190 元。", 0.30),
+                doc("huangshan.md", "恒山索道运营时间说明。", 0.10)));
+        String evidence = retriever.retrieve("黄山最佳季节", store);
+        assertNotNull(evidence);
+        assertTrue(evidence.contains("春季与秋季"), "高于阈值的分块应进入证据");
+        assertFalse(evidence.contains("190 元"), "低于 0.35 的邻居不能进入证据");
+        assertFalse(evidence.contains("索道"), "最低分分块不能进入证据");
+        assertTrue(evidence.contains("[资料1") && !evidence.contains("[资料2"),
+                "证据编号应连续且只包含通过过滤的分块");
     }
 
     @Test
@@ -131,7 +166,7 @@ class RagKnowledgeRetrieverTest {
                 .withProperty("prodigal.rag.similarity-threshold", "0.8")
                 .withProperty("prodigal.rag.top-k", "3"));
         assertTrue(Math.abs(tuned.getSimilarityThreshold() - 0.8) < 0.0001,
-                "@Value 应把 0.8 注入 similarityThreshold，而不是保留默认 0.65");
+                "@Value 应把 0.8 注入 similarityThreshold，而不是保留默认 0.35");
         assertEquals(3, tuned.getTopK());
     }
 
@@ -139,12 +174,12 @@ class RagKnowledgeRetrieverTest {
     void valuePlaceholdersFallBackToDefaultsWhenPropertiesMissing() {
         // 无任何配置时，@Value 的 :default 段与字段初始化值都要保证参数可用
         RagKnowledgeRetriever fromSpring = springRetriever(new MockEnvironment());
-        assertTrue(Math.abs(fromSpring.getSimilarityThreshold() - 0.65) < 0.0001);
+        assertTrue(Math.abs(fromSpring.getSimilarityThreshold() - 0.35) < 0.0001);
         assertEquals(5, fromSpring.getTopK());
         assertTrue(fromSpring.isKeywordGuardEnabled());
 
         RagKnowledgeRetriever manual = new RagKnowledgeRetriever(new QueryRewriter());
-        assertTrue(Math.abs(manual.getSimilarityThreshold() - 0.65) < 0.0001,
+        assertTrue(Math.abs(manual.getSimilarityThreshold() - 0.35) < 0.0001,
                 "脱离容器手动构造时也不能退化成 0.0（否则阈值过滤形同虚设）");
         assertEquals(5, manual.getTopK());
         assertTrue(manual.isKeywordGuardEnabled());

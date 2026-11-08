@@ -107,8 +107,8 @@ prodigal:
     queue-capacity: ${PRODIGAL_AGENT_QUEUE_CAPACITY:48}
   # RAG 严格知识库模式（只允许依据 pgvector 检索结果作答）
   rag:
-    # COSINE 相似度下限，取值 0~1；越高越严格，出现误拒答时可适当调低
-    similarity-threshold: ${PRODIGAL_RAG_SIMILARITY_THRESHOLD:0.65}
+    # COSINE 相似度下限，取值 0~1；仅用于应用层过滤，不下推到 SQL（过高会导致 SQL 零召回）
+    similarity-threshold: ${PRODIGAL_RAG_SIMILARITY_THRESHOLD:0.35}
     top-k: ${PRODIGAL_RAG_TOP_K:5}
     # 主题词校验，拦截「问拉萨、召回黄山」这类跑题片段
     keyword-guard: ${PRODIGAL_RAG_KEYWORD_GUARD:true}
