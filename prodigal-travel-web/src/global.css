@@ -967,6 +967,13 @@ body {
 }
 .chat-markdown > :first-child { margin-top: 0; }
 .chat-markdown > :last-child { margin-bottom: 0; }
+/* Markdown 分包尚未加载完成时用纯文本先占位，流式内容不中断 */
+.chat-markdown__fallback {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  color: var(--text);
+}
 .chat-markdown p { margin: 0 0 10px; }
 .chat-markdown h1,
 .chat-markdown h2,

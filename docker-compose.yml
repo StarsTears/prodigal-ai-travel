@@ -1,14 +1,16 @@
 # 单机前后端：docker compose up -d --build
 # 后端需能连上 MySQL / Redis：在下方 environment 填写，或使用 env_file: .env
 services:
-  prodigal-travel:
+  travel-backend:
     build:
       context: ./
       dockerfile: ./prodigal-travel/Dockerfile
-    container_name: prodigal-travel
+    container_name: travel-backend
     restart: unless-stopped
     ports:
-      - "8088:8088"
+      # 只监听宿主机回环地址，后端统一由 nginx 的 /api 反代暴露；
+      # 避免 8088 直接暴露公网绕过 nginx（详见 docs/OPTIMIZATION.md）
+      - "127.0.0.1:8088:8088"
     env_file:
       - .env
     environment:
@@ -16,13 +18,13 @@ services:
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
       AMAP_MAPS_API_KEY: ${PRODIGAL_AMAP_API_KEY}
 
-  prodigal-web:
+  travel-web:
     build:
       context: ./
       dockerfile: ./prodigal-travel-web/Dockerfile
-    container_name: prodigal-web
+    container_name: travel-web
     restart: unless-stopped
     ports:
       - "80:80"
     depends_on:
-      - prodigal-travel
+      - travel-backend

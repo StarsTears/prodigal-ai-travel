@@ -6,14 +6,9 @@ import {
 } from '@ant-design/icons';
 import { message } from 'antd';
 import React, { useEffect, useRef, useState } from 'react';
-import ReactMarkdown from 'react-markdown';
-import type { Components } from 'react-markdown';
-import rehypeSanitize from 'rehype-sanitize';
-import remarkGfm from 'remark-gfm';
 import { quickPromptsFor } from '@/components/chat/ToolPanel';
 import type { StreamChatKind } from '@/pages/chat/hooks/useStreaming';
 import type { ChatMessage } from '@/types';
-import { isImageUrl } from '@/utils/imageUrl';
 import {
   ASSISTANT_AVATAR_ALT,
   ASSISTANT_AVATAR_URL,
@@ -31,31 +26,10 @@ export interface MessageListProps {
   onQuickPrompt?: (text: string) => void;
 }
 
-/**
- * Markdown 的「单个换行」默认会被当作空格，这里转成 hard break。
- * 跳过列表 / 表格 / 引用 / 标题 / 代码块行，避免破坏 GFM 结构。
- */
-function preserveSingleNewlinesForMarkdown(md: string): string {
-  const lines = md.replace(/\r\n/g, '\n').split('\n');
-  let inFence = false;
-  return lines
-    .map((line, i) => {
-      const trimmed = line.trimEnd();
-      if (/^\s*(```|~~~)/.test(trimmed)) {
-        inFence = !inFence;
-        return line;
-      }
-      if (inFence || i === lines.length - 1 || !trimmed || trimmed.endsWith('  ')) {
-        return line;
-      }
-      // 结构性行保持原样，否则会被追加两个空格导致列表/表格解析异常
-      if (/^\s{0,3}([-*+]\s|\d+\.\s|>|#{1,6}\s|\||-{3,})/.test(trimmed)) {
-        return line;
-      }
-      return `${line}  `;
-    })
-    .join('\n');
-}
+/** Markdown 依赖较重，延迟到出现第一条助手回复时再加载。 */
+const MarkdownContent = React.lazy(
+  () => import('@/components/chat/MarkdownContent'),
+);
 
 function formatTime(ts: number): string {
   if (!Number.isFinite(ts) || ts <= 0) return '';
@@ -80,32 +54,6 @@ export const MessageList: React.FC<MessageListProps> = ({
   const prevLengthRef = useRef(messages.length);
   const [showJump, setShowJump] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-
-  const markdownComponents: Components = {
-    a: ({ href, children, node: _node, ...rest }) => {
-      if (href && isImageUrl(href)) {
-        return (
-          <a
-            {...rest}
-            href={href}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ display: 'block', margin: '8px 0' }}
-          >
-            <img src={href} alt="图片" loading="lazy" decoding="async" />
-          </a>
-        );
-      }
-      return (
-        <a {...rest} href={href} target="_blank" rel="noopener noreferrer">
-          {children}
-        </a>
-      );
-    },
-    img: ({ src, alt, node: _node, ...rest }) => (
-      <img {...rest} src={src} alt={alt ?? ''} loading="lazy" decoding="async" />
-    ),
-  };
 
   /** 仅当用户停留在底部附近时才跟随流式输出；回看历史不会被强行拉回。 */
   useEffect(() => {
@@ -280,13 +228,13 @@ export const MessageList: React.FC<MessageListProps> = ({
 
                       {reply ? (
                         <div className="chat-markdown" style={{ marginTop: showSteps ? 6 : 0 }}>
-                          <ReactMarkdown
-                            remarkPlugins={[remarkGfm]}
-                            rehypePlugins={[rehypeSanitize]}
-                            components={markdownComponents}
+                          <React.Suspense
+                            fallback={
+                              <div className="chat-markdown__fallback">{reply}</div>
+                            }
                           >
-                            {preserveSingleNewlinesForMarkdown(reply)}
-                          </ReactMarkdown>
+                            <MarkdownContent text={reply} />
+                          </React.Suspense>
                         </div>
                       ) : null}
 
