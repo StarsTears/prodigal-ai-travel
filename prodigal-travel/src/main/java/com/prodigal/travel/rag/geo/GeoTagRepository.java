@@ -20,6 +20,9 @@ import java.util.Set;
 @Repository
 public class GeoTagRepository {
 
+    private static final org.slf4j.Logger log =
+            org.slf4j.LoggerFactory.getLogger(GeoTagRepository.class);
+
     private final JdbcTemplate jdbcTemplate;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -50,7 +53,7 @@ public class GeoTagRepository {
         sql.append(String.join(" OR ", conditions));
 
         try {
-            return jdbcTemplate.query(sql.toString(), (rs, rowNum) -> {
+            List<Document> result = jdbcTemplate.query(sql.toString(), (rs, rowNum) -> {
                 String content = rs.getString("content");
                 String meta = rs.getString("metadata");
                 Map<String, Object> metadata = new java.util.LinkedHashMap<>();
@@ -67,6 +70,20 @@ public class GeoTagRepository {
                 }
                 return new Document(content == null ? "" : content, metadata);
             }, params.toArray());
+            // 零召回诊断：识别出省/市却一条都没命中，说明标签未写入或列/SQL 不匹配，打印样例便于排查
+            if (result.isEmpty() && !((provinces == null || provinces.isEmpty())
+                    && (cities == null || cities.isEmpty()))) {
+                try {
+                    String sample = jdbcTemplate.queryForObject(
+                            "SELECT metadata FROM public.travel_vector_store LIMIT 1", String.class);
+                    log.warn("地理标签召回 0 条(诊断): provinces={}, cities={}, 表内 metadata 样例={}",
+                            provinces, cities, sample);
+                } catch (Exception e2) {
+                    log.warn("地理标签召回 0 条(诊断): provinces={}, cities={}; 且样例查询失败: {}",
+                            provinces, cities, e2.getMessage());
+                }
+            }
+            return result;
         } catch (Exception e) {
             // 召回失败绝不能降级为「让模型自己回答」，返回空让上层走拒答
             org.slf4j.LoggerFactory.getLogger(GeoTagRepository.class)
