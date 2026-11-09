@@ -1,7 +1,10 @@
 package com.prodigal.travel.rag;
 
+import com.prodigal.travel.rag.geo.GeoClosureTable;
+import com.prodigal.travel.rag.geo.GeoTagRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.document.Document;
+import org.springframework.ai.rag.Query;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,13 +26,13 @@ import java.util.stream.Collectors;
 /**
  * RAG 知识库检索器：整个 RAG 链路唯一的数据来源。
  *
- * <p>与旧实现的区别：
+ * <p>在原有「查询规整 + 向量召回 + 主题词守卫」基础上，新增<b>地理层级混合召回</b>：
  * <ul>
- *     <li>查询改写改为纯本地字符串规整，不再调用大模型；</li>
- *     <li>相似度阈值不再下推到 SQL（避免 pgvector 零召回），改为宽召回 topK 后在应用层按 score 过滤，并打印分数分布；</li>
- *     <li>增加主题词校验，避免「问拉萨、召回黄山」这类明显跑题的片段被送给模型；</li>
- *     <li>任何一步无有效证据都返回 {@code null}，由上层直接短路拒答，绝不退化成模型自由发挥；</li>
- *     <li>检索片段自带来源文件名，便于答案标注出处。</li>
+ *     <li><b>LLM 多查询扩展</b>（{@link TravelMultiQueryExpander}）：把原查询改写成若干语义变体，扩大向量召回面；</li>
+ *     <li><b>地理标签确定性召回</b>（{@link GeoTagRepository}）：识别查询里的行政区，按 province/city 标签
+ *         直接取数，可靠地解决「搜海南召回不了三亚」这类层级从属盲区（向量语义认不出省⊃市）；</li>
+ *     <li>两者召回结果按内容去重合并；被地理标签命中的片段<b>豁免</b>相似度阈值与主题词守卫，
+ *         因为地理命中本身就是强相关信号。</li>
  * </ul>
  */
 @Slf4j
@@ -51,18 +54,10 @@ public class RagKnowledgeRetriever {
     ));
 
     private final QueryRewriter queryRewriter;
+    private final GeoClosureTable geoClosureTable;
+    private final GeoTagRepository geoTagRepository;
+    private final TravelMultiQueryExpander multiQueryExpander;
 
-    /**
-     * 配置统一用 {@code @Value} 声明式注入，与项目其它配置类（如 ToolRegisterConfig）保持一致。
-     * 占位符自带默认值：即使 application.yml 未声明该段也能启动；字段初始化值则是脱离
-     * Spring 容器手动 new（如单元测试）时的兜底，避免退化成 0 / 0.0 / false。
-     */
-    /**
-     * 相似度下限（0~1，越大越严格）。仅在 Java 层用于筛选 pgvector 返回的最近邻，
-     * 不再下推到 SQL。默认 0.35 是针对「短问题 → 长文档分块」跨文体检索的经验值：
-     * 实测同一篇文档的两个分块之间相似度也才约 0.67，用 0.65 做门槛会让 pgvector
-     * 一条都召回不了（日志表现为「召回=0」）。请依据日志里的 scores 分布校准。
-     */
     @Value("${prodigal.rag.similarity-threshold:0.35}")
     private double similarityThreshold = 0.35;
 
@@ -72,8 +67,22 @@ public class RagKnowledgeRetriever {
     @Value("${prodigal.rag.keyword-guard:true}")
     private boolean keywordGuardEnabled = true;
 
-    public RagKnowledgeRetriever(QueryRewriter queryRewriter) {
+    /** 是否启用 LLM 多查询扩展（每次 RAG 会产生额外模型调用，成本较高；关闭则只用原查询向量召回） */
+    @Value("${prodigal.rag.llm-expansion-enabled:true}")
+    private boolean llmExpansionEnabled = true;
+
+    /** 是否启用地理标签确定性召回（推荐常开，是修复「海南→三亚」的可靠主干） */
+    @Value("${prodigal.rag.geo-enabled:true}")
+    private boolean geoEnabled = true;
+
+    public RagKnowledgeRetriever(QueryRewriter queryRewriter,
+                                 GeoClosureTable geoClosureTable,
+                                 GeoTagRepository geoTagRepository,
+                                 TravelMultiQueryExpander multiQueryExpander) {
         this.queryRewriter = queryRewriter;
+        this.geoClosureTable = geoClosureTable;
+        this.geoTagRepository = geoTagRepository;
+        this.multiQueryExpander = multiQueryExpander;
     }
 
     /**
@@ -86,51 +95,81 @@ public class RagKnowledgeRetriever {
             return null;
         }
         String query = queryRewriter.rewriteForRetrieval(question);
-        List<Document> documents;
-        try {
-            // 关键：绝对相似度阈值不能下推到 SQL。
-            // Spring AI 的 PgVectorStore 会把它翻译成 `embedding <=> ? < 1 - threshold`，
-            // 例如 0.65 → distance < 0.35。「泰山」这类短问题与长文档分块是跨文体检索，
-            // 余弦相似度天然偏低，这个 WHERE 会把候选全部挡掉，similaritySearch 直接返回
-            // 0 行（日志「召回=0」），此时 Java 层的过滤与主题词守卫都无从执行。
-            // 改为 similarityThresholdAll()：SQL 只取距离最近的 topK 条，阈值判断放到 Java 层，
-            // 既能打印真实分数便于调参，也不会因为一个拍脑袋的阈值一票否决。
-            documents = store.similaritySearch(SearchRequest.builder()
-                    .query(query)
-                    .topK(topK)
-                    .similarityThresholdAll()
-                    .build());
-        } catch (Exception e) {
-            // 检索失败绝不能降级为「让模型自己回答」
-            log.error("RAG 知识库检索失败, query={}", query, e);
-            return null;
+
+        Set<String> seen = new HashSet<>();
+        Set<String> geoHashes = new HashSet<>();
+        List<Document> merged = new ArrayList<>();
+
+        // —— 1) LLM 多查询扩展（向量召回面扩大）——
+        boolean usedLlm = false;
+        if (llmExpansionEnabled && multiQueryExpander != null) {
+            try {
+                List<Query> expanded = multiQueryExpander.expand(query);
+                for (Query q : expanded) {
+                    for (Document d : vectorSearch(store, q.text())) {
+                        if (seen.add(key(d))) {
+                            merged.add(d);
+                        }
+                    }
+                }
+                usedLlm = true;
+            } catch (Exception e) {
+                log.warn("LLM 查询扩展失败，回退为原始查询向量召回, query={}", query, e);
+            }
         }
-        List<Document> candidates = documents == null ? List.of() : documents;
-        // PgVectorStore 返回的 Document.score 已经是 1 - 余弦距离（相似度），不是距离本身
-        String scores = candidates.stream()
-                .filter(Objects::nonNull)
-                .map(Document::getScore)
-                .map(score -> score == null ? "n/a" : String.format(Locale.ROOT, "%.3f", score))
-                .collect(Collectors.joining(", "));
-        List<Document> valid = candidates.stream()
-                .filter(doc -> doc != null && StringUtils.hasText(doc.getText()))
-                .filter(doc -> doc.getScore() == null || doc.getScore() >= similarityThreshold)
-                .toList();
-        log.info("RAG 检索: query={}, 召回={}, scores=[{}], 阈值过滤后={}, threshold={}, topK={}",
-                query, candidates.size(), scores, valid.size(), similarityThreshold, topK);
-        if (valid.isEmpty()) {
-            log.warn("RAG 无有效证据: query={}, 召回分数=[{}], threshold={}。"
-                            + "若召回为 0，检查 pgvector 连接与表数据；若分数普遍偏低且彼此接近，"
-                            + "多半是库内向量由其它 embedding 模型/其它批次灌入，需清空表后用当前模型重建知识库。",
-                    query, scores, similarityThreshold);
-            return null;
+        if (!usedLlm) {
+            for (Document d : vectorSearch(store, query)) {
+                if (seen.add(key(d))) {
+                    merged.add(d);
+                }
+            }
         }
 
-        String evidenceText = valid.stream()
-                .map(Document::getText)
-                .collect(Collectors.joining("\n"));
-        if (keywordGuardEnabled && !topicMatches(question, evidenceText)) {
-            log.info("RAG 检索结果与问题主题不匹配，判定知识库无相关资料: query={}", query);
+        // —— 2) 地理标签确定性召回（修复层级从属盲区的主干）——
+        if (geoEnabled && geoClosureTable != null && geoTagRepository != null) {
+            Set<String> regions = geoClosureTable.detectRegions(query);
+            if (!regions.isEmpty()) {
+                GeoClosureTable.GeoFilter filter = geoClosureTable.toGeoFilter(regions);
+                if (!filter.isEmpty()) {
+                    for (Document d : geoTagRepository.findByProvincesOrCities(filter.provinces, filter.cities)) {
+                        String k = key(d);
+                        if (seen.add(k)) {
+                            merged.add(d);
+                            geoHashes.add(k);
+                        }
+                    }
+                    log.info("地理标签召回: query={}, 识别地区={}, 省={}, 市={}", query, regions, filter.provinces, filter.cities);
+                }
+            }
+        }
+
+        // —— 3) 阈值过滤 + 主题守卫（地理命中片段豁免）——
+        List<Document> candidates = merged.stream()
+                .filter(Objects::nonNull)
+                .filter(d -> StringUtils.hasText(d.getText()))
+                .toList();
+        String scores = candidates.stream()
+                .map(d -> d.getScore() == null ? "n/a" : String.format(Locale.ROOT, "%.3f", d.getScore()))
+                .collect(Collectors.joining(", "));
+        List<Document> valid = new ArrayList<>();
+        for (Document doc : candidates) {
+            boolean geo = geoHashes.contains(key(doc));
+            boolean scoreOk = geo || doc.getScore() == null || doc.getScore() >= similarityThreshold;
+            if (!scoreOk) {
+                continue;
+            }
+            if (!geo && keywordGuardEnabled && !topicMatches(question, doc.getText())) {
+                continue;
+            }
+            valid.add(doc);
+        }
+        log.info("RAG 检索: query={}, 合并候选={}, scores=[{}], 阈值过滤后={}, threshold={}, topK={}, geo命中={}",
+                query, candidates.size(), scores, valid.size(), similarityThreshold, topK, geoHashes.size());
+        if (valid.isEmpty()) {
+            log.warn("RAG 无有效证据: query={}, 召回分数=[{}], threshold={}。"
+                            + "若向量召回为 0 检查 pgvector 连接；地理召回为空说明文档未带 province/city 标签，"
+                            + "需清空 travel_vector_store 表后重启重建。",
+                    query, scores, similarityThreshold);
             return null;
         }
 
@@ -139,12 +178,34 @@ public class RagKnowledgeRetriever {
             Document doc = valid.get(i);
             Map<String, Object> metadata = doc.getMetadata();
             Object source = metadata == null ? null : metadata.get("filename");
+            boolean geo = geoHashes.contains(key(doc));
             sb.append("\n---\n[资料").append(i + 1)
-                    .append(" | 来源: ").append(source == null ? "知识库" : source).append("]\n")
+                    .append(" | 来源: ").append(source == null ? "知识库" : source)
+                    .append(geo ? " | 地理命中" : "").append("]\n")
                     .append(doc.getText().strip());
         }
         sb.append("\n\n[以上为全部可用资料，不得使用任何其它来源的信息]");
         return sb.toString();
+    }
+
+    private List<Document> vectorSearch(VectorStore store, String q) {
+        try {
+            // 相似度阈值不下推 SQL：SQL 只取距离最近的 topK 条，阈值判断放到 Java 层
+            return store.similaritySearch(SearchRequest.builder()
+                    .query(q)
+                    .topK(topK)
+                    .similarityThresholdAll()
+                    .build());
+        } catch (Exception e) {
+            log.error("RAG 向量检索失败, query={}", q, e);
+            return List.of();
+        }
+    }
+
+    /** 去重/地理命中判定的内容键 */
+    private static String key(Document d) {
+        String t = d == null ? "" : d.getText();
+        return t == null ? "" : t.strip();
     }
 
     /**
@@ -185,6 +246,14 @@ public class RagKnowledgeRetriever {
 
     public boolean isKeywordGuardEnabled() {
         return keywordGuardEnabled;
+    }
+
+    public boolean isLlmExpansionEnabled() {
+        return llmExpansionEnabled;
+    }
+
+    public boolean isGeoEnabled() {
+        return geoEnabled;
     }
 
     /** 返回问题中被用于主题校验的二字词，便于日志排查 */

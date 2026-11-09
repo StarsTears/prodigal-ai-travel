@@ -1,9 +1,13 @@
 package com.prodigal.travel.rag;
 
 import com.prodigal.travel.constants.TravelConstant;
+import com.prodigal.travel.rag.geo.GeoClosureTable;
+import com.prodigal.travel.rag.geo.GeoTagRepository;
+import com.prodigal.travel.rag.TravelMultiQueryExpander;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.ai.document.Document;
+import org.springframework.ai.rag.Query;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
@@ -30,13 +34,22 @@ class RagKnowledgeRetrieverTest {
     private static final String HUANGSHAN = "# 黄山旅游指南\n\n## 最佳季节\n黄山春季与秋季气候舒适，云海出现概率较高。";
 
     private final RagKnowledgeRetriever retriever =
-            new RagKnowledgeRetriever(new QueryRewriter());
+            new RagKnowledgeRetriever(new QueryRewriter(), null, null, null);
 
     /** 通过真实 Spring 容器创建 Bean，验证 @Value 占位符确实被解析并覆盖字段默认值 */
     private static RagKnowledgeRetriever springRetriever(MockEnvironment environment) {
         try (AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext()) {
             ctx.setEnvironment(environment);
             ctx.getBeanFactory().registerSingleton("queryRewriter", new QueryRewriter());
+            // 新增的地理/LLM 依赖在单元测试里用空实现占位：地理表未加载→识别为空；
+            // 标签召回与 LLM 扩展返回空，不干扰「向量召回 + 阈值 + 主题守卫」的回归断言。
+            ctx.getBeanFactory().registerSingleton("geoClosureTable", new GeoClosureTable());
+            GeoTagRepository geoTagRepository = mock(GeoTagRepository.class);
+            when(geoTagRepository.findByProvincesOrCities(any(), any())).thenReturn(List.of());
+            ctx.getBeanFactory().registerSingleton("geoTagRepository", geoTagRepository);
+            TravelMultiQueryExpander expander = mock(TravelMultiQueryExpander.class);
+            when(expander.expand(any(String.class))).thenAnswer(inv -> List.of(new Query((String) inv.getArgument(0))));
+            ctx.getBeanFactory().registerSingleton("multiQueryExpander", expander);
             ctx.registerBean(RagKnowledgeRetriever.class);
             ctx.refresh();
             return ctx.getBean(RagKnowledgeRetriever.class);
@@ -178,7 +191,7 @@ class RagKnowledgeRetrieverTest {
         assertEquals(5, fromSpring.getTopK());
         assertTrue(fromSpring.isKeywordGuardEnabled());
 
-        RagKnowledgeRetriever manual = new RagKnowledgeRetriever(new QueryRewriter());
+        RagKnowledgeRetriever manual = new RagKnowledgeRetriever(new QueryRewriter(), null, null, null);
         assertTrue(Math.abs(manual.getSimilarityThreshold() - 0.35) < 0.0001,
                 "脱离容器手动构造时也不能退化成 0.0（否则阈值过滤形同虚设）");
         assertEquals(5, manual.getTopK());
