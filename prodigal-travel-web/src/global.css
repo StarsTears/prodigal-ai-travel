@@ -806,6 +806,45 @@ body {
 .sidebar__delete:focus-visible {
   opacity: 1;
 }
+.sidebar__item-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.sidebar__item:hover .sidebar__item-actions,
+.sidebar__item-actions:focus-within {
+  opacity: 1;
+}
+.sidebar__rename {
+  color: var(--faint);
+}
+.sidebar__rename:hover {
+  color: var(--brand);
+}
+.sidebar__item--editing {
+  background: var(--surface-2);
+  cursor: default;
+}
+.sidebar__edit {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+}
+.sidebar__edit .ant-input {
+  flex: 1;
+  min-width: 0;
+}
+.sidebar__edit-btn {
+  flex-shrink: 0;
+  color: var(--faint);
+}
+.sidebar__edit-btn:hover {
+  color: var(--brand);
+}
 .sidebar__empty {
   padding: 28px 8px;
   text-align: center;

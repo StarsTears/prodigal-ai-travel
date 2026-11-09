@@ -5,6 +5,7 @@ import { history, useSearchParams } from 'umi';
 import {
   conversations as fetchConversations,
   deleteConversationByChatId as deleteConversationApi,
+  renameConversation as renameConversationApi,
 } from '@/api/travelAssistant';
 import { useAuth } from '@/contexts/AuthContext';
 import type { ChatMessage, ConversationRecord, TravelSearchMode } from '@/types';
@@ -463,6 +464,39 @@ export function useChat(options: UseChatOptions) {
     [abort, mode, ready, token]
   );
 
+  const renameChat = useCallback(
+    async (id: string, newTitle: string) => {
+      const trimmed = newTitle.trim();
+      if (!trimmed) return;
+      // 乐观更新本地标题，失败再回滚刷新
+      let prevTitle = '';
+      setConversations((prev) => {
+        const idx = prev.findIndex((c) => c.id === id);
+        if (idx === -1) return prev;
+        prevTitle = prev[idx].title;
+        const next = [...prev];
+        next[idx] = { ...next[idx], title: trimmed };
+        return next;
+      });
+      if (id.startsWith(PENDING_PREFIX) || mode === 'manus' || !ready || !token) {
+        return;
+      }
+      try {
+        const res = await renameConversationApi(id, trimmed);
+        assertBaseResultOk(res.data);
+      } catch (e) {
+        message.error(e instanceof Error ? e.message : '重命名失败');
+        if (prevTitle) {
+          setConversations((prev) =>
+            prev.map((c) => (c.id === id ? { ...c, title: prevTitle } : c))
+          );
+        }
+        void refreshListRef.current();
+      }
+    },
+    [mode, ready, token]
+  );
+
   const sendUserMessage = useCallback(
     async (text: string, searchMode: TravelSearchMode = 'web') => {
       const trimmed = text.trim();
@@ -761,6 +795,7 @@ export function useChat(options: UseChatOptions) {
     newChat,
     selectChat,
     deleteChat,
+    renameChat,
     sendUserMessage,
     stopGenerating,
     geoState,

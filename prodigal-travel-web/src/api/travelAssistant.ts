@@ -71,6 +71,24 @@ export async function deleteConversationByChatId(
   return deleteConversation({ chatId }, options);
 }
 
+/** 重命名会话 修改指定会话标题；需登录 PUT /travel/conversations */
+export async function renameConversation(
+  chatId: string,
+  title: string,
+  options?: { [key: string]: any }
+) {
+  const cid = (chatId ?? '').trim();
+  const t = (title ?? '').trim();
+  if (!cid || !t) {
+    return Promise.reject(new Error('缺少会话 ID 或标题'));
+  }
+  return request<API.BaseResultVoid>(`/api/travel/conversations`, {
+    method: 'PUT',
+    params: { chatId: cid, title: t },
+    ...(options || {}),
+  });
+}
+
 /** 流式调用超级智能体 需登录：请求头 Authorization: Bearer {token}。 POST /travel/manus/chat */
 export async function chatManus(
   body: API.ChatRequest,

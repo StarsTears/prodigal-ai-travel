@@ -88,6 +88,20 @@ export function writeDisplayName(value: string): void {
   writeStorage(DISPLAY_NAME_CUSTOM_KEY, v ? 'true' : null);
 }
 
+/**
+ * 登录后用当前账号的 username 重置展示名。
+ * - 用户已主动自定义过（有标记）→ 不动，保留其昵称；
+ * - 否则（含历史遗留的 prodigal 等脏值）→ 覆盖为当前账号 username，
+ *   且不打自定义标记，使展示名始终跟随登录响应用户名。
+ */
+export function seedDisplayName(username: string | undefined): void {
+  const u = (username ?? '').trim();
+  if (!u) return;
+  if (readDisplayNameCustom()) return;
+  writeStorage(DISPLAY_NAME_KEY, u);
+  // 不写 custom 标记，保持「派生自 username」语义
+}
+
 /** 默认开启：进入旅游助手时自动获取当前位置，用于天气与附近推荐。 */
 export function readAutoLocate(): boolean {
   return readStorage(AUTO_LOCATE_KEY) !== 'false';

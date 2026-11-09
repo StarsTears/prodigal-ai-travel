@@ -16,4 +16,7 @@ public interface ChatConversationService extends IService<ChatConversation> {
     List<ChatMessageVO> findByUserId(String conversationId, Long userId);
 
     void remove(String conversationId, Long userId);
+
+    /** 重命名会话标题；会话不存在或不属于该用户时抛 BusinessException。 */
+    void rename(String conversationId, Long userId, String newTitle);
 }

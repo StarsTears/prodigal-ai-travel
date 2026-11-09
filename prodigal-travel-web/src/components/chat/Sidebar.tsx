@@ -1,62 +1,42 @@
-import { DeleteOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
+import {
+  CheckOutlined,
+  CloseOutlined,
+  DeleteOutlined,
+  EditOutlined,
+  PlusOutlined,
+  SearchOutlined,
+} from '@ant-design/icons';
 import { Button, Input, Popconfirm, Spin } from 'antd';
 import React, { useMemo, useState } from 'react';
 import { UserSessionBlock } from '@/components/chat/UserSessionBlock';
 import type { ConversationRecord } from '@/types';
 
-type DateBucketKey = 'today' | 'yesterday' | 'week' | 'month' | 'older';
+type DateBucketKey = 'today' | 'yesterday' | 'week' | 'older';
 
-const DATE_BUCKET_ORDER: DateBucketKey[] = [
-  'today',
-  'yesterday',
-  'week',
-  'month',
-  'older',
-];
+const DATE_BUCKET_ORDER: DateBucketKey[] = ['today', 'yesterday', 'week', 'older'];
 
 const DATE_BUCKET_LABEL: Record<DateBucketKey, string> = {
   today: '今天',
   yesterday: '昨天',
   week: '7 天内',
-  month: '30 天内',
   older: '更早',
 };
 
 const MS_PER_DAY = 86_400_000;
 
+/** 按更新时间归入「今天 / 昨天 / 7天内 / 更早」四档，用于侧栏分组标题。 */
 function bucketForUpdatedAt(updatedAt: number): DateBucketKey {
   const ts = Math.min(updatedAt, Date.now());
   const now = new Date();
   const startToday = new Date(
     now.getFullYear(),
     now.getMonth(),
-    now.getDate()
+    now.getDate(),
   ).getTime();
   if (ts >= startToday) return 'today';
   if (ts >= startToday - MS_PER_DAY) return 'yesterday';
   if (ts >= startToday - 7 * MS_PER_DAY) return 'week';
-  if (ts >= startToday - 30 * MS_PER_DAY) return 'month';
   return 'older';
-}
-
-function groupConversationsByDate(
-  conversations: ConversationRecord[]
-): { key: DateBucketKey; label: string; items: ConversationRecord[] }[] {
-  const buckets: Record<DateBucketKey, ConversationRecord[]> = {
-    today: [],
-    yesterday: [],
-    week: [],
-    month: [],
-    older: [],
-  };
-  for (const c of conversations) {
-    buckets[bucketForUpdatedAt(c.updatedAt)].push(c);
-  }
-  return DATE_BUCKET_ORDER.map((key) => ({
-    key,
-    label: DATE_BUCKET_LABEL[key],
-    items: buckets[key],
-  })).filter((g) => g.items.length > 0);
 }
 
 /** 会话标题来自首句提问，展示前做一次清洗，避免换行/空白把列表撑乱。 */
@@ -71,6 +51,7 @@ export interface SidebarProps {
   onNew: () => void;
   onSelect: (id: string) => void;
   onDelete: (id: string) => void | Promise<void>;
+  onRename?: (id: string, title: string) => void | Promise<void>;
   onOpenLogin?: () => void;
   /**
    * 是否在底部显示用户/登录入口。
@@ -86,18 +67,56 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onNew,
   onSelect,
   onDelete,
+  onRename,
   onOpenLogin,
   showSessionBlock = false,
   listLoading = false,
 }) => {
   const [keyword, setKeyword] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState('');
 
+  const startRename = (c: ConversationRecord) => {
+    setEditingId(c.id);
+    setEditValue(cleanTitle(c.title));
+  };
+
+  const commitRename = () => {
+    const id = editingId;
+    const next = editValue.trim();
+    setEditingId(null);
+    setEditValue('');
+    if (!id || !next) return;
+    void onRename?.(id, next);
+  };
+
+  const cancelRename = () => {
+    setEditingId(null);
+    setEditValue('');
+  };
+
+  /** 侧边栏按时间分组建标题列表：今天 / 昨天 / 7天内 / 更早，每项只显示标题。 */
   const grouped = useMemo(() => {
     const q = keyword.trim().toLowerCase();
     const filtered = q
-      ? conversations.filter((c) => cleanTitle(c.title).toLowerCase().includes(q))
+      ? conversations.filter((c) =>
+          cleanTitle(c.title).toLowerCase().includes(q),
+        )
       : conversations;
-    return groupConversationsByDate(filtered);
+    const buckets: Record<DateBucketKey, ConversationRecord[]> = {
+      today: [],
+      yesterday: [],
+      week: [],
+      older: [],
+    };
+    for (const c of filtered) {
+      buckets[bucketForUpdatedAt(c.updatedAt)].push(c);
+    }
+    return DATE_BUCKET_ORDER.map((key) => ({
+      key,
+      label: DATE_BUCKET_LABEL[key],
+      items: buckets[key],
+    })).filter((g) => g.items.length > 0);
   }, [conversations, keyword]);
 
   return (
@@ -135,47 +154,104 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <div key={group.key}>
                 <span className="sidebar__group-label">{group.label}</span>
                 {group.items.map((c) => {
-                  const selected = activeId === c.id;
-                  return (
+              const selected = activeId === c.id;
+              const editing = editingId === c.id;
+              return (
+                <div
+                  key={c.id}
+                  role="button"
+                  tabIndex={0}
+                  className={`sidebar__item ${selected ? 'sidebar__item--active' : ''} ${
+                    editing ? 'sidebar__item--editing' : ''
+                  }`}
+                  onClick={() => !editing && onSelect(c.id)}
+                  onKeyDown={(e) => {
+                    if (editing) return;
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      onSelect(c.id);
+                    }
+                  }}
+                >
+                  {editing ? (
                     <div
-                      key={c.id}
-                      role="button"
-                      tabIndex={0}
-                      className={`sidebar__item ${selected ? 'sidebar__item--active' : ''}`}
-                      onClick={() => onSelect(c.id)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          onSelect(c.id);
-                        }
-                      }}
+                      className="sidebar__edit"
+                      onClick={(e) => e.stopPropagation()}
                     >
-                      <span className="sidebar__item-title" title={cleanTitle(c.title)}>
+                      <Input
+                        size="small"
+                        autoFocus
+                        value={editValue}
+                        maxLength={50}
+                        onChange={(e) => setEditValue(e.target.value)}
+                        onPressEnter={commitRename}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Escape') cancelRename();
+                        }}
+                      />
+                      <Button
+                        className="sidebar__edit-btn"
+                        type="text"
+                        size="small"
+                        icon={<CheckOutlined />}
+                        aria-label="保存名称"
+                        onClick={commitRename}
+                      />
+                      <Button
+                        className="sidebar__edit-btn"
+                        type="text"
+                        size="small"
+                        icon={<CloseOutlined />}
+                        aria-label="取消重命名"
+                        onClick={cancelRename}
+                      />
+                    </div>
+                  ) : (
+                    <>
+                      <span
+                        className="sidebar__item-title"
+                        title={cleanTitle(c.title)}
+                      >
                         {cleanTitle(c.title)}
                       </span>
-                      <Popconfirm
-                        title="删除此对话？"
-                        description="删除后不可恢复"
-                        okText="删除"
-                        cancelText="取消"
-                        onConfirm={(e) => {
-                          e?.stopPropagation?.();
-                          void onDelete(c.id);
-                        }}
-                      >
+                      <span className="sidebar__item-actions">
                         <Button
-                          className="sidebar__delete"
+                          className="sidebar__rename"
                           type="text"
                           size="small"
-                          danger
-                          icon={<DeleteOutlined />}
-                          aria-label="删除对话"
-                          onClick={(e) => e.stopPropagation()}
+                          icon={<EditOutlined />}
+                          aria-label="重命名对话"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            startRename(c);
+                          }}
                         />
-                      </Popconfirm>
-                    </div>
-                  );
-                })}
+                        <Popconfirm
+                          title="删除此对话？"
+                          description="删除后不可恢复"
+                          okText="删除"
+                          cancelText="取消"
+                          onConfirm={(e) => {
+                            e?.stopPropagation?.();
+                            void onDelete(c.id);
+                          }}
+                        >
+                          <Button
+                            className="sidebar__delete"
+                            type="text"
+                            size="small"
+                            danger
+                            icon={<DeleteOutlined />}
+                            aria-label="删除对话"
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        </Popconfirm>
+                      </span>
+                    </>
+                  )}
+                </div>
+              );
+            })}
               </div>
             ))
           )}

@@ -13,6 +13,7 @@ import {
   ASSISTANT_AVATAR_ALT,
   ASSISTANT_AVATAR_URL,
 } from '@/utils/preferences';
+import { formatMessageTime } from '@/utils/datetime';
 import {
   filterManusStepsForCollapse,
   summarizeManusSteps,
@@ -32,15 +33,7 @@ const MarkdownContent = React.lazy(
 );
 
 function formatTime(ts: number): string {
-  if (!Number.isFinite(ts) || ts <= 0) return '';
-  try {
-    return new Date(ts).toLocaleTimeString('zh-CN', {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  } catch {
-    return '';
-  }
+  return formatMessageTime(ts);
 }
 
 export const MessageList: React.FC<MessageListProps> = ({

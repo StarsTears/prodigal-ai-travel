@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.prodigal.travel.controller.vo.ChatMessageVO;
+import com.prodigal.travel.exception.BusinessException;
+import com.prodigal.travel.exception.ResponseStatus;
 import com.prodigal.travel.model.entity.ChatConversation;
 import com.prodigal.travel.service.chat.ChatConversationService;
 import com.prodigal.travel.mapper.ChatConversationMapper;
@@ -73,5 +75,30 @@ public class ChatConversationServiceImpl extends ServiceImpl<ChatConversationMap
                 .eq(ChatConversation::getUserId, userId);
         this.remove(queryWrapper);
 
+    }
+
+    /**
+     * 重命名会话标题
+     * @param conversationId 会话id
+     * @param userId 用户id
+     * @param newTitle 新标题（会去除首尾空白，超长截断到 50 字）
+     */
+    @Override
+    public void rename(String conversationId, Long userId, String newTitle) {
+        String title = newTitle == null ? null : newTitle.trim();
+        if (StrUtil.isBlank(title)) {
+            throw new BusinessException(ResponseStatus.PARAMS_ERROR, "会话标题不能为空");
+        }
+        if (title.length() > 50) {
+            title = title.substring(0, 50);
+        }
+        boolean updated = this.lambdaUpdate()
+                .eq(ChatConversation::getConversationId, conversationId)
+                .eq(ChatConversation::getUserId, userId)
+                .set(ChatConversation::getTitle, title)
+                .update();
+        if (!updated) {
+            throw new BusinessException(ResponseStatus.NOT_FOUND_ERROR, "会话不存在或已删除");
+        }
     }
 }

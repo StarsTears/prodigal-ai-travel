@@ -57,6 +57,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
     newChat,
     selectChat,
     deleteChat,
+    renameChat,
     sendUserMessage,
     stopGenerating,
     geoState,
@@ -114,6 +115,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
         setHistoryDrawerOpen(false);
       }}
       onDelete={deleteChat}
+      onRename={renameChat}
       onOpenLogin={openLogin}
     />
   );

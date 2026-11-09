@@ -9,6 +9,7 @@ import com.prodigal.travel.common.SseStreams;
 import com.prodigal.travel.config.OpenApiSecurityConfig;
 import com.prodigal.travel.constants.LoginUserConstant;
 import com.prodigal.travel.controller.request.ChatRequest;
+import com.prodigal.travel.controller.request.ConversationRenameRequest;
 import com.prodigal.travel.controller.vo.ChatMessageVO;
 import com.prodigal.travel.controller.vo.TravelChatResponse;
 import com.prodigal.travel.service.ManusAgentService;
@@ -22,8 +23,10 @@ import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestAttribute;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -132,6 +135,15 @@ public class TravelAssistantController {
             @RequestAttribute(LoginUserConstant.REQUEST_ATTR_USER_ID) Long loginUserId,
             @RequestParam String chatId) {
         chatConversationService.remove(chatId, loginUserId);
+        return ResultUtils.success(null);
+    }
+
+    @Operation(summary = "重命名会话", description = "修改指定会话的标题；需登录")
+    @PutMapping("/conversations")
+    public BaseResult<Void> renameConversation(
+            @RequestAttribute(LoginUserConstant.REQUEST_ATTR_USER_ID) Long loginUserId,
+            @Valid @ModelAttribute ConversationRenameRequest request) {
+        chatConversationService.rename(request.getChatId(), loginUserId, request.getTitle());
         return ResultUtils.success(null);
     }
 

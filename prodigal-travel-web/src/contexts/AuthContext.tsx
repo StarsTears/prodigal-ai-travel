@@ -17,11 +17,12 @@ import {
 } from '@/api/auth';
 import {
   AUTH_EXPIRED_EVENT,
-  clearAuthSession,
+  clearUserLocalCache,
   getStoredToken,
   getStoredUser,
   setAuthSession,
 } from '@/utils/authStorage';
+import { seedDisplayName } from '@/utils/preferences';
 import { assertBaseResultOk, unwrapBaseResult } from '@/utils/apiResult';
 
 export interface AuthContextValue {
@@ -60,7 +61,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setUser(u);
     } else {
       if (t || u) {
-        clearAuthSession();
+        clearUserLocalCache();
       }
       setToken(null);
       setUser(null);
@@ -91,6 +92,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setAuthSession(data.token, data);
     setToken(data.token);
     setUser(data);
+    seedDisplayName(data.username);
   }, []);
 
   const loginWithEmailCode = useCallback(async (email: string, code: string) => {
@@ -105,6 +107,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setAuthSession(data.token, data);
     setToken(data.token);
     setUser(data);
+    seedDisplayName(data.username);
   }, []);
 
   const registerAccount = useCallback(
@@ -139,7 +142,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     } catch {
       /* 网络失败仍清理本地，避免无法退出 */
     } finally {
-      clearAuthSession();
+      clearUserLocalCache();
       setToken(null);
       setUser(null);
     }
@@ -148,7 +151,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const deregisterAccount = useCallback(async () => {
     const res = await apiDeregister();
     assertBaseResultOk(res.data);
-    clearAuthSession();
+    clearUserLocalCache();
     setToken(null);
     setUser(null);
     message.success('账号已注销');

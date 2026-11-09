@@ -74,7 +74,7 @@ export const UserSessionBlock: React.FC<UserSessionBlockProps> = ({
     setAutoLocate(readAutoLocate());
     setGeo(getGeoState());
     return subscribeGeo(setGeo);
-  }, []);
+  }, [token]);
 
   /**
    * 显示名优先级：用户在本机显式设置的别名 > 登录响应 username > nickname > 邮箱前缀。
