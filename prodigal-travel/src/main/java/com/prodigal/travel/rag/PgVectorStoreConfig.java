@@ -85,6 +85,20 @@ public class PgVectorStoreConfig {
                 .vectorTableName("travel_vector_store")     // Optional: defaults to "vector_store"
                 .maxDocumentBatchSize(10000)
                 .build();
+        // 地理标签升级：若表中已存在的数据缺少 province 标签（旧版），清空后重建，
+        // 否则地理确定性召回取不到数据。表尚未创建（首启）时查询会抛错，忽略即可，
+        // 后续 add 会因 initializeSchema(true) 自动建表。
+        try {
+            Integer stale = jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM public.travel_vector_store WHERE metadata->>'province' IS NULL",
+                    Integer.class);
+            if (stale != null && stale > 0) {
+                jdbcTemplate.update("DELETE FROM public.travel_vector_store");
+                log.info("检测到旧版无地理标签数据 {} 条，已清空并重建知识库（带 province/city 标签）", stale);
+            }
+        } catch (Exception e) {
+            log.info("地理标签升级检测跳过（表可能尚未创建）：{}", e.getMessage());
+        }
         //加载文档
         List<Document> documents = travelKnowledgeLoader.loadMarkdown();
         //切分文档

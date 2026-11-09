@@ -15,6 +15,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
+import com.prodigal.travel.rag.geo.GeoTagger;
+
 
 /**
  * @author Lang
@@ -29,16 +31,19 @@ public class TravelKnowledgeLoader {
     private final ResourcePatternResolver resourcePatternResolver;
     private final TravelTokenTextSplitter travelTokenTextSplitter;
     private final TravelKeywordEnricher travelKeywordEnricher;
+    private final GeoTagger geoTagger;
     private static final Pattern SEMANTIC_SPLIT_PATTERN = Pattern.compile(
             "(?m)(?=^#{1,3}\\s)|\\n\\s*\\n|(?m)(?=^---+$)"
     );
 
     TravelKnowledgeLoader(ResourcePatternResolver resourcePatternResolver,
                           TravelTokenTextSplitter travelTokenTextSplitter,
-                          TravelKeywordEnricher travelKeywordEnricher) {
+                          TravelKeywordEnricher travelKeywordEnricher,
+                          GeoTagger geoTagger) {
         this.resourcePatternResolver = resourcePatternResolver;
         this.travelTokenTextSplitter = travelTokenTextSplitter;
         this.travelKeywordEnricher = travelKeywordEnricher;
+        this.geoTagger = geoTagger;
     }
 
     List<Document> loadMarkdown(){
@@ -55,6 +60,8 @@ public class TravelKnowledgeLoader {
 
                 MarkdownDocumentReader reader = new MarkdownDocumentReader(resource, config);
                 List<Document> sourceDocuments = reader.read();
+                // 分块前给源文档打地理标签（province/city），分块会继承，重建向量库后每个分块都带标签
+                sourceDocuments = geoTagger.tag(sourceDocuments);
                 documentArrayList.addAll(splitBySemantic(sourceDocuments, resource.getFilename()));
             }
             return documentArrayList;

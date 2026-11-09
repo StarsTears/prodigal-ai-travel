@@ -119,6 +119,10 @@ prodigal:
     top-k: ${PRODIGAL_RAG_TOP_K:5}
     # 主题词校验，拦截「问拉萨、召回黄山」这类跑题片段
     keyword-guard: ${PRODIGAL_RAG_KEYWORD_GUARD:true}
+    # LLM 多查询扩展：把原查询改写成若干语义变体扩大向量召回面；每次 RAG 额外调用模型，成本较高
+    llm-expansion-enabled: ${PRODIGAL_RAG_LLM_EXPANSION:true}
+    # 地理标签确定性召回：识别查询里的行政区，按 province/city 标签直接取数，可靠修复「搜海南召回不了三亚」
+    geo-enabled: ${PRODIGAL_RAG_GEO_ENABLED:true}
   jwt:
     secret: ${PRODIGAL_JWT_SECRET:prodigal-travel-default-jwt-secret-min-32-chars-long!!}
     expire-hours: ${PRODIGAL_JWT_EXPIRE_HOURS:10}
